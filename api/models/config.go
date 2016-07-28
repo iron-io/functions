@@ -8,6 +8,7 @@ type Config struct {
 		Level  string `json:"level"`
 		Prefix string `json:"prefix"`
 	}
+	PapertrailToken string `json:"papertrail_token"`
 }
 
 func (c *Config) Validate() error {

@@ -12,6 +12,7 @@ var (
 	ErrAppsList           = errors.New("Could not list apps from datastore")
 	ErrAppsNotFound       = errors.New("App not found")
 	ErrAppNothingToUpdate = errors.New("Nothing to update")
+	ErrAppLog             = errors.New("Could not retrieve log")
 )
 
 type App struct {
@@ -31,4 +32,8 @@ func (a *App) Validate() error {
 }
 
 type AppFilter struct {
+}
+
+type AppLog struct {
+	Log string `json:"log"`
 }
