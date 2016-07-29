@@ -19,6 +19,7 @@ func main() {
 	config := &models.Config{}
 	config.DatabaseURL = os.Getenv("DB")
 	config.API = os.Getenv("API")
+	config.PapertrailToken = os.Getenv("PT_TOKEN")
 
 	err := config.Validate()
 	if err != nil {

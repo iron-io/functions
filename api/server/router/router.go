@@ -18,6 +18,8 @@ func Start(engine *gin.Engine) {
 		v1.POST("/apps/:app", handleAppUpdate)
 		v1.DELETE("/apps/:app", handleAppDestroy)
 
+		v1.GET("/apps/:app/log", handleAppLog)
+
 		apps := v1.Group("/apps/:app")
 		{
 			apps.GET("/routes", handleRouteList)
