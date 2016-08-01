@@ -6,10 +6,10 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api/server"
 )
 
 func handleRouteCreate(c *gin.Context) {
-	store := c.MustGet("store").(models.Datastore)
 	log := c.MustGet("log").(logrus.FieldLogger)
 
 	var wroute models.RouteWrapper
@@ -35,7 +35,7 @@ func handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	app, err := store.GetApp(wroute.Route.AppName)
+	app, err := api.Datastore.GetApp(wroute.Route.AppName)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsGet)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsGet))
@@ -49,7 +49,7 @@ func handleRouteCreate(c *gin.Context) {
 			return
 		}
 
-		app, err = store.StoreApp(newapp)
+		app, err = api.Datastore.StoreApp(newapp)
 		if err != nil {
 			log.WithError(err).Error(models.ErrAppsCreate)
 			c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
@@ -57,7 +57,7 @@ func handleRouteCreate(c *gin.Context) {
 		}
 	}
 
-	route, err := store.StoreRoute(wroute.Route)
+	route, err := api.Datastore.StoreRoute(wroute.Route)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesCreate))
