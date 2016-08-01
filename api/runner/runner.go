@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/cloudfoundry/bytefmt"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/titan/common"
 	"github.com/iron-io/titan/runner/agent"
@@ -43,8 +44,15 @@ func (r *Runner) Run() error {
 	// Can we remove it?
 	env := common.NewEnvironment(func(e *common.Environment) {})
 
+	mem, err := bytefmt.ToBytes(r.cfg.Route.Memory)
+	if err != nil {
+		return err
+	}
+
 	// TODO: Create a drivers.New(runnerConfig) in Titan
-	driver, err := selectDriver("docker", env, &driverscommon.Config{})
+	driver, err := selectDriver("docker", env, &driverscommon.Config{
+		Memory: mem,
+	})
 	if err != nil {
 		return err
 	}
