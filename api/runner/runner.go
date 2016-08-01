@@ -7,21 +7,21 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/cloudfoundry/bytefmt"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/titan/common"
 	"github.com/iron-io/titan/runner/agent"
-	"github.com/iron-io/titan/runner/configloader"
 	"github.com/iron-io/titan/runner/drivers"
+	driverscommon "github.com/iron-io/titan/runner/drivers/common"
 	"github.com/iron-io/titan/runner/drivers/docker"
 	"github.com/iron-io/titan/runner/drivers/mock"
 )
 
 type Config struct {
-	Ctx      context.Context
-	Route    *models.Route
-	Endpoint string
-	Payload  string
-	Timeout  time.Duration
+	Ctx     context.Context
+	Route   *models.Route
+	Payload string
+	Timeout time.Duration
 }
 
 type Runner struct {
@@ -40,23 +40,26 @@ func New(cfg *Config) *Runner {
 func (r *Runner) Run() error {
 	var err error
 
-	runnerConfig := configloader.RunnerConfiguration()
-
-	au := agent.ConfigAuth{runnerConfig.Registries}
-
 	// TODO: Is this really required for Titan's driver?
 	// Can we remove it?
 	env := common.NewEnvironment(func(e *common.Environment) {})
 
+	mem, err := bytefmt.ToBytes(r.cfg.Route.Memory)
+	if err != nil {
+		return err
+	}
+
 	// TODO: Create a drivers.New(runnerConfig) in Titan
-	driver, err := selectDriver(env, runnerConfig)
+	driver, err := selectDriver("docker", env, &driverscommon.Config{
+		Memory: mem,
+	})
 	if err != nil {
 		return err
 	}
 
 	ctask := &containerTask{
 		cfg:    r.cfg,
-		auth:   &au,
+		auth:   &agent.ConfigAuth{},
 		stdout: &r.out,
 		stderr: &r.err,
 	}
@@ -83,13 +86,13 @@ func (r Runner) Status() string {
 	return r.status
 }
 
-func selectDriver(env *common.Environment, conf *agent.Config) (drivers.Driver, error) {
-	switch conf.Driver {
+func selectDriver(driver string, env *common.Environment, conf *driverscommon.Config) (drivers.Driver, error) {
+	switch driver {
 	case "docker":
-		docker := docker.NewDocker(env, conf.DriverConfig)
+		docker := docker.NewDocker(env, conf)
 		return docker, nil
 	case "mock":
 		return mock.New(), nil
 	}
-	return nil, fmt.Errorf("driver %v not found", conf.Driver)
+	return nil, fmt.Errorf("driver %v not found", driver)
 }

@@ -26,6 +26,8 @@ type Route struct {
 	Path    string      `json:"path"`
 	Image   string      `json:"image"`
 	Headers http.Header `json:"headers,omitempty"`
+
+	Requirements
 }
 
 var (
@@ -57,6 +59,10 @@ func (r *Route) Validate() error {
 
 	if !path.IsAbs(r.Path) {
 		res = append(res, ErrRoutesValidationInvalidPath)
+	}
+
+	if err := r.Requirements.Validate(); err != nil {
+		res = append(res, err)
 	}
 
 	if len(res) > 0 {
