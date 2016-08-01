@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 
@@ -9,20 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/server/datastore"
-	"github.com/iron-io/functions/api/server/router"
 )
 
-type Server struct {
-	router *gin.Engine
-	cfg    *models.Config
-}
-
-func New(config *models.Config) *Server {
-	return &Server{
-		router: gin.Default(),
-		cfg:    config,
-	}
-}
+var Config = &models.Config{}
+var Datastore models.Datastore = &datastore.Mock{}
+var Router *gin.Engine
 
 func extractFields(c *gin.Context) logrus.Fields {
 	fields := logrus.Fields{"action": path.Base(c.HandlerName())}
@@ -32,17 +24,19 @@ func extractFields(c *gin.Context) logrus.Fields {
 	return fields
 }
 
-func (s *Server) Start() {
-	if s.cfg.DatabaseURL == "" {
+func Start() {
+	err := Config.Validate()
+	if err != nil {
+		logrus.WithError(err).Fatalln("Invalid config.")
+	}
+	log.Printf("config: %+v", Config)
+
+	if Config.DatabaseURL == "" {
 		cwd, _ := os.Getwd()
-		s.cfg.DatabaseURL = fmt.Sprintf("bolt://%s/bolt.db?bucket=funcs", cwd)
+		Config.DatabaseURL = fmt.Sprintf("bolt://%s/bolt.db?bucket=funcs", cwd)
 	}
 
-	if s.cfg.API == "" {
-		s.cfg.API = "http://localhost:8080"
-	}
-
-	ds, err := datastore.New(s.cfg.DatabaseURL)
+	Datastore, err = datastore.New(Config.DatabaseURL)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Invalid DB url.")
 	}
@@ -50,15 +44,10 @@ func (s *Server) Start() {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.DebugLevel)
 
-	s.router.Use(func(c *gin.Context) {
-		c.Set("config", s.cfg)
-		c.Set("store", ds)
+	Router = gin.Default()
+
+	Router.Use(func(c *gin.Context) {
 		c.Set("log", logrus.WithFields(extractFields(c)))
 		c.Next()
 	})
-
-	router.Start(s.router)
-
-	// Default to :8080
-	s.router.Run()
 }

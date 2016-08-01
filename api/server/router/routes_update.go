@@ -6,10 +6,10 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api/server"
 )
 
 func handleRouteUpdate(c *gin.Context) {
-	store := c.MustGet("store").(models.Datastore)
 	log := c.MustGet("log").(logrus.FieldLogger)
 
 	var wroute models.RouteWrapper
@@ -36,7 +36,7 @@ func handleRouteUpdate(c *gin.Context) {
 		return
 	}
 
-	route, err := store.StoreRoute(wroute.Route)
+	route, err := api.Datastore.StoreRoute(wroute.Route)
 	if err != nil {
 		log.WithError(err).Debug(models.ErrAppsCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))

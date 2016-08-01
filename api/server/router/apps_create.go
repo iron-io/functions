@@ -6,10 +6,10 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api/server"
 )
 
 func handleAppCreate(c *gin.Context) {
-	store := c.MustGet("store").(models.Datastore)
 	log := c.MustGet("log").(logrus.FieldLogger)
 
 	wapp := &models.AppWrapper{}
@@ -33,7 +33,7 @@ func handleAppCreate(c *gin.Context) {
 		return
 	}
 
-	app, err := store.StoreApp(wapp.App)
+	app, err := api.Datastore.StoreApp(wapp.App)
 	if err != nil {
 		log.WithError(err).Debug(models.ErrAppsCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))

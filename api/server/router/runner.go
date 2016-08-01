@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
+	"github.com/iron-io/functions/api/server"
 )
 
 func handleRunner(c *gin.Context) {
@@ -21,7 +22,6 @@ func handleRunner(c *gin.Context) {
 	}
 
 	log := c.MustGet("log").(logrus.FieldLogger)
-	store := c.MustGet("store").(models.Datastore)
 
 	var err error
 
@@ -64,7 +64,7 @@ func handleRunner(c *gin.Context) {
 
 	log.WithFields(logrus.Fields{"app": appName, "path": route}).Debug("Finding route on datastore")
 
-	routes, err := store.GetRoutes(filter)
+	routes, err := api.Datastore.GetRoutes(filter)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))

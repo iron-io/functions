@@ -6,15 +6,15 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api/server"
 )
 
 func handleAppList(c *gin.Context) {
-	store := c.MustGet("store").(models.Datastore)
 	log := c.MustGet("log").(logrus.FieldLogger)
 
 	filter := &models.AppFilter{}
 
-	apps, err := store.GetApps(filter)
+	apps, err := api.Datastore.GetApps(filter)
 	if err != nil {
 		log.WithError(err).Debug(models.ErrAppsList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsList))
