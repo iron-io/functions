@@ -20,6 +20,8 @@ func TestRunnerHello(t *testing.T) {
 		{&models.Route{Image: "iron/hello"}, ``, "success", "Hello World!", ""},
 		{&models.Route{Image: "iron/hello"}, `{"name": "test"}`, "success", "Hello test!", ""},
 	} {
+		test.route.Validate()
+
 		runner := New(&Config{
 			Ctx:     context.Background(),
 			Route:   test.route,
@@ -56,6 +58,8 @@ func TestRunnerError(t *testing.T) {
 		{&models.Route{Image: "iron/error"}, ``, "error", "", "RuntimeError"},
 		{&models.Route{Image: "iron/error"}, `{"name": "test"}`, "error", "", "RuntimeError"},
 	} {
+		test.route.Validate()
+
 		runner := New(&Config{
 			Ctx:     context.Background(),
 			Route:   test.route,

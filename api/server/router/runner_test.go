@@ -76,11 +76,17 @@ func TestRouteRunnerPost(t *testing.T) {
 }
 
 func TestRouteRunnerExecution(t *testing.T) {
+	routes := []*models.Route{
+		{Path: "/myroute", Image: "iron/hello", Headers: map[string][]string{"X-Function": []string{"Test"}}},
+		{Path: "/myerror", Image: "iron/error", Headers: map[string][]string{"X-Function": []string{"Test"}}},
+	}
+
+	for _, route := range routes {
+		route.Validate()
+	}
+
 	router := testRouter(&datastore.Mock{
-		FakeRoutes: []*models.Route{
-			{Path: "/myroute", Image: "iron/hello", Headers: map[string][]string{"X-Function": []string{"Test"}}},
-			{Path: "/myerror", Image: "iron/error", Headers: map[string][]string{"X-Function": []string{"Test"}}},
-		},
+		FakeRoutes: routes,
 	}, &models.Config{})
 
 	for i, test := range []struct {
@@ -92,6 +98,7 @@ func TestRouteRunnerExecution(t *testing.T) {
 		{"/r/myapp/myroute", ``, http.StatusOK, map[string][]string{"X-Function": []string{"Test"}}},
 		{"/r/myapp/myerror", ``, http.StatusInternalServerError, map[string][]string{"X-Function": []string{"Test"}}},
 	} {
+
 		body := bytes.NewBuffer([]byte(test.body))
 		_, rec := routerRequest(t, router, "GET", test.path, body)
 
