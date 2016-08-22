@@ -47,7 +47,7 @@ func (r *Runner) Init() (drivers.Driver, *containerTask, error) {
 	// TODO: Create a drivers.New(runnerConfig) in Titan
 	driver, err := selectDriver("docker", env, &driverscommon.Config{})
 	if err != nil {
-		return mock.New(), &containerTask{}, err
+		return nil, nil, err
 	}
 
 	ctask := &containerTask{
