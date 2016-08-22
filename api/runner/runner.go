@@ -39,9 +39,7 @@ func New(cfg *Config) *Runner {
 	}
 }
 
-func (r *Runner) Run() error {
-	var err error
-
+func (r *Runner) Init() (drivers.Driver, *containerTask, error) {
 	// TODO: Is this really required for Titan's driver?
 	// Can we remove it?
 	env := common.NewEnvironment(func(e *common.Environment) {})
@@ -49,7 +47,7 @@ func (r *Runner) Run() error {
 	// TODO: Create a drivers.New(runnerConfig) in Titan
 	driver, err := selectDriver("docker", env, &driverscommon.Config{})
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	ctask := &containerTask{
@@ -59,13 +57,22 @@ func (r *Runner) Run() error {
 		stderr: &r.err,
 	}
 
+	return driver, ctask, nil
+}
+
+func (r *Runner) Run() error {
+	// Start Runner
+	driver, ctask, err := r.Init()
+	if err != nil {
+		return err
+	}
+
 	result, err := driver.Run(r.cfg.Ctx, ctask)
 	if err != nil {
 		return err
 	}
 
 	r.status = result.Status()
-
 	return nil
 }
 
@@ -79,6 +86,18 @@ func (r Runner) ReadErr() []byte {
 
 func (r Runner) Status() string {
 	return r.status
+}
+
+func (r Runner) EnsureUsableImage() error {
+	driver, ctask, err := r.Init()
+	if err != nil {
+		return err
+	}
+	err = driver.EnsureUsableImage(r.cfg.Ctx, ctask)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func selectDriver(driver string, env *common.Environment, conf *driverscommon.Config) (drivers.Driver, error) {
