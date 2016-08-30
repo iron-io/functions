@@ -18,6 +18,9 @@ func (t *containerTask) Command() string { return "" }
 func (t *containerTask) EnvVars() map[string]string {
 	return t.cfg.Env
 }
+func (t *containerTask) InputStream() string {
+	return t.cfg.InputStream
+}
 
 func (t *containerTask) Labels() map[string]string {
 	return map[string]string{

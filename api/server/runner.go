@@ -111,12 +111,13 @@ func handleRunner(c *gin.Context) {
 		if el.Path == route {
 			var stdout, stderr bytes.Buffer
 			cfg := &runner.Config{
-				Image:   el.Image,
-				Timeout: 30 * time.Second,
-				ID:      reqID,
-				AppName: appName,
-				Stdout:  &stdout,
-				Stderr:  &stderr,
+				Image:       el.Image,
+				Timeout:     30 * time.Second,
+				ID:          reqID,
+				AppName:     appName,
+				Stdout:      &stdout,
+				Stderr:      &stderr,
+				InputStream: string(payload),
 				Env: map[string]string{
 					"PAYLOAD":     string(payload),
 					"REQUEST_URL": c.Request.URL.String(),
