@@ -144,13 +144,17 @@ func handleRunner(c *gin.Context) {
 			}
 
 			cfg := &runner.Config{
-				Image:   el.Image,
-				Timeout: 30 * time.Second,
-				ID:      reqID,
-				AppName: appName,
-				Stdout:  &stdout,
-				Stderr:  stderr,
-				Env:     envVars,
+				Image:       el.Image,
+				Timeout:     30 * time.Second,
+				ID:          reqID,
+				AppName:     appName,
+				Stdout:      &stdout,
+				Stderr:      &stderr,
+				InputStream: string(payload),
+				Env: map[string]string{
+					"PAYLOAD":     string(payload),
+					"REQUEST_URL": c.Request.URL.String(),
+				},
 			}
 
 			if result, err := Api.Runner.Run(c, cfg); err != nil {
