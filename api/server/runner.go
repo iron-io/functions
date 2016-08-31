@@ -152,14 +152,6 @@ func handleRunner(c *gin.Context) {
 				},
 			}
 
-			/*if b, err := ioutil.ReadAll(payload); err == nil {
-				log.WithField("payload", string(b)).Debug("Got payload1")
-			}
-
-			if b, err := ioutil.ReadAll(cfg.Input); err == nil {
-				log.WithField("payload", string(b)).Debug("Got payload2")
-			}*/
-
 			if result, err := Api.Runner.Run(c, cfg); err != nil {
 				log.WithError(err).Error(models.ErrRunnerRunRoute)
 				c.JSON(http.StatusInternalServerError, simpleError(models.ErrRunnerRunRoute))
