@@ -16,6 +16,7 @@ import (
 )
 
 type Config struct {
+<<<<<<< HEAD
 	ID      string
 	Image   string
 	Timeout time.Duration
@@ -24,6 +25,16 @@ type Config struct {
 	Input   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
+=======
+	ID          string
+	Image       string
+	Timeout     time.Duration
+	AppName     string
+	Env         map[string]string
+	InputStream string
+	Stdout      io.Writer
+	Stderr      io.Writer
+>>>>>>> d87b51c3bddd8c76de0cdfb26677b9b7cfa9d96e
 }
 
 type Runner struct {
