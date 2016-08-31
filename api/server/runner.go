@@ -3,14 +3,13 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
 	"golang.org/x/net/context"
-
-	"encoding/json"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
@@ -46,27 +45,25 @@ func handleRunner(c *gin.Context) {
 	log = log.WithFields(logrus.Fields{"request_id": reqID})
 
 	var err error
+	var payload io.Reader
 
-	var payload []byte
 	if c.Request.Method == "POST" || c.Request.Method == "PUT" {
-		payload, err = ioutil.ReadAll(c.Request.Body)
+		payload = c.Request.Body
 	} else if c.Request.Method == "GET" {
-		qPL := c.Request.URL.Query()["payload"]
-		if len(qPL) > 0 {
-			payload = []byte(qPL[0])
+		reqPayload := c.Request.URL.Query().Get("payload")
+		if len(reqPayload) > 0 {
+			payload = strings.NewReader(reqPayload)
 		}
 	}
 
-	if len(payload) > 0 {
-		var emptyJSON map[string]interface{}
-		if err := json.Unmarshal(payload, &emptyJSON); err != nil {
-			log.WithError(err).Error(models.ErrInvalidJSON)
-			c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))
-			return
-		}
-	}
+	// Load complete body and close
+	defer func() {
+		io.Copy(ioutil.Discard, c.Request.Body)
+		c.Request.Body.Close()
+	}()
 
-	log.WithField("payload", string(payload)).Debug("Got payload")
+	// TODO: Print payload debug without cleaning the reader var.
+	// log.WithField("payload", payload).Debug("Got payload")
 
 	appName := c.Param("app")
 	if appName == "" {
@@ -119,7 +116,6 @@ func handleRunner(c *gin.Context) {
 			envVars := map[string]string{
 				"METHOD":      c.Request.Method,
 				"ROUTE":       el.Path,
-				"PAYLOAD":     string(payload),
 				"REQUEST_URL": c.Request.URL.String(),
 			}
 
@@ -144,18 +140,25 @@ func handleRunner(c *gin.Context) {
 			}
 
 			cfg := &runner.Config{
-				Image:       el.Image,
-				Timeout:     30 * time.Second,
-				ID:          reqID,
-				AppName:     appName,
-				Stdout:      &stdout,
-				Stderr:      &stderr,
-				InputStream: string(payload),
+				Image:   el.Image,
+				Timeout: 30 * time.Second,
+				ID:      reqID,
+				AppName: appName,
+				Stdout:  &stdout,
+				Stderr:  stderr,
+				Input:   payload,
 				Env: map[string]string{
-					"PAYLOAD":     string(payload),
 					"REQUEST_URL": c.Request.URL.String(),
 				},
 			}
+
+			/*if b, err := ioutil.ReadAll(payload); err == nil {
+				log.WithField("payload", string(b)).Debug("Got payload1")
+			}
+
+			if b, err := ioutil.ReadAll(cfg.Input); err == nil {
+				log.WithField("payload", string(b)).Debug("Got payload2")
+			}*/
 
 			if result, err := Api.Runner.Run(c, cfg); err != nil {
 				log.WithError(err).Error(models.ErrRunnerRunRoute)

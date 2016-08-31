@@ -16,14 +16,14 @@ import (
 )
 
 type Config struct {
-	ID          string
-	Image       string
-	Timeout     time.Duration
-	AppName     string
-	Env         map[string]string
-	InputStream string
-	Stdout      io.Writer
-	Stderr      io.Writer
+	ID      string
+	Image   string
+	Timeout time.Duration
+	AppName string
+	Env     map[string]string
+	Input   io.Reader
+	Stdout  io.Writer
+	Stderr  io.Writer
 }
 
 type Runner struct {
