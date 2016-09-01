@@ -62,9 +62,6 @@ func handleRunner(c *gin.Context) {
 		c.Request.Body.Close()
 	}()
 
-	// TODO: Print payload debug without cleaning the reader var.
-	// log.WithField("payload", payload).Debug("Got payload")
-
 	appName := c.Param("app")
 	if appName == "" {
 		// check context, app can be added via special handlers
@@ -151,14 +148,6 @@ func handleRunner(c *gin.Context) {
 					"REQUEST_URL": c.Request.URL.String(),
 				},
 			}
-
-			/*if b, err := ioutil.ReadAll(payload); err == nil {
-				log.WithField("payload", string(b)).Debug("Got payload1")
-			}
-
-			if b, err := ioutil.ReadAll(cfg.Input); err == nil {
-				log.WithField("payload", string(b)).Debug("Got payload2")
-			}*/
 
 			if result, err := Api.Runner.Run(c, cfg); err != nil {
 				log.WithError(err).Error(models.ErrRunnerRunRoute)
