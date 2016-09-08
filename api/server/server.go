@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"path"
 
 	"golang.org/x/net/context"
@@ -97,8 +98,13 @@ func (s *Server) Run(ctx context.Context) {
 
 	bindHandlers(s.Router)
 
-	// Default to :8080
-	s.Router.Run()
+	// Get port by env var PORT or default :8080
+	port := os.Getenv("PORT")
+	if port != "" {
+		s.Router.Run(":" + port)
+	} else {
+		s.Router.Run()
+	}
 }
 
 func bindHandlers(engine *gin.Engine) {
