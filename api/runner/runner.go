@@ -21,6 +21,7 @@ type Config struct {
 	Timeout time.Duration
 	AppName string
 	Env     map[string]string
+	Input   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
 }
