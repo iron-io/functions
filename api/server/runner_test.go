@@ -28,8 +28,6 @@ func TestRouteRunnerGet(t *testing.T) {
 		{"/route", "", http.StatusBadRequest, models.ErrAppsNotFound},
 		{"/r/app/route", "", http.StatusNotFound, models.ErrAppsNotFound},
 		{"/r/myapp/route", "", http.StatusNotFound, models.ErrRunnerRouteNotFound},
-		{"/route?payload=test", "", http.StatusBadRequest, models.ErrInvalidJSON},
-		{"/r/app/route?payload=test", "", http.StatusBadRequest, models.ErrInvalidJSON},
 	} {
 		_, rec := routerRequest(t, router, "GET", test.path, nil)
 
@@ -63,8 +61,6 @@ func TestRouteRunnerPost(t *testing.T) {
 		expectedCode  int
 		expectedError error
 	}{
-		{"/route", `payload`, http.StatusBadRequest, models.ErrInvalidJSON},
-		{"/r/app/route", `payload`, http.StatusBadRequest, models.ErrInvalidJSON},
 		{"/route", `{ "payload": "" }`, http.StatusBadRequest, models.ErrAppsNotFound},
 		{"/r/app/route", `{ "payload": "" }`, http.StatusNotFound, models.ErrAppsNotFound},
 		{"/r/myapp/route", `{ "payload": "" }`, http.StatusNotFound, models.ErrRunnerRouteNotFound},
