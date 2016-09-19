@@ -49,18 +49,17 @@ func handleRunner(c *gin.Context) {
 
 	if c.Request.Method == "POST" || c.Request.Method == "PUT" {
 		payload = c.Request.Body
+		// Load complete body and close
+		defer func() {
+			io.Copy(ioutil.Discard, c.Request.Body)
+			c.Request.Body.Close()
+		}()
 	} else if c.Request.Method == "GET" {
 		reqPayload := c.Request.URL.Query().Get("payload")
 		if len(reqPayload) > 0 {
 			payload = strings.NewReader(reqPayload)
 		}
 	}
-
-	// Load complete body and close
-	defer func() {
-		io.Copy(ioutil.Discard, c.Request.Body)
-		c.Request.Body.Close()
-	}()
 
 	appName := c.Param("app")
 	if appName == "" {
