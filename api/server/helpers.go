@@ -36,11 +36,6 @@ type routesResponse struct {
 	Routes  models.Routes `json:"routes"`
 }
 
-type tasksResponse struct {
-	Message string      `json:"message"`
-	Task    models.Task `json:"tasksResponse"`
-}
-
 func testRouter() *gin.Engine {
 	r := gin.Default()
 	ctx := context.Background()
@@ -49,11 +44,7 @@ func testRouter() *gin.Engine {
 		c.Set("ctx", ctx)
 		c.Next()
 	})
-	bindHandlers(r,
-		func(ctx *gin.Context) {
-			handleRequest(ctx, nil)
-		},
-		func(ctx *gin.Context) {})
+	bindHandlers(r)
 	return r
 }
 
