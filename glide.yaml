@@ -11,4 +11,3 @@ import:
   vcs: git
   version: master
 - package: github.com/lib/pq
-- package: github.com/google/btree
