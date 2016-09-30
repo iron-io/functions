@@ -16,14 +16,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
-	titancommon "github.com/iron-io/worker/common"
-	"github.com/iron-io/worker/runner/drivers"
+	"github.com/iron-io/runner/common"
+	"github.com/iron-io/runner/drivers"
 	"github.com/satori/go.uuid"
 )
 
 func handleSpecial(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
-	log := titancommon.Logger(ctx)
+	log := common.Logger(ctx)
 
 	err := Api.UseSpecialHandlers(c)
 	if err != nil {
@@ -39,7 +39,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	}
 
 	ctx := c.MustGet("ctx").(context.Context)
-	log := titancommon.Logger(ctx)
+	log := common.Logger(ctx)
 
 	reqID := uuid.NewV5(uuid.Nil, fmt.Sprintf("%s%s%d", c.Request.RemoteAddr, c.Request.URL.Path, time.Now().Unix())).String()
 	c.Set("reqID", reqID) // todo: put this in the ctx instead of gin's
