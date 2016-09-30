@@ -218,10 +218,11 @@ func (r Runner) EnsureImageExists(ctx context.Context, cfg *Config) error {
 		auth: &common.ConfigAuth{},
 	}
 
-	err := r.driver.EnsureImageExists(ctx, ctask)
+	closer, err := r.driver.Prepare(ctx, ctask)
 	if err != nil {
 		return err
 	}
+	closer.Close()
 	return nil
 }
 
