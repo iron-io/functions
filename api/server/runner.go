@@ -14,6 +14,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api/common"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/runner/common"
@@ -44,7 +45,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	reqID := uuid.NewV5(uuid.Nil, fmt.Sprintf("%s%s%d", c.Request.RemoteAddr, c.Request.URL.Path, time.Now().Unix())).String()
 	c.Set("reqID", reqID) // todo: put this in the ctx instead of gin's
 
-	log = log.WithFields(logrus.Fields{"request_id": reqID})
+	ctx, log = common.LoggerWithFields(ctx, logrus.Fields{"call_id": reqID})
 
 	var err error
 
@@ -107,7 +108,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	log.WithField("routes", routes).Debug("Got routes from datastore")
 	for _, el := range routes {
 		log = log.WithFields(logrus.Fields{
-			"app": appName, "route": el.Path, "image": el.Image, "request_id": reqID})
+			"app": appName, "route": el.Path, "image": el.Image})
 
 		if params, match := matchRoute(el.Path, route); match {
 
@@ -156,15 +157,17 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 			var result drivers.RunResult
 			switch el.Type {
 			case "async":
-				// TODO: Create Task
+				// Create Task
 				priority := int32(0)
 				task := &models.Task{}
 				task.Image = &cfg.Image
 				task.ID = cfg.ID
 				task.RouteName = cfg.AppName
 				task.Priority = &priority
-				// TODO: Push to queue
+				// Push to queue
 				enqueue(task)
+				log.Info("Added new task to queue")
+
 			default:
 				if result, err = Api.Runner.Run(c, cfg); err != nil {
 					break
