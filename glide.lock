@@ -214,8 +214,7 @@ imports:
   - bson
   - internal/sasl
   - internal/scram
-- name: gopkg.in/mgo.v2/internal/json
-  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+  - internal/json
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports: []
