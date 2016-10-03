@@ -1,33 +1,15 @@
 package: github.com/iron-io/functions
 import:
 - package: github.com/Sirupsen/logrus
-  version: v0.10.0
 - package: github.com/boltdb/bolt
-  version: v1.3.0
-- package: github.com/dgrijalva/jwt-go
-  version: v3.0.0
-- package: github.com/fsouza/go-dockerclient
-  version: ddbd05bac47f55e533a7ed124211ef7e076b0bf3
-  subpackages:
-  - registry
-- package: github.com/garyburd/redigo
-  version: v1.0.0
-  subpackages:
-  - redis
 - package: github.com/gin-gonic/gin
-  version: v0.6
 - package: github.com/go-openapi/errors
 - package: github.com/go-openapi/strfmt
-- package: github.com/go-openapi/swag
 - package: github.com/go-openapi/validate
-- package: github.com/google/btree
 - package: github.com/iron-io/runner
-  version: 3.0.80
-  subpackages:
-  - common
-  - drivers
-  - drivers/docker
-  - drivers/mock
+  repo: git@github.com:iron-io/runner.git
+  vcs: git
+  version: cleanup2
 - package: github.com/lib/pq
 - package: github.com/satori/go.uuid
   version: v1.1.0
@@ -45,3 +27,4 @@ import:
   version: ^3.1.0
   subpackages:
   - statsd
+- package: github.com/google/btree
