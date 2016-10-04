@@ -1,5 +1,5 @@
 hash: 1f3a93e98ca758baf39588a88b88004f8cb9c70f2c728372680da523a208b54e
-updated: 2016-10-03T13:44:48.709454059-03:00
+updated: 2016-10-04T14:43:21.697267671-03:00
 imports:
 - name: github.com/amir/raidman
   version: c74861fe6a7bb8ede0a010ce4485bdbb4fc4c985
@@ -210,6 +210,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: c193cecd124b5cc722d7ee5538e945bdb3348435
 - name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
   subpackages:
   - bson
   - internal/sasl
