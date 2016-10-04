@@ -2,11 +2,13 @@ machine:
   environment:
     CHECKOUT_DIR: $HOME/$CIRCLE_PROJECT_REPONAME
     GOPATH: $HOME/go
+    GOROOT: $HOME/golang/go
+    PATH: $GOROOT/bin:$PATH
     GH_IRON: $GOPATH/src/github.com/iron-io
     GO_PROJECT: ../go/src/github.com/iron-io/$CIRCLE_PROJECT_REPONAME
   services:
     - docker
-
+    
 checkout:
   post:
     - mkdir -p "$GH_IRON"
