@@ -9,6 +9,5 @@ import:
 - package: github.com/iron-io/runner
   repo: git@github.com:iron-io/runner.git
   vcs: git
-  version: cleanup2
 - package: github.com/lib/pq
 - package: github.com/google/btree
