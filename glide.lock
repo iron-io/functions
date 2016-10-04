@@ -1,5 +1,5 @@
-hash: 594ac702a640203e0fd7e85462f882f982059b42e3404b84aae8edfcb4e0ab5e
-updated: 2016-10-04T15:46:36.821737012-03:00
+hash: 739c2213bbde7c9f6519c58567b69b41446952e936645c707fc7a8406978e43b
+updated: 2016-10-04T16:14:23.380498735-03:00
 imports:
 - name: github.com/amir/raidman
   version: c74861fe6a7bb8ede0a010ce4485bdbb4fc4c985
@@ -179,6 +179,8 @@ imports:
   - bcrypt
   - blowfish
   - ssh
+  - curve25519
+  - ed25519
 - name: golang.org/x/net
   version: f315505cf3349909cdf013ea56690da34e96a451
   subpackages:
