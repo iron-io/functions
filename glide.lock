@@ -1,5 +1,5 @@
-hash: aa185a69edae8e5fb2a213e565cd6f6b33518238d9e84732cba1e7165ae22239
-updated: 2016-10-04T15:30:26.213663554-03:00
+hash: 594ac702a640203e0fd7e85462f882f982059b42e3404b84aae8edfcb4e0ab5e
+updated: 2016-10-04T15:46:36.821737012-03:00
 imports:
 - name: github.com/amir/raidman
   version: c74861fe6a7bb8ede0a010ce4485bdbb4fc4c985
@@ -109,6 +109,8 @@ imports:
   - registry
 - name: github.com/iron-io/runner
   version: 4396e1218c6fb64140fe1de51be8d7e0a9525b8b
+  repo: git@github.com:iron-io/runner.git
+  vcs: git
   subpackages:
   - common
   - drivers
@@ -177,8 +179,6 @@ imports:
   - bcrypt
   - blowfish
   - ssh
-  - curve25519
-  - ed25519
 - name: golang.org/x/net
   version: f315505cf3349909cdf013ea56690da34e96a451
   subpackages:
