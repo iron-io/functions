@@ -1,5 +1,5 @@
-hash: 1f3a93e98ca758baf39588a88b88004f8cb9c70f2c728372680da523a208b54e
-updated: 2016-10-04T14:43:21.697267671-03:00
+hash: aa185a69edae8e5fb2a213e565cd6f6b33518238d9e84732cba1e7165ae22239
+updated: 2016-10-04T15:30:26.213663554-03:00
 imports:
 - name: github.com/amir/raidman
   version: c74861fe6a7bb8ede0a010ce4485bdbb4fc4c985
@@ -8,7 +8,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/boltdb/bolt
-  version: fff57c100f4dea1905678da7e90d92429dff2904
+  version: f0d021274dede8e672f17a2dbcb997c5f0760c41
 - name: github.com/cactus/go-statsd-client
   version: 1c27c506c7a0584d017ca479f91b88d6a6538332
   subpackages:
@@ -25,13 +25,15 @@ imports:
   - reference
   - uuid
 - name: github.com/docker/docker
-  version: 7e29b33546098816d5dbc1fc429e868f02b69e44
+  version: 694ba71e365c6b9aa7472a9ef29bbde3cba6dce2
   subpackages:
+  - api/types/swarm
   - opts
   - pkg/archive
   - pkg/fileutils
   - pkg/homedir
   - pkg/stdcopy
+  - api/types/mount
   - api/types/filters
   - pkg/idtools
   - pkg/ioutils
@@ -40,11 +42,6 @@ imports:
   - pkg/system
   - pkg/longpath
   - api/types/versions
-- name: github.com/docker/engine-api
-  version: 4290f40c056686fcaa5c9caf02eac1dde9315adf
-  subpackages:
-  - types/swarm
-  - types/mount
 - name: github.com/docker/go-units
   version: f2145db703495b2e525c59662db69a7344b00bb8
 - name: github.com/docker/libtrust
@@ -52,7 +49,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c07fd863aee264025aa0ef438bf9d2046c803493
 - name: github.com/fsouza/go-dockerclient
-  version: 81ce429800355f46dcc46e462349536a0e457294
+  version: 519179ce6c6db417b0f092abf47d7d73e4e0d900
 - name: github.com/garyburd/redigo
   version: ffa8d46ada782d81cfda81a0fbd9f45ceae448e8
   subpackages:
@@ -74,7 +71,7 @@ imports:
 - name: github.com/go-openapi/loads
   version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
 - name: github.com/go-openapi/runtime
-  version: 18efe8c11921c0ddabc8e91554971d6db1f91c7c
+  version: f6c2edcf343b34428165fe02674524a1977cad9e
 - name: github.com/go-openapi/spec
   version: 98bb9aa4969bd0b6228ad309844e0b3867e92748
 - name: github.com/go-openapi/strfmt
@@ -107,13 +104,11 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/heroku/docker-registry-client
-  version: 62e650e32756ca5bef4193e2fd5e48b0a52073af
+  version: e6568fe3de1cb83f1fe3107e7637c8be829ef149
   subpackages:
   - registry
 - name: github.com/iron-io/runner
-  version: d7405d0715f0749f95bac146036b8fdf228db35a
-  repo: git@github.com:iron-io/runner.git
-  vcs: git
+  version: 4396e1218c6fb64140fe1de51be8d7e0a9525b8b
   subpackages:
   - common
   - drivers
@@ -182,6 +177,8 @@ imports:
   - bcrypt
   - blowfish
   - ssh
+  - curve25519
+  - ed25519
 - name: golang.org/x/net
   version: f315505cf3349909cdf013ea56690da34e96a451
   subpackages:
