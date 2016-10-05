@@ -24,7 +24,7 @@ func init() {
 	viper.SetDefault("mq", fmt.Sprintf("bolt://%s/data/worker_mq.db", cwd))
 	viper.SetDefault("db", fmt.Sprintf("bolt://%s/data/bolt.db?bucket=funcs", cwd))
 	viper.SetDefault("port", 8080)
-	viper.SetDefault("tasksrv", fmt.Sprintf("http://localhost:%d", viper.GetInt("port")))
+	viper.SetDefault("tasks_url", fmt.Sprintf("http://localhost:%d", viper.GetInt("port")))
 	viper.SetDefault("nasync", 1)
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
@@ -55,10 +55,11 @@ func main() {
 		log.WithError(err).Fatalln("Failed to create a runner")
 	}
 
-	tasksrv, port, nasync := viper.GetString("tasksrv"), viper.GetString("port"), viper.GetInt("nasync")
+	tasksURL, port, nasync := viper.GetString("tasks_url"), viper.GetString("port"), viper.GetInt("nasync")
 	log.Info("async workers:", nasync)
+	log.Fatal(tasksURL)
 	for i := 0; i < nasync; i++ {
-		go runner.RunAsyncRunner(tasksrv, port)
+		go runner.RunAsyncRunner(tasksURL, port)
 	}
 
 	srv := server.New(ds, mqType, rnr)
