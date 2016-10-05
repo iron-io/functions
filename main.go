@@ -25,7 +25,7 @@ func init() {
 	viper.SetDefault("db", fmt.Sprintf("bolt://%s/data/bolt.db?bucket=funcs", cwd))
 	viper.SetDefault("port", 8080)
 	viper.SetDefault("tasksrv", fmt.Sprintf("http://localhost:%d", viper.GetInt("port")))
-	viper.SetDefault("NASYNC", 1)
+	viper.SetDefault("nasync", 1)
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv() // picks up env vars automatically
@@ -55,8 +55,9 @@ func main() {
 		log.WithError(err).Fatalln("Failed to create a runner")
 	}
 
-	tasksrv, port := viper.GetString("PORT"), viper.GetString("TASKSVR")
-	for nasync, i := viper.GetInt("NASYNC"), 0; i < nasync; i++ {
+	tasksrv, port, nasync := viper.GetString("tasksrv"), viper.GetString("port"), viper.GetInt("nasync")
+	log.Info("async workers:", nasync)
+	for i := 0; i < nasync; i++ {
 		go runner.RunAsyncRunner(tasksrv, port)
 	}
 

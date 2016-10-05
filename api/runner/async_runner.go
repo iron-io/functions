@@ -100,7 +100,6 @@ func RunAsyncRunner(tasksrv, port string) {
 	for {
 		task, err := getTask(u)
 		if err != nil {
-			log.WithError(err)
 			time.Sleep(1 * time.Second)
 			continue
 		}
