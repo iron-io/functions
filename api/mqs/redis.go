@@ -1,6 +1,7 @@
 package mqs
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
-	"golang.org/x/net/context"
 )
 
 type RedisMQ struct {

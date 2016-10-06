@@ -1,6 +1,7 @@
 package mqs
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -14,7 +15,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
-	"golang.org/x/net/context"
 )
 
 type BoltDbMQ struct {

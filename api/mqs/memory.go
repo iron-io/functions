@@ -1,6 +1,7 @@
 package mqs
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"github.com/google/btree"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
-	"golang.org/x/net/context"
 )
 
 type MemoryMQ struct {
