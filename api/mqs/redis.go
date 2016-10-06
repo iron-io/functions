@@ -162,7 +162,7 @@ func (mq *RedisMQ) start() {
 			logrus.WithError(err).Fatal("Could not start redis MQ reservation system")
 		}
 
-		for _ = range mq.ticker.C {
+		for range mq.ticker.C {
 			mq.processPendingReservations(conn)
 			mq.processDelayedTasks(conn)
 		}

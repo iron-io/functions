@@ -97,7 +97,7 @@ func TestGetTask(t *testing.T) {
 
 func TestGetTaskError(t *testing.T) {
 	tests := []map[string]interface{}{
-		map[string]interface{}{
+		{
 			"url":   "/invalid",
 			"task":  getMockTask(),
 			"error": "invalid character 'p' after top-level value",
