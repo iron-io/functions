@@ -16,6 +16,7 @@ import (
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/runner/common"
 	"github.com/iron-io/runner/drivers"
+	uuid "github.com/satori/go.uuid"
 )
 
 func handleSpecial(c *gin.Context) {
