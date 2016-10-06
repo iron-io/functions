@@ -11,7 +11,6 @@ import (
 )
 
 func TestRunnerHello(t *testing.T) {
-	t.Skip("waiting for the stdin support to be baked in")
 	runner, err := New(NewMetricLogger())
 	if err != nil {
 		t.Fatalf("Test error during New() - %s", err)
@@ -61,7 +60,6 @@ func TestRunnerHello(t *testing.T) {
 }
 
 func TestRunnerError(t *testing.T) {
-	t.Skip("waiting for the stdin support to be baked in")
 	runner, err := New(NewMetricLogger())
 	if err != nil {
 		t.Fatalf("Test error during New() - %s", err)
