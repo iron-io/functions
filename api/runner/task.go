@@ -4,14 +4,12 @@ import (
 	"context"
 	"io"
 
-	dockercli "github.com/fsouza/go-dockerclient"
-	"github.com/iron-io/runner/common"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/runner/drivers"
 )
 
 type containerTask struct {
 	ctx    context.Context
-	auth   *common.ConfigAuth
 	cfg    *Config
 	canRun chan bool
 }
@@ -22,7 +20,7 @@ func (t *containerTask) EnvVars() map[string]string {
 	return t.cfg.Env
 }
 func (t *containerTask) Input() io.Reader {
-	return t.cfg.Input
+	return t.cfg.Stdin
 }
 
 func (t *containerTask) Labels() map[string]string {
@@ -42,6 +40,5 @@ func (t *containerTask) WorkDir() string                    { return "" }
 func (t *containerTask) Close()                 {}
 func (t *containerTask) WriteStat(drivers.Stat) {}
 
-func (t *containerTask) DockerAuth() []dockercli.AuthConfiguration {
-	return t.auth.Auth(t.Image())
-}
+// FIXME: for now just use empty creds => public docker hub image
+func (t *containerTask) DockerAuth() docker.AuthConfiguration { return docker.AuthConfiguration{} }
