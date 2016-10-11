@@ -36,14 +36,14 @@ Note `10.0.0.1:8080` in `PORTS` column, this is where the service is listening. 
 3. Test the cluster:
 
 ```ShellSession
-# export IRON_FUNCTION=$(docker port functions | cut -d ' ' -f3)
+$ export IRON_FUNCTION=$(docker port functions | cut -d ' ' -f3)
 
-# curl -H "Content-Type: application/json" -X POST -d '{ "app": { "name":"myapp" } }' http://$IRON_FUNCTION/v1/apps
+$ curl -H "Content-Type: application/json" -X POST -d '{ "app": { "name":"myapp" } }' http://$IRON_FUNCTION/v1/apps
 {"message":"App successfully created","app":{"name":"myapp","config":null}}
 
-# curl -H "Content-Type: application/json" -X POST -d '{ "route": { "type": "sync", "path":"/hello-sync", "image":"iron/hello" } }' http://$IRON_FUNCTION/v1/apps/myapp/routes
+$ curl -H "Content-Type: application/json" -X POST -d '{ "route": { "type": "sync", "path":"/hello-sync", "image":"iron/hello" } }' http://$IRON_FUNCTION/v1/apps/myapp/routes
 {"message":"Route successfully created","route":{"appname":"myapp","path":"/hello-sync","image":"iron/hello","memory":128,"type":"sync","config":null}}
 
-# curl -H "Content-Type: application/json" -X POST -d '{ "name":"Johnny" }' http://$IRON_FUNCTION/r/myapp/hello-sync
+$ curl -H "Content-Type: application/json" -X POST -d '{ "name":"Johnny" }' http://$IRON_FUNCTION/r/myapp/hello-sync
 Hello Johnny!
 ```
