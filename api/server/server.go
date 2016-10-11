@@ -30,7 +30,7 @@ type Server struct {
 
 func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner) *Server {
 	Api = &Server{
-		Router:    gin.Default(),
+		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
 		Runner:    r,
@@ -150,6 +150,8 @@ func (s *Server) Run(ctx context.Context) {
 }
 
 func bindHandlers(engine *gin.Engine, reqHandler func(ginC *gin.Context), taskHandler func(ginC *gin.Context)) {
+	// engine.Use(gin.Logger())
+
 	engine.GET("/", handlePing)
 	engine.GET("/version", handleVersion)
 
