@@ -56,9 +56,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		}()
 	} else if c.Request.Method == "GET" {
 		reqPayload := c.Request.URL.Query().Get("payload")
-		if len(reqPayload) > 0 {
-			payload = strings.NewReader(reqPayload)
-		}
+		payload = strings.NewReader(reqPayload)
 	}
 
 	appName := c.Param("app")
@@ -129,7 +127,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 			// headers
 			for header, value := range c.Request.Header {
-				envVars["HEADER_"+strings.ToUpper(header)] = strings.Join(value, " ")
+				envVars["HEADER_"+strings.ToUpper(strings.Replace(header, "-", "_", -1))] = strings.Join(value, " ")
 			}
 
 			cfg := &runner.Config{
@@ -148,6 +146,9 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 			var result drivers.RunResult
 			switch el.Type {
 			case "async":
+				// Read payload
+				pl, _ := ioutil.ReadAll(cfg.Stdin)
+
 				// Create Task
 				priority := int32(0)
 				task := &models.Task{}
@@ -155,6 +156,8 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 				task.ID = cfg.ID
 				task.RouteName = cfg.AppName
 				task.Priority = &priority
+				task.EnvVars = cfg.Env
+				task.Payload = string(pl)
 				// Push to queue
 				enqueue(task)
 				log.Info("Added new task to queue")
@@ -173,11 +176,6 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 					c.AbortWithStatus(http.StatusInternalServerError)
 				}
-			}
-
-			if err != nil {
-				log.WithError(err).Error(models.ErrRunnerRunRoute)
-				c.JSON(http.StatusInternalServerError, simpleError(models.ErrRunnerRunRoute))
 			}
 			return
 		}
