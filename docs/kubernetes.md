@@ -1,0 +1,57 @@
+# HOWTO run IronFunction as a scheduler on top of Docker Swarm cluster
+
+*Prerequisite 1: it assumes you have a working Kubernetes, and a locally configured kubectl.*
+
+*Prerequisite 2: It assumes you are using Kubernetes 1.4 or newer.*
+
+*Prerequisite 3: It assumes JSON query tool (jq) is installed and made available in $PATH.*
+
+### Steps
+
+1. Start IronFunction in the Kubernetes cluster:
+```ShellSession
+$ cd docs/
+$ kubectl create -f kubernetes
+```
+
+2. Once the daemon is started, check where it is listening for connections:
+
+```ShellSession
+# kubectl describe svc functions
+
+Name:			functions
+Namespace:		default
+Labels:			app=functions
+Selector:		app=functions
+Type:			LoadBalancer
+IP:			10.0.116.122
+LoadBalancer Ingress:	a23122e39900111e681ba0e29b70bb46-630391493.us-east-1.elb.amazonaws.com
+Port:			<unset>	8080/TCP
+NodePort:		<unset>	30802/TCP
+Endpoints:		10.244.1.12:8080
+Session Affinity:	None
+Events:
+  FirstSeen	LastSeen	Count	From			SubobjectPath	Type		Reason			Message
+  ---------	--------	-----	----			-------------	--------	------			-------
+  22m		22m		1	{service-controller }			Normal		CreatingLoadBalancer	Creating load balancer
+  22m		22m		1	{service-controller }			Normal		CreatedLoadBalancer	Created load balancer
+
+```
+
+Note `a23122e39900111e681ba0e29b70bb46-630391493.us-east-1.elb.amazonaws.com` in `LoadBalancer Ingress` line, this is where the service is listening.
+
+3. Test the cluster:
+
+```ShellSession
+$ export IRON_FUNCTION=$(kubectl get -o json svc functions | jq -r '.status.loadBalancer.ingress[0].hostname'):8080
+
+$ curl -H "Content-Type: application/json" -X POST -d '{ "app": { "name":"myapp" } }' http://$IRON_FUNCTION/v1/apps
+{"message":"App successfully created","app":{"name":"myapp","config":null}}
+
+$ curl -H "Content-Type: application/json" -X POST -d '{ "route": { "type": "sync", "path":"/hello-sync", "image":"iron/hello" } }' http://$IRON_FUNCTION/v1/apps/myapp/routes
+{"message":"Route successfully created","route":{"appname":"myapp","path":"/hello-sync","image":"iron/hello","memory":128,"type":"sync","config":null}}
+
+$ curl -H "Content-Type: application/json" -X POST -d '{ "name":"Johnny" }' http://$IRON_FUNCTION/r/myapp/hello-sync
+Hello Johnny!
+```
+
