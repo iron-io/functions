@@ -12,7 +12,7 @@
 			"spec": {
 				"containers": [{
 					"name": "functions",
-					"image": "ccirello/functions",
+					"image": "iron/functions",
 					"securityContext": {"privileged": true},
 					"env": [{
 						"name": "DOCKER_HOST",
