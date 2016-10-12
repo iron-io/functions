@@ -22,6 +22,8 @@ import (
 func setLogBuffer() *bytes.Buffer {
 	var buf bytes.Buffer
 	logrus.SetOutput(&buf)
+	gin.DefaultErrorWriter = &buf
+	gin.DefaultWriter = &buf
 	return &buf
 }
 

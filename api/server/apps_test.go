@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -15,6 +16,8 @@ import (
 func setLogBuffer() *bytes.Buffer {
 	var buf bytes.Buffer
 	logrus.SetOutput(&buf)
+	gin.DefaultErrorWriter = &buf
+	gin.DefaultWriter = &buf
 	return &buf
 }
 
