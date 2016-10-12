@@ -10,7 +10,7 @@ docker run --rm --name functions --privileged -it -v $PWD/data:/app/data -p 8080
 
 ## Using Functions
 
-#### Create an Application
+### Create an Application
 
 An application is essentially a grouping of functions, that put together, form an API. Here's how to create an app. 
 
@@ -22,8 +22,9 @@ curl -H "Content-Type: application/json" -X POST -d '{
 
 Now that we have an app, we can map routes to functions. 
 
-#### Add a route to a Function
+### Add a route to a Function
 
+#### Synchronous Functions
 ```sh
 curl -H "Content-Type: application/json" -X POST -d '{
     "route": {
@@ -32,6 +33,25 @@ curl -H "Content-Type: application/json" -X POST -d '{
     }
 }' http://localhost:8080/v1/apps/myapp/routes
 ```
+#### Asynchronous Functions
+
+```sh
+curl -H "Content-Type: application/json" -X POST -d '{
+    "route": {
+        "type": "async",  
+        "path":"/hello",
+        "image":"iron/hello"
+    }
+}' http://localhost:8080/v1/apps/myapp/routes
+```
+
+***NOTE:** Data processing is for functions that run in the background. This type of functionality is good for functions
+that are CPU heavy or take more than a few seconds to complete. 
+Architecturally, the main difference between synchronous you tried above and asynchronous is that requests
+to asynchronous functions are put in a queue and executed on upon resource availablitiy on the same process
+or a remote functions process so that they do not interfere with the fast synchronous responses required by an API.
+Also, since it uses a queue, you can queue up millions of jobs without worrying about capacity as requests will
+just be queued up and run at some point in the future.**
 
 #### Calling your Function
 
@@ -40,6 +60,9 @@ Just hit the URL you got back from adding a route above:
 ```
 curl http://localhost:8080/r/myapp/hello
 ```
+
+When calling a sync function, the request is handled and results are returned to the caller, unlike an async function which will create a task
+in a queue and the caller gets a reference ID call (support for tracking state via hooks will be added in the future).
 
 #### To pass in data to your function
 
@@ -52,7 +75,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 ```
 
 
-**Adding a route with URL params**
+*Adding a route with URL params:*
 
 You can create a route with dynamic URL parameters that will be available inside your function by prefixing path segments with a `:`, for example:
 
@@ -68,22 +91,12 @@ $ curl -H "Content-Type: application/json" -X POST -d '{
 `:author_id` and `:num_page` in the path will be passed into your function as `PARAM_AUTHOR_ID` and `PARAM_NUM_PAGE`.
 
 
+
 See the [Blog Example](https://github.com/iron-io/functions/blob/master/examples/blog/README.md#creating-our-blog-application-in-your-ironfunctions).
 
+---
 
-## Adding Asynchronous Data Processing Support
-
-Data processing is for functions that run in the background. This type of functionality is good for functions
-that are CPU heavy or take more than a few seconds to complete. 
-Architecturally, the main difference between synchronous you tried above and asynchronous is that requests
-to asynchronous functions are put in a queue and executed on upon resource availablitiy on the same process
-or a remote functions process so that they do not interfere with the fast synchronous responses required by an API.
-Also, since it uses a queue, you can queue up millions of jobs without worrying about capacity as requests will
-just be queued up and run at some point in the future.  
-
-TODO: Add link to differences here in README.io docs here. 
-
-#### Running remote functions process
+#### Scaling
 
 Coming soon...
 
