@@ -150,7 +150,7 @@ func (s *Server) Run(ctx context.Context) {
 }
 
 func bindHandlers(engine *gin.Engine, reqHandler func(ginC *gin.Context), taskHandler func(ginC *gin.Context)) {
-	// engine.Use(gin.Logger())
+	engine.Use(gin.Logger())
 
 	engine.GET("/", handlePing)
 	engine.GET("/version", handleVersion)
@@ -186,4 +186,29 @@ func bindHandlers(engine *gin.Engine, reqHandler func(ginC *gin.Context), taskHa
 
 func simpleError(err error) *models.Error {
 	return &models.Error{&models.ErrorBody{Message: err.Error()}}
+}
+
+type appResponse struct {
+	Message string      `json:"message"`
+	App     *models.App `json:"app"`
+}
+
+type appsResponse struct {
+	Message string      `json:"message"`
+	Apps    models.Apps `json:"apps"`
+}
+
+type routeResponse struct {
+	Message string        `json:"message"`
+	Route   *models.Route `json:"route"`
+}
+
+type routesResponse struct {
+	Message string        `json:"message"`
+	Routes  models.Routes `json:"routes"`
+}
+
+type tasksResponse struct {
+	Message string      `json:"message"`
+	Task    models.Task `json:"tasksResponse"`
 }

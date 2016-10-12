@@ -2,14 +2,34 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"sync"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
+	"github.com/iron-io/runner/common"
 )
+
+func testRouterAsync(enqueueFunc models.Enqueue) *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Logger())
+	ctx := context.Background()
+	r.Use(func(c *gin.Context) {
+		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
+		c.Set("ctx", ctx)
+		c.Next()
+	})
+	bindHandlers(r,
+		func(ctx *gin.Context) {
+			handleRequest(ctx, enqueueFunc)
+		},
+		func(ctx *gin.Context) {})
+	return r
+}
 
 func TestRouteRunnerAsyncExecution(t *testing.T) {
 	New(&datastore.Mock{

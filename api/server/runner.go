@@ -30,6 +30,11 @@ func handleSpecial(c *gin.Context) {
 	}
 }
 
+func toEnvName(envtype, name string) string {
+	name = strings.ToUpper(strings.Replace(name, "-", "_", -1))
+	return fmt.Sprintf("%s_%s", envtype, name)
+}
+
 func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
 		c.Status(http.StatusNotFound)
@@ -112,22 +117,22 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 			// app config
 			for k, v := range app.Config {
-				envVars["CONFIG_"+strings.ToUpper(k)] = v
+				envVars[toEnvName("CONFIG", k)] = v
 			}
 
 			// route config
 			for k, v := range el.Config {
-				envVars["CONFIG_"+strings.ToUpper(k)] = v
+				envVars[toEnvName("CONFIG", k)] = v
 			}
 
 			// params
 			for _, param := range params {
-				envVars["PARAM_"+strings.ToUpper(param.Key)] = param.Value
+				envVars[toEnvName("PARAM", param.Key)] = param.Value
 			}
 
 			// headers
 			for header, value := range c.Request.Header {
-				envVars["HEADER_"+strings.ToUpper(strings.Replace(header, "-", "_", -1))] = strings.Join(value, " ")
+				envVars[toEnvName("HEADER", header)] = strings.Join(value, " ")
 			}
 
 			cfg := &runner.Config{
@@ -147,7 +152,12 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 			switch el.Type {
 			case "async":
 				// Read payload
-				pl, _ := ioutil.ReadAll(cfg.Stdin)
+				pl, err := ioutil.ReadAll(cfg.Stdin)
+				if err != nil {
+					log.WithError(err).Error(models.ErrInvalidPayload)
+					c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidPayload))
+					return
+				}
 
 				// Create Task
 				priority := int32(0)
@@ -177,7 +187,8 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 					c.AbortWithStatus(http.StatusInternalServerError)
 				}
 			}
-			return
+
+			break
 		}
 	}
 
