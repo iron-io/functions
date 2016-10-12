@@ -24,9 +24,6 @@ Now that we have an app, we can map routes to functions.
 
 ### Add a route to a Function
 
-When calling a sync function, the request is handled and results are returned to the user, unlike an async function which will create a task
-in a queue and the caller gets a reference ID call (support for tracking state via hooks will be added in the future).
-
 #### Synchronous Functions
 ```sh
 curl -H "Content-Type: application/json" -X POST -d '{
@@ -56,15 +53,16 @@ or a remote functions process so that they do not interfere with the fast synchr
 Also, since it uses a queue, you can queue up millions of jobs without worrying about capacity as requests will
 just be queued up and run at some point in the future.**
 
-
-
-### Calling your Function
+#### Calling your Function
 
 Just hit the URL you got back from adding a route above:
 
 ```
 curl http://localhost:8080/r/myapp/hello
 ```
+
+When calling a sync function, the request is handled and results are returned to the caller, unlike an async function which will create a task
+in a queue and the caller gets a reference ID call (support for tracking state via hooks will be added in the future).
 
 #### To pass in data to your function
 
@@ -98,9 +96,7 @@ See the [Blog Example](https://github.com/iron-io/functions/blob/master/examples
 
 ---
 
-
-
-#### Running remote functions process
+#### Scaling
 
 Coming soon...
 
