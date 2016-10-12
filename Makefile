@@ -1,7 +1,6 @@
 # Just builds
 dep:
 	@ glide install
-	rm -rf vendor/github.com/heroku/docker-registry-client/vendor
 
 build:
 	@ go build -o functions
