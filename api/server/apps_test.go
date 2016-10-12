@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -18,6 +19,7 @@ func setLogBuffer() *bytes.Buffer {
 	logrus.SetOutput(&buf)
 	gin.DefaultErrorWriter = &buf
 	gin.DefaultWriter = &buf
+	log.SetOutput(&buf)
 	return &buf
 }
 

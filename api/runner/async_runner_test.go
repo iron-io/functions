@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -24,6 +25,7 @@ func setLogBuffer() *bytes.Buffer {
 	logrus.SetOutput(&buf)
 	gin.DefaultErrorWriter = &buf
 	gin.DefaultWriter = &buf
+	log.SetOutput(&buf)
 	return &buf
 }
 
