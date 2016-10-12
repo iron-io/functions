@@ -188,7 +188,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 				}
 			}
 
-			break
+			return
 		}
 	}
 
