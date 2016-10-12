@@ -96,7 +96,7 @@ func runTask(task *models.Task) (drivers.RunResult, error) {
 }
 
 // RunAsyncRunner pulls tasks off a queue and processes them
-func RunAsyncRunner(ctx context.Context, wgAsync *sync.WaitGroup, tasksrv, port string, n int, shutdownTimeout time.Duration) {
+func RunAsyncRunner(ctx context.Context, wgAsync *sync.WaitGroup, tasksrv, port string, n int) {
 	u := tasksrvURL(tasksrv, port)
 
 	var wg sync.WaitGroup
@@ -105,22 +105,9 @@ func RunAsyncRunner(ctx context.Context, wgAsync *sync.WaitGroup, tasksrv, port 
 		go startAsyncRunners(ctx, &wg, i, u, runTask)
 	}
 
+	wg.Wait()
 	<-ctx.Done()
-	wait(&wg, shutdownTimeout)
 	wgAsync.Done()
-}
-
-func wait(wg *sync.WaitGroup, shutdownTimeout time.Duration) {
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		done <- struct{}{}
-	}()
-	select {
-	case <-done:
-	case <-time.After(shutdownTimeout):
-		log.Info("Async workers forceful shutdown")
-	}
 }
 
 func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url string, runTask func(task *models.Task) (drivers.RunResult, error)) {

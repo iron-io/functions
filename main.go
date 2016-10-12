@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/datastore"
@@ -18,13 +17,12 @@ import (
 )
 
 const (
-	envLogLevel             = "log_level"
-	envMQ                   = "mq"
-	envDB                   = "db"
-	envPort                 = "port" // be careful, Gin expects this variable to be "port"
-	envAPIURL               = "api_url"
-	envNumAsync             = "num_async"
-	envAsyncShutdownTimeout = "async_shutdown_timeout"
+	envLogLevel = "log_level"
+	envMQ       = "mq"
+	envDB       = "db"
+	envPort     = "port" // be careful, Gin expects this variable to be "port"
+	envAPIURL   = "api_url"
+	envNumAsync = "num_async"
 )
 
 func init() {
@@ -39,7 +37,6 @@ func init() {
 	viper.SetDefault(envPort, 8080)
 	viper.SetDefault(envAPIURL, fmt.Sprintf("http://localhost:%d", viper.GetInt(envPort)))
 	viper.SetDefault(envNumAsync, 1)
-	viper.SetDefault(envAsyncShutdownTimeout, "5s")
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv() // picks up env vars automatically
@@ -76,18 +73,12 @@ func main() {
 		log.WithError(err).Fatalln("Failed to create a runner")
 	}
 
-	apiURL := viper.GetString(envAPIURL)
-	port := viper.GetString(envPort)
-	numAsync := viper.GetInt(envNumAsync)
-	asyncTimeout, err := time.ParseDuration(viper.GetString(envAsyncShutdownTimeout))
-	if err != nil {
-		log.WithError(err).Fatalln("Cannot parse async workers shutdown timeout")
-	}
+	apiURL, port, numAsync := viper.GetString(envAPIURL), viper.GetString(envPort), viper.GetInt(envNumAsync)
 	log.Info("async workers:", numAsync)
 	var wgAsync sync.WaitGroup
 	if numAsync > 0 {
 		wgAsync.Add(1)
-		go runner.RunAsyncRunner(ctx, &wgAsync, apiURL, port, numAsync, asyncTimeout)
+		go runner.RunAsyncRunner(ctx, &wgAsync, apiURL, port, numAsync)
 	}
 
 	srv := server.New(ds, mqType, rnr)
