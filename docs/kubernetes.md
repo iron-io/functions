@@ -1,4 +1,4 @@
-# HOWTO run IronFunction as a scheduler on top of Docker Swarm cluster
+# HOWTO run IronFunction in Kubernetes
 
 *Prerequisite 1: it assumes you have a working Kubernetes, and a locally configured kubectl.*
 
