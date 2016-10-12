@@ -13,9 +13,8 @@ import:
 - package: github.com/go-openapi/validate
 - package: github.com/google/btree
 - package: github.com/iron-io/runner
-  repo: https://github.com/iron-io/runner.git
   vcs: git
-  version: glide-up
+  version: master
   subpackages:
   - common
   - drivers
@@ -38,3 +37,37 @@ import:
   version: ^3.1.0
   subpackages:
   - statsd
+- name: github.com/docker/docker
+  version: 0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d
+  subpackages:
+  - opts
+  - pkg/archive
+  - pkg/fileutils
+  - pkg/homedir
+  - pkg/stdcopy
+  - api/types/filters
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/pools
+  - pkg/promise
+  - pkg/system
+  - pkg/longpath
+  - api/types/versions
+  - pkg/units
+- name: github.com/docker/docker
+  version: 0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d
+  subpackages:
+  - opts
+  - pkg/archive
+  - pkg/fileutils
+  - pkg/homedir
+  - pkg/stdcopy
+  - api/types/filters
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/pools
+  - pkg/promise
+  - pkg/system
+  - pkg/longpath
+  - api/types/versions
+  - pkg/units
