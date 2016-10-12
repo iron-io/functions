@@ -13,9 +13,8 @@ import:
 - package: github.com/go-openapi/validate
 - package: github.com/google/btree
 - package: github.com/iron-io/runner
-  repo: git@github.com:iron-io/runner.git
+  repo: https://github.com/iron-io/runner.git
   vcs: git
-  version: master
   subpackages:
   - common
   - drivers

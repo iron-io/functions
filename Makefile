@@ -1,6 +1,6 @@
 # Just builds
 dep:
-	@ glide install
+	@ glide install --strip-vcs --strip-vendor
 
 build:
 	@ go build -o functions
