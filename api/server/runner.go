@@ -78,9 +78,6 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 	route := c.Param("route")
-	if route == "" {
-		route = c.Request.URL.Path
-	}
 
 	log.WithFields(logrus.Fields{"app": appName, "path": route}).Debug("Finding route on datastore")
 
