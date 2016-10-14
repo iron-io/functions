@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"path"
+	"strings"
 
 	apiErrors "github.com/go-openapi/errors"
 )
@@ -32,13 +33,14 @@ type Route struct {
 }
 
 var (
-	ErrRoutesValidationMissingName    = errors.New("Missing route Name")
-	ErrRoutesValidationMissingImage   = errors.New("Missing route Image")
-	ErrRoutesValidationMissingAppName = errors.New("Missing route AppName")
-	ErrRoutesValidationMissingPath    = errors.New("Missing route Path")
-	ErrRoutesValidationInvalidPath    = errors.New("Invalid Path format")
-	ErrRoutesValidationMissingType    = errors.New("Missing route Type")
-	ErrRoutesValidationInvalidType    = errors.New("Invalid route Type")
+	ErrRoutesValidationMissingName     = errors.New("Missing route Name")
+	ErrRoutesValidationMissingImage    = errors.New("Missing route Image")
+	ErrRoutesValidationMissingAppName  = errors.New("Missing route AppName")
+	ErrRoutesValidationMissingPath     = errors.New("Missing route Path")
+	ErrRoutesValidationInvalidPath     = errors.New("Invalid Path format")
+	ErrRoutesValidationMissingType     = errors.New("Missing route Type")
+	ErrRoutesValidationInvalidType     = errors.New("Invalid route Type")
+	ErrRoutesValidationFoundDynamicURL = errors.New("Dynamic URL is not allowed")
 )
 
 func (r *Route) Validate() error {
@@ -58,6 +60,10 @@ func (r *Route) Validate() error {
 
 	if r.Path == "" {
 		res = append(res, ErrRoutesValidationMissingPath)
+	}
+
+	if strings.Contains(r.Path, ":") {
+		res = append(res, ErrRoutesValidationFoundDynamicURL)
 	}
 
 	if !path.IsAbs(r.Path) {
