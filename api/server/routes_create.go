@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +11,7 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-func handleRouteCreate(c *gin.Context) {
+func (s *Server) handleRouteCreate(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
@@ -36,6 +37,11 @@ func handleRouteCreate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, simpleError(err))
 		return
 	}
+
+	// Register Route
+	engine := s.Router
+	path := fmt.Sprintf("r/%s%s", wroute.Route.AppName, wroute.Route.Path)
+	engine.Any(path, handleRequest)
 
 	err = Api.Runner.EnsureImageExists(ctx, &runner.Config{
 		Image: wroute.Route.Image,
@@ -74,6 +80,9 @@ func handleRouteCreate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesCreate))
 		return
 	}
+
+	// TODO: handle this error in case of colliding routes
+	engine.Any(path)
 
 	c.JSON(http.StatusCreated, routeResponse{"Route successfully created", wroute.Route})
 }

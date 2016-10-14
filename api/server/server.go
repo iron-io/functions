@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -170,7 +171,7 @@ func (s *Server) bindHandlers() {
 		apps := v1.Group("/apps/:app")
 		{
 			apps.GET("/routes", handleRouteList)
-			apps.POST("/routes", handleRouteCreate)
+			apps.POST("/routes", s.handleRouteCreate)
 			apps.GET("/routes/*route", handleRouteGet)
 			apps.PUT("/routes/*route", handleRouteUpdate)
 			apps.DELETE("/routes/*route", handleRouteDelete)
@@ -179,10 +180,26 @@ func (s *Server) bindHandlers() {
 
 	engine.DELETE("/tasks", s.handleTaskRequest)
 	engine.GET("/tasks", s.handleTaskRequest)
-	engine.Any("/r/:app/*route", s.handleRunnerRequest)
+
+	s.registerRoutes()
 
 	// This final route is used for extensions, see Server.Add
 	engine.NoRoute(handleSpecial)
+}
+
+func (s *Server) registerRoutes() {
+	engine := s.Router
+	// Get all apps
+	routes, err := Api.Datastore.GetRoutes(&models.RouteFilter{})
+	if err != nil {
+		logrus.WithError(err).Error()
+		return
+	}
+	// Register all existing routes
+	for _, route := range routes {
+		path := fmt.Sprintf("r/%s%s", route.AppName, route.Path)
+		engine.Any(path)
+	}
 }
 
 func simpleError(err error) *models.Error {
