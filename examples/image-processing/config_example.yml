@@ -1,0 +1,9 @@
+#
+# Copy this to config.yml and change the values
+#
+
+aws:
+    access_key: "YOUR ACCESS KEY"
+    secret_key: "YOUR SECRET KEY"
+    s3_bucket_name: "BUCKET NAME"
+

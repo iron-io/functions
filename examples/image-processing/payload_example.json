@@ -1,0 +1,16 @@
+{
+    "image_url": "http://dev.iron.io/images/iron_pony.png",
+    "operations": [
+        {
+            "op": "sketch",
+            "format": "jpg",
+            "destination": "sketch.jpg"
+        }
+    ],
+    "aws": {
+        "access_key": "MY ACCESS KEY",
+        "secret_key": "MY SECRET KEY",
+        "s3_bucket_name": "MY BUCKET NAME",
+        "region": "AWS REGION"
+    }
+}
