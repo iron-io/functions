@@ -251,7 +251,7 @@ paths:
         200:
           description: Task information
           schema:
-            $ref: '#/definitions/TasksWrapper'
+            $ref:  '#/definitions/Task'
         default:
           description: Unexpected error
           schema:
@@ -379,39 +379,6 @@ definitions:
             description: Env vars for the task. Comes from the ones set on the Group. 
             additionalProperties:
               type: string
-
-  NewTasksWrapper:
-    type: object
-    required:
-      - tasks
-    properties:
-      tasks:
-        type: array
-        items:
-          $ref: '#/definitions/NewTask'
-
-  TasksWrapper:
-    type: object
-    required:
-      - tasks
-    properties:
-      tasks:
-        type: array
-        items:
-          $ref: '#/definitions/Task'
-      cursor:
-        type: string
-        description: Used to paginate results. If this is returned, pass it into the same query again to get more results. 
-      error:
-        $ref: '#/definitions/ErrorBody'
-
-  TaskWrapper:
-    type: object
-    required:
-      - task
-    properties:
-      task:
-        $ref: '#/definitions/Task'
 
   ErrorBody:
     type: object
