@@ -11,7 +11,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
     "route": {
         "type": "sync",
         "path":"/hello-sync",
-        "image":"iron/hello"
+        "image":"iron/hello:ruby
     }
 }' http://$HOST/v1/apps/myapp/routes
 
