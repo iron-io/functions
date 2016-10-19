@@ -16,6 +16,6 @@ In case you are using Ubuntu, you can reconfigure Docker easily by updating `/et
 
 ```json
 {
-    "storage-driver": ["overlay2"]
+    "storage-driver": "overlay2"
 }
 ```
