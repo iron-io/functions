@@ -251,7 +251,7 @@ paths:
         200:
           description: Task information
           schema:
-            $ref:  '#/definitions/Task'
+            $ref:  '#/definitions/TaskWrapper'
         default:
           description: Unexpected error
           schema:
@@ -411,47 +411,11 @@ definitions:
         # maxLength breaks ruby generator too: https://github.com/iron-io/worker_ruby/blob/0aa9236ce5060af3f15758937712973f80dd54fe/lib/iron_titan/models/task.rb#L272
         # maxLength: 268435456
         description: Payload for the task. This is what you pass into each task to make it do something.
-      delay:
-        type: integer
-        format: int32
-        default: 0
-        description: Number of seconds to wait before queueing the task for
-          consumption for the first time. Must be a positive integer. Tasks with
-          a delay start in state "delayed" and transition to "running" after
-          delay seconds.
-      timeout:
-        type: integer
-        format: int32
-        default: 60
-        description: |
-          Maximum runtime in seconds. If a consumer retrieves the
-          task, but does not change it's status within timeout seconds, the task
-          is considered failed, with reason timeout (Titan may allow a small
-          grace period). The consumer should also kill the task after timeout
-          seconds. If a consumer tries to change status after Titan has already
-          timed out the task, the consumer will be ignored.
-      priority:
-        type: integer
-        format: int32
-        description: Priority of the task. Higher has more priority. 3 levels from 0-2. Tasks at same priority are processed in FIFO order.
-      # FIXME: May want to rename this to max_auto_retries to avoid ambiguity.
-      max_retries:
-        type: integer
-        format: int32
-        default: 0
-        description: >
-          "Number of automatic retries this task is allowed.  A retry will be
-          attempted if a task fails. Max 25. Automatic retries are performed
-          by titan when a task reaches a failed state and has `max_retries`
-          > 0. A retry is performed by queueing a new task with the same image
-          id and payload. The new task's max_retries is one less than the
-          original. The new task's `retry_of` field is set to the original Task
-          ID. The old task's `retry_at` field is set to the new Task's ID.  Titan
-          will delay the new task for retries_delay seconds before queueing it.
-          Cancelled or successful tasks are never automatically retried."
-      retries_delay:
-        type: integer
-        format: int32
-        default: 60
-        description: Time in seconds to wait before retrying the task. Must be a non-negative integer.
-        
+
+  TaskWrapper:
+    type: object
+    required:
+      - task
+    properties:
+      task:
+        $ref: '#/definitions/Task'
