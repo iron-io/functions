@@ -116,7 +116,32 @@ Read more on [logging](docs/logging.md).
 
 ## Writing Functions
 
-TODO: 
+TODO:
+
+## Docker Configuration
+
+While for small loads IronFunctions will work fine, you will need to ensure that host's Docker to be properly configured to use all its power.
+
+These are the environments known to produce the best results:
+
+1) Linux 4.7 or newer with Overlay2 module
+2) Ubuntu 16.04 LTS or newer with Overlay2 module
+
+In any case, it expects Docker 1.12 or newer to be available.
+
+It is important to reconfigure host's Docker with this filesystem module. Thus, in your Docker start scripts you must do as following:
+
+```
+docker daemon [...] --storage-driver=overlay2
+```
+
+In case you are using Ubuntu, you can reconfigure Docker easily by updating `/etc/docker/daemon.json` and restarting Docker:
+
+```json
+{
+    "storage-driver": ["overlay2"]
+}
+```
 
 ## More Documentation
 
