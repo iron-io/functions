@@ -36,5 +36,5 @@ deployment:
   hub:
     branch: master
     commands:
-      - ./release.sh
+      - cd $GO_PROJECT && ./release.sh
       
