@@ -90,7 +90,7 @@ $ ceilometer alarm-list
 +--------------------------------------+----------+-------+----------+---------+------------+--------------------------------------+------------------+
 ```
 
-## Change the the polling period of ceilometer
+## Change the polling period of ceilometer
 
 Default interval in ceilometer is 600 seconds. It's too long for the testing
 purposes. Let's change it to 60 seconds.
