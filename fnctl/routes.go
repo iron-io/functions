@@ -6,12 +6,11 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
 
-type Routes struct { // TODO
+type Routes struct {
 	*functions.RoutesApi
 }
 
@@ -68,22 +67,19 @@ func (a *Routes) create(c *cli.Context) error {
 	name := c.Args().Get(0)
 	path := c.Args().Get(1)
 	image := c.Args().Get(2)
-	body := functions.RoutesWrapper{
-		Routes: []functions.Route{
-			{
-				AppName: name,
-				Path:    path,
-				Image:   image,
-			},
+	body := functions.RouteWrapper{
+		Route: functions.Route{
+			AppName: name,
+			Path:    path,
+			Image:   image,
 		},
 	}
-	wrapper, resp, err := a.AppsAppRoutesPost(name, body)
+	wrapper, _, err := a.AppsAppRoutesPost(name, body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting routes: %v", err)
 		return nil // TODO return error instead?
 	}
 
-	spew.Dump(wrapper)
-	spew.Dump(resp)
+	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
 	return nil
 }

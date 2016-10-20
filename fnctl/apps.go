@@ -9,7 +9,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-type Apps struct { // TODO
+type Apps struct {
 	*functions.AppsApi
 }
 
