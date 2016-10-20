@@ -50,7 +50,7 @@ func confFlags(c *functions.Configuration) []cli.Flag {
 			Usage:       "raw host path to functions api, e.g. functions.iron.io",
 			Destination: &c.Host,
 			EnvVar:      "HOST",
-			Value:       "127.0.0.1:8080",
+			Value:       "localhost:8080",
 		},
 		cli.StringFlag{
 			Name:        "scheme",
