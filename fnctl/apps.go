@@ -18,7 +18,7 @@ func apps() cli.Command {
 
 	return cli.Command{
 		Name:      "apps",
-		Usage:     "operate apps",
+		Usage:     "list apps",
 		ArgsUsage: "fnclt apps",
 		Flags:     append(confFlags(&a.Configuration), []cli.Flag{}...),
 		Action:    a.list,
@@ -41,9 +41,14 @@ func (a *Apps) list(c *cli.Context) error {
 		return nil // TODO return error instead?
 	}
 
+	if len(wrapper.Apps) == 0 {
+		fmt.Println("no apps found")
+	}
+
 	for _, app := range wrapper.Apps {
 		fmt.Println(app.Name)
 	}
+
 	return nil
 }
 
