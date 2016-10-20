@@ -10,12 +10,12 @@ import (
 	"github.com/urfave/cli"
 )
 
-type Routes struct {
+type routesCmd struct {
 	*functions.RoutesApi
 }
 
 func routes() cli.Command {
-	r := Routes{RoutesApi: functions.NewRoutesApi()}
+	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
 
 	return cli.Command{
 		Name:      "routes",
@@ -34,7 +34,7 @@ func routes() cli.Command {
 	}
 }
 
-func (a *Routes) list(c *cli.Context) error {
+func (a *routesCmd) list(c *cli.Context) error {
 	if c.Args().First() == "" {
 		return errors.New("error: routes listing takes one argument, an app name")
 	}
@@ -57,7 +57,7 @@ func (a *Routes) list(c *cli.Context) error {
 	return nil
 }
 
-func (a *Routes) create(c *cli.Context) error {
+func (a *routesCmd) create(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
 		return errors.New("error: routes listing takes three arguments: an app name, a path and an image")
 	}

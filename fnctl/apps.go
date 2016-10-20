@@ -9,12 +9,12 @@ import (
 	"github.com/urfave/cli"
 )
 
-type Apps struct {
+type appsCmd struct {
 	*functions.AppsApi
 }
 
 func apps() cli.Command {
-	a := Apps{AppsApi: functions.NewAppsApi()}
+	a := appsCmd{AppsApi: functions.NewAppsApi()}
 
 	return cli.Command{
 		Name:      "apps",
@@ -32,7 +32,7 @@ func apps() cli.Command {
 	}
 }
 
-func (a *Apps) list(c *cli.Context) error {
+func (a *appsCmd) list(c *cli.Context) error {
 	resetBasePath(&a.Configuration)
 
 	wrapper, _, err := a.AppsGet()
@@ -52,7 +52,7 @@ func (a *Apps) list(c *cli.Context) error {
 	return nil
 }
 
-func (a *Apps) create(c *cli.Context) error {
+func (a *appsCmd) create(c *cli.Context) error {
 	if c.Args().First() == "" {
 		return errors.New("error: app creating takes one argument, an app name")
 	}

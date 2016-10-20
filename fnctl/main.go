@@ -25,7 +25,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "fnctl"
 	app.Version = "0.0.1"
-	app.Authors = []cli.Author{cli.Author{Name: "iron.io"}}
+	app.Authors = []cli.Author{{Name: "iron.io"}}
 	app.Usage = "IronFunctions command line tools"
 	app.CommandNotFound = func(c *cli.Context, cmd string) { fmt.Fprintf(os.Stderr, "command not found: %v\n", cmd) }
 	app.Commands = []cli.Command{
