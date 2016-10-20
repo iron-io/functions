@@ -90,22 +90,21 @@ $ ceilometer alarm-list
 +--------------------------------------+----------+-------+----------+---------+------------+--------------------------------------+------------------+
 ```
 
-## Change the polling period of ceilometer
+## (Optional): Change the Ceilometer polling interval
 
-Default interval in ceilometer is 600 seconds. It's too long for the testing
-purposes. Let's change it to 60 seconds.
+The default value for the Ceilometer polling interval is 600 seconds. For the purpose of this example let's change it to 60 seconds.
 
 ```bash
 $ sed -i -- 's/interval: 600/interval: 60/g' /etc/ceilometer/pipeline.yaml
 ```
 
-Now we need to restart some components of the ceilometer:
+Next we need to restart some Ceilometer services:
 
   * ceilometer-acentral
   * ceilometer-collector
   * ceilometer-acompute
 
-In devstack all installed parts of the OpenStack are running under
+In Devstack, all OpenStack services are running under
 [screen](https://en.wikipedia.org/wiki/Screen). Thus, to restart processes
 listed above we need to do:
 
