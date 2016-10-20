@@ -1,17 +1,5 @@
 package main
 
-/*
-	# list apps
-	iron apps
-	# create app
-	iron apps create
-
-	# create route
-	iron routes --app APP_NAME create
-	# list routes
-	iron routes --app APP_NAME
-*/
-
 import (
 	"fmt"
 	"net/url"
