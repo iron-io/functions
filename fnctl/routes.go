@@ -30,6 +30,12 @@ func routes() cli.Command {
 				ArgsUsage: "appName /path image/name",
 				Action:    r.create,
 			},
+			{
+				Name:      "delete",
+				Usage:     "delete a route",
+				ArgsUsage: "appName /path",
+				Action:    r.delete,
+			},
 		},
 	}
 }
@@ -81,5 +87,24 @@ func (a *routesCmd) create(c *cli.Context) error {
 	}
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
+	return nil
+}
+
+func (a *routesCmd) delete(c *cli.Context) error {
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
+		return errors.New("error: routes listing takes three arguments: an app name and a path")
+	}
+
+	resetBasePath(&a.Configuration)
+
+	name := c.Args().Get(0)
+	path := c.Args().Get(1)
+	_, err := a.AppsAppRoutesRouteDelete(name, path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting routes: %v", err)
+		return nil // TODO return error instead?
+	}
+
+	fmt.Println(path, "deleted")
 	return nil
 }
