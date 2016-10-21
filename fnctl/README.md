@@ -100,7 +100,6 @@ Dockerfile which it is going to use to build the image and push to Docker Hub.
 
 ```
 $ cat functions.yaml
----
 app: myapp
 image: iron/hello
 route: "/custom/route"
