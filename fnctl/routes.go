@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"text/tabwriter"
 
 	"github.com/iron-io/functions_go"
@@ -47,19 +49,33 @@ func (a *routesCmd) list(c *cli.Context) error {
 
 	resetBasePath(&a.Configuration)
 
-	name := c.Args().Get(0)
-	wrapper, _, err := a.AppsAppRoutesGet(name)
+	appName := c.Args().Get(0)
+	wrapper, _, err := a.AppsAppRoutesGet(appName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting routes: %v", err)
 		return nil // TODO return error instead?
 	}
 
+	baseURL, err := url.Parse(a.Configuration.BasePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error parsing base path: %v", err)
+		return nil // TODO return error instead?
+	}
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprint(w, "path", "\t", "image", "\n")
+	fmt.Fprint(w, "path", "\t", "image", "\t", "endpoint", "\n")
 	for _, route := range wrapper.Routes {
-		fmt.Fprint(w, route.Path, "\t", route.Image, "\n")
+		u, err := url.Parse("../")
+		u.Path = path.Join(u.Path, "r", appName, route.Path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error parsing functions route path: %v", err)
+			return nil // TODO return error instead?
+		}
+
+		fmt.Fprint(w, route.Path, "\t", route.Image, "\t", baseURL.ResolveReference(u).String(), "\n")
 	}
 	w.Flush()
+
 	return nil
 }
 
