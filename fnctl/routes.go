@@ -119,22 +119,22 @@ func (a *routesCmd) run(c *cli.Context) error {
 
 func (a *routesCmd) create(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: routes listing takes three arguments: an app name, a path and an image")
+		return errors.New("error: routes listing takes three arguments: an app name, a route path and an image")
 	}
 
 	resetBasePath(&a.Configuration)
 
-	name := c.Args().Get(0)
-	path := c.Args().Get(1)
+	appName := c.Args().Get(0)
+	route := c.Args().Get(1)
 	image := c.Args().Get(2)
 	body := functions.RouteWrapper{
 		Route: functions.Route{
-			AppName: name,
-			Path:    path,
+			AppName: appName,
+			Path:    route,
 			Image:   image,
 		},
 	}
-	wrapper, _, err := a.AppsAppRoutesPost(name, body)
+	wrapper, _, err := a.AppsAppRoutesPost(appName, body)
 	if err != nil {
 		return fmt.Errorf("error creating route: %v", err)
 	}
@@ -150,13 +150,13 @@ func (a *routesCmd) delete(c *cli.Context) error {
 
 	resetBasePath(&a.Configuration)
 
-	name := c.Args().Get(0)
-	path := c.Args().Get(1)
-	_, err := a.AppsAppRoutesRouteDelete(name, path)
+	appName := c.Args().Get(0)
+	route := c.Args().Get(1)
+	_, err := a.AppsAppRoutesRouteDelete(appName, route)
 	if err != nil {
 		return fmt.Errorf("error deleting route: %v", err)
 	}
 
-	fmt.Println(path, "deleted")
+	fmt.Println(route, "deleted")
 	return nil
 }

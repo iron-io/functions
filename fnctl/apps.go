@@ -58,8 +58,8 @@ func (a *appsCmd) create(c *cli.Context) error {
 
 	resetBasePath(&a.Configuration)
 
-	name := c.Args().Get(0)
-	body := functions.AppWrapper{App: functions.App{Name: name}}
+	appName := c.Args().Get(0)
+	body := functions.AppWrapper{App: functions.App{Name: appName}}
 	wrapper, _, err := a.AppsPost(body)
 	if err != nil {
 		return fmt.Errorf("error creating app: %v", err)
