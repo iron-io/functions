@@ -12,6 +12,7 @@ import (
 
 	"github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type routesCmd struct {
@@ -99,12 +100,15 @@ func (a *routesCmd) run(c *cli.Context) error {
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
 
-	fmt.Fprintln(os.Stderr, "listening to standard input")
-
 	u, err := url.Parse("../")
 	u.Path = path.Join(u.Path, "r", appName, route)
 
-	resp, err := http.Post(baseURL.ResolveReference(u).String(), "application/json", os.Stdin)
+	var content io.Reader
+	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		content = os.Stdin
+	}
+
+	resp, err := http.Post(baseURL.ResolveReference(u).String(), "application/json", content)
 	if err != nil {
 		return fmt.Errorf("error running route: %v", err)
 	}
