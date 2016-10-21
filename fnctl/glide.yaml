@@ -1,4 +1,0 @@
-package: github.com/iron-io/functions/fnctl
-import:
-- package: github.com/urfave/cli
-- package: github.com/iron-io/functions_go

@@ -27,7 +27,7 @@ docker run --rm --name functions --privileged -it -v $PWD/data:/app/data -p 8080
 You can easily operate IronFunctions with its CLI tool. Install it with:
 
 ```ShellSession
-go install github.com/iron-io/functions/fnctl
+go get -u github.com/iron-io/functions/fnctl
 ```
 
 ### Create an Application
