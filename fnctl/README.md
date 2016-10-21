@@ -32,10 +32,10 @@ IronFunction.
 ```ShellSession
 $ fnctl update
 Updating for all functions.
-path    	image    	action
-/app/hello	iron/hello 	updated
+path    	    image    	action
+/app/hello	    iron/hello 	updated
 /app/hello-sync	iron/hello 	skipped
-/app/test	iron/hello 	updated
+/app/test	    iron/hello 	updated
 ```
 
 It works by scanning all children directories of the current working directory,
@@ -71,6 +71,10 @@ path    	            image    	action
 /myapp/route1/subroute1	iron/hello 	updated
 /other/route1	        iron/hello 	updated
 ```
+
+It means that first subdirectory are always considered app names (e.g. `myapp`
+and `other`), each subdirectory of these firsts are considered part of the route
+(e.g. `route1/subroute1`).
 
 `fnctl update` expects that each directory to contain a file `functions.yaml`
 which instructs `fnctl` on how to act with that particular update, and a
