@@ -67,7 +67,7 @@ It will render this pattern of updates:
 ```ShellSession
 $ fnctl update
 Updating for all functions.
-path    	        image    	action
+path    	            image    	action
 /myapp/route1/subroute1	iron/hello 	updated
 /other/route1	        iron/hello 	updated
 ```
@@ -92,5 +92,6 @@ updated to use it.
 `route` (optional) allows you to overwrite the calculated route from the path
 position. You may use it to override the calculated route.
 
-`build` is an array of shell calls which are used to helping building the image.
-These calls are executed before `fnctl` calls `docker build` and `docker push`.
+`build` (optional) is an array of shell calls which are used to helping building
+the image. These calls are executed before `fnctl` calls `docker build` and
+`docker push`.
