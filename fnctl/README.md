@@ -1,5 +1,7 @@
 # IronFunctions CLI
 
+
+## Basic
 You can operate IronFunctions from the command line.
 
 ```ShellSession
@@ -20,3 +22,75 @@ path	image
 $ fnctl routes create otherapp /hello iron/hello   # create route
 /hello created with iron/hello
 ```
+
+## Bulk Update
+
+Also there is the update command that is going to scan all local directory for
+functions, rebuild them and push them to Docker Hub and update them in
+IronFunction.
+
+```ShellSession
+$ fnctl update
+Updating for all functions.
+path    	image    	action
+/app/hello	iron/hello 	updated
+/app/hello-sync	iron/hello 	skipped
+/app/test	iron/hello 	updated
+```
+
+It works by scanning all children directories of the current working directory,
+following this convention:
+
+<pre><code>┌───────┐
+│  ./   │
+└───┬───┘
+    │     ┌───────┐
+    ├────▶│ myapp │
+    │     └───┬───┘
+    │         │     ┌───────┐
+    │         ├────▶│route1 │
+    │         │     └───────┘
+    │         │         │     ┌─────────┐
+    │         │         ├────▶│subroute1│
+    │         │         │     └─────────┘
+    │
+    │     ┌───────┐
+    ├────▶│ other │
+    │     └───┬───┘
+    │         │     ┌───────┐
+    │         ├────▶│route1 │
+    │         │     └───────┘</code></pre>
+
+
+It will render this pattern of updates:
+
+```ShellSession
+$ fnctl update
+Updating for all functions.
+path    	        image    	action
+/myapp/route1/subroute1	iron/hello 	updated
+/other/route1	        iron/hello 	updated
+```
+
+`fnctl update` expects that each directory to contain a file `functions.yaml`
+which instructs `fnctl` on how to act with that particular update, and a
+Dockerfile which it is going to use to build the image and push to Docker Hub.
+
+```
+$ cat functions.yaml
+---
+image: iron/hello
+route: "/custom/route"
+build:
+- make
+- make test
+```
+
+`image` is the name and tag to which this route will be pushed to and the route
+updated to use it.
+
+`route` (optional) allows you to overwrite the calculated route from the path
+position. You may use it to override the calculated route.
+
+`build` is an array of shell calls which are used to helping building the image.
+These calls are executed before `fnctl` calls `docker build` and `docker push`.

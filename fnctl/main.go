@@ -19,6 +19,7 @@ func main() {
 	app.Commands = []cli.Command{
 		apps(),
 		routes(),
+		update(),
 	}
 	app.Run(os.Args)
 }
