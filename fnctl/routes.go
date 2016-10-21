@@ -95,7 +95,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 	}
 	wrapper, _, err := a.AppsAppRoutesPost(name, body)
 	if err != nil {
-		return fmt.Errorf("error getting routes: %v", err)
+		return fmt.Errorf("error creating route: %v", err)
 	}
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
@@ -113,7 +113,7 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	path := c.Args().Get(1)
 	_, err := a.AppsAppRoutesRouteDelete(name, path)
 	if err != nil {
-		return fmt.Errorf("error getting routes: %v", err)
+		return fmt.Errorf("error deleting route: %v", err)
 	}
 
 	fmt.Println(path, "deleted")

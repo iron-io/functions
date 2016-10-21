@@ -61,7 +61,7 @@ func (a *appsCmd) create(c *cli.Context) error {
 	body := functions.AppWrapper{App: functions.App{Name: name}}
 	wrapper, _, err := a.AppsPost(body)
 	if err != nil {
-		return fmt.Errorf("error getting app: %v", err)
+		return fmt.Errorf("error creating app: %v", err)
 	}
 
 	fmt.Println(wrapper.App.Name, "created")
