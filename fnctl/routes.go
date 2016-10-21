@@ -52,14 +52,12 @@ func (a *routesCmd) list(c *cli.Context) error {
 	appName := c.Args().Get(0)
 	wrapper, _, err := a.AppsAppRoutesGet(appName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting routes: %v", err)
-		return nil // TODO return error instead?
+		return fmt.Errorf("error getting routes: %v", err)
 	}
 
 	baseURL, err := url.Parse(a.Configuration.BasePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing base path: %v", err)
-		return nil // TODO return error instead?
+		return fmt.Errorf("error parsing base path: %v", err)
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
@@ -68,8 +66,7 @@ func (a *routesCmd) list(c *cli.Context) error {
 		u, err := url.Parse("../")
 		u.Path = path.Join(u.Path, "r", appName, route.Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error parsing functions route path: %v", err)
-			return nil // TODO return error instead?
+			return fmt.Errorf("error parsing functions route path: %v", err)
 		}
 
 		fmt.Fprint(w, route.Path, "\t", route.Image, "\t", baseURL.ResolveReference(u).String(), "\n")
@@ -98,8 +95,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 	}
 	wrapper, _, err := a.AppsAppRoutesPost(name, body)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting routes: %v", err)
-		return nil // TODO return error instead?
+		return fmt.Errorf("error getting routes: %v", err)
 	}
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
@@ -117,8 +113,7 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	path := c.Args().Get(1)
 	_, err := a.AppsAppRoutesRouteDelete(name, path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting routes: %v", err)
-		return nil // TODO return error instead?
+		return fmt.Errorf("error getting routes: %v", err)
 	}
 
 	fmt.Println(path, "deleted")

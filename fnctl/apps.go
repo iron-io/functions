@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
@@ -37,8 +36,7 @@ func (a *appsCmd) list(c *cli.Context) error {
 
 	wrapper, _, err := a.AppsGet()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting app: %v", err)
-		return nil // TODO return error instead?
+		return fmt.Errorf("error getting app: %v", err)
 	}
 
 	if len(wrapper.Apps) == 0 {
@@ -63,8 +61,7 @@ func (a *appsCmd) create(c *cli.Context) error {
 	body := functions.AppWrapper{App: functions.App{Name: name}}
 	wrapper, _, err := a.AppsPost(body)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting app: %v", err)
-		return nil // TODO return error instead?
+		return fmt.Errorf("error getting app: %v", err)
 	}
 
 	fmt.Println(wrapper.App.Name, "created")
