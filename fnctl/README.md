@@ -50,10 +50,10 @@ IronFunction.
 ```ShellSession
 $ fnctl update
 Updating for all functions.
-path    	    image    	action
-/app/hello	    iron/hello 	updated
-/app/hello-sync	iron/hello 	skipped
-/app/test	    iron/hello 	updated
+path    	    action
+/app/hello	    updated
+/app/hello-sync	error: no Dockerfile found for this function
+/app/test	    updated
 ```
 
 It works by scanning all children directories of the current working directory,
@@ -85,9 +85,9 @@ It will render this pattern of updates:
 ```ShellSession
 $ fnctl update
 Updating for all functions.
-path    	            image    	action
-/myapp/route1/subroute1	iron/hello 	updated
-/other/route1	        iron/hello 	updated
+path    	            action
+/myapp/route1/subroute1	updated
+/other/route1	        updated
 ```
 
 It means that first subdirectory are always considered app names (e.g. `myapp`
@@ -101,6 +101,7 @@ Dockerfile which it is going to use to build the image and push to Docker Hub.
 ```
 $ cat functions.yaml
 ---
+app: myapp
 image: iron/hello
 route: "/custom/route"
 build:
@@ -108,8 +109,11 @@ build:
 - make test
 ```
 
-`image` is the name and tag to which this route will be pushed to and the route
-updated to use it.
+`app` (optional) is the application name to which this function will be pushed
+to.
+
+`image` is the name and tag to which this function will be pushed to and the
+route updated to use it.
 
 `route` (optional) allows you to overwrite the calculated route from the path
 position. You may use it to override the calculated route.
