@@ -1,5 +1,20 @@
 # IronFunctions CLI
 
+## Build
+
+Ensure you have Go configured and installed in your environment. Once it is
+done, run:
+
+```ShellSession
+$ make
+```
+
+It will build fnctl compatible with your local environment. You can test this
+CLI, right away with:
+
+```ShellSession
+$ ./fnctl
+```
 
 ## Basic
 You can operate IronFunctions from the command line.
