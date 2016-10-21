@@ -8,4 +8,4 @@ docker: vendor
 	docker push iron/fnctl
 
 vendor:
-	glide install --strip-vendor
+	go get -u .
