@@ -1,14 +1,14 @@
-hash: 79dfd23f7add3ceef84ac3f3c6a2dc4f171038f7c54b1374fa2afc64ebe1cb06
-updated: 2016-10-20T16:35:42.265290069-07:00
+hash: ba755dafecdd69ab73589e55d3b10216684aa885d65fa459fca69a0c4da6d959
+updated: 2016-10-20T18:19:35.100655097-07:00
 imports:
 - name: github.com/go-resty/resty
   version: 1a3bb60986d90e32c04575111b1ccb8eab24a3e5
 - name: github.com/iron-io/functions_go
-  version: cd653c7856170bfdbba2e0d7728035d3d1aeceb5
+  version: 584f4a6e13b53370f036012347cf0571128209f0
 - name: github.com/urfave/cli
   version: 55f715e28c46073d0e217e2ce8eb46b0b45e3db6
 - name: golang.org/x/net
-  version: f315505cf3349909cdf013ea56690da34e96a451
+  version: daba796358cd2742b75aae05761f1b898c9f6a5c
   subpackages:
   - publicsuffix
 testImports: []
