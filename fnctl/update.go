@@ -138,6 +138,7 @@ func (u *updatecmd) update(path string) error {
 	if u.verbose {
 		verbwriter = os.Stderr
 	}
+	fmt.Fprintln(verbwriter, "deploying", path)
 	dir := filepath.Dir(path)
 	dockerfile := filepath.Join(dir, "Dockerfile")
 
@@ -210,7 +211,6 @@ func (u *updatecmd) localbuild(path string, steps []string) error {
 		return fmt.Errorf("cannot get current working directory. err: %v", err)
 	}
 	fullwd := filepath.Join(wd, filepath.Dir(path))
-	fmt.Fprintf(verbwriter, "\n")
 	for _, cmd := range steps {
 		c := exec.Command("/bin/sh", "-c", cmd)
 		c.Dir = fullwd
