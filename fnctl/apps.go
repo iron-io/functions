@@ -41,6 +41,7 @@ func (a *appsCmd) list(c *cli.Context) error {
 
 	if len(wrapper.Apps) == 0 {
 		fmt.Println("no apps found")
+		return nil
 	}
 
 	for _, app := range wrapper.Apps {

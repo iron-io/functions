@@ -103,7 +103,9 @@ func (u *updatecmd) walker(path string, info os.FileInfo, err error, w io.Writer
 	if u.dry {
 		fmt.Fprintln(w, "dry-run")
 	} else if err := u.update(path); err != nil {
-		fmt.Fprint(w, err, "\t")
+		fmt.Fprintln(w, err)
+	} else {
+		fmt.Fprintln(w, "updated")
 	}
 
 	return nil
@@ -119,15 +121,7 @@ func isvalid(path string, info os.FileInfo) bool {
 		}
 	}
 
-	if !isvalidfn {
-		return false
-	}
-
-	if info.IsDir() {
-		return false
-	}
-
-	return true
+	return isvalidfn && !info.IsDir()
 }
 
 // update will take the found function and check for the presence of a Dockerfile,
@@ -138,10 +132,11 @@ func (u *updatecmd) update(path string) error {
 	if u.verbose {
 		verbwriter = os.Stderr
 	}
+
 	fmt.Fprintln(verbwriter, "deploying", path)
+
 	dir := filepath.Dir(path)
 	dockerfile := filepath.Join(dir, "Dockerfile")
-
 	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
 		return errDockerFileNotFound
 	}
@@ -210,6 +205,7 @@ func (u *updatecmd) localbuild(path string, steps []string) error {
 	if err != nil {
 		return fmt.Errorf("cannot get current working directory. err: %v", err)
 	}
+
 	fullwd := filepath.Join(wd, filepath.Dir(path))
 	for _, cmd := range steps {
 		c := exec.Command("/bin/sh", "-c", cmd)
@@ -272,6 +268,13 @@ func (u *updatecmd) route(path string, ff *funcfile) error {
 }
 
 func extractAppNameRoute(path string) (appName, route string) {
+
+	// The idea here is to extract the root-most directory name
+	// as application name, it turns out that stdlib tools are great to
+	// extract the deepest one. Thus, we revert the string and use the
+	// stdlib as it is - and revert back to its normal content. Not fastest
+	// ever, but it is simple.
+
 	rpath := reverse(path)
 	rroute, rappName := filepath.Split(rpath)
 	route = filepath.Dir(reverse(rroute))
