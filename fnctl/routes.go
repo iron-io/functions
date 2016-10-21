@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -26,6 +28,12 @@ func routes() cli.Command {
 		Flags:     append(confFlags(&r.Configuration), []cli.Flag{}...),
 		Action:    r.list,
 		Subcommands: []cli.Command{
+			{
+				Name:      "run",
+				Usage:     "run a route",
+				ArgsUsage: "appName /path",
+				Action:    r.run,
+			},
 			{
 				Name:      "create",
 				Usage:     "create a route",
@@ -73,6 +81,35 @@ func (a *routesCmd) list(c *cli.Context) error {
 	}
 	w.Flush()
 
+	return nil
+}
+
+func (a *routesCmd) run(c *cli.Context) error {
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
+		return errors.New("error: routes listing takes three arguments: an app name and a route")
+	}
+
+	resetBasePath(&a.Configuration)
+
+	baseURL, err := url.Parse(a.Configuration.BasePath)
+	if err != nil {
+		return fmt.Errorf("error parsing base path: %v", err)
+	}
+
+	appName := c.Args().Get(0)
+	route := c.Args().Get(1)
+
+	fmt.Fprintln(os.Stderr, "listening to standard input")
+
+	u, err := url.Parse("../")
+	u.Path = path.Join(u.Path, "r", appName, route)
+
+	resp, err := http.Post(baseURL.ResolveReference(u).String(), "application/json", os.Stdin)
+	if err != nil {
+		return fmt.Errorf("error running route: %v", err)
+	}
+
+	io.Copy(os.Stdout, resp.Body)
 	return nil
 }
 

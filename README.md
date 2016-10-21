@@ -22,14 +22,20 @@ docker run --rm --name functions --privileged -it -v $PWD/data:/app/data -p 8080
 
 **Note**: A list of configurations via env variables can be found [here](docs/api.md).*
 
+### CLI tool
+
+You can easily operate IronFunctions with its CLI tool. Install it with:
+
+```ShellSession
+go install github.com/iron-io/functions/fnctl
+```
+
 ### Create an Application
 
 An application is essentially a grouping of functions, that put together, form an API. Here's how to create an app. 
 
 ```sh
-curl -H "Content-Type: application/json" -X POST -d '{
-    "app": { "name":"myapp" }
-}' http://localhost:8080/v1/apps
+fnctl apps create myapp
 ```
 
 Now that we have an app, we can map routes to functions. 
@@ -40,12 +46,7 @@ A route is a way to define a path in your application that maps to a function. I
 `/path` to a simple `Hello World!` image called `iron/hello`. 
 
 ```sh
-curl -H "Content-Type: application/json" -X POST -d '{
-    "route": {
-        "path":"/hello",
-        "image":"iron/hello"
-    }
-}' http://localhost:8080/v1/apps/myapp/routes
+fnctl routes create myapp /hello iron/hello
 ```
 
 ### Calling your Function
@@ -64,9 +65,7 @@ Or just surf to it: http://localhost:8080/r/myapp/hello
 Your function will get the body of the HTTP request via STDIN, and the headers of the request will be passed in as env vars. Try this:
 
 ```sh
-curl -H "Content-Type: application/json" -X POST -d '{
-    "name":"Johnny"
-}' http://localhost:8080/r/myapp/hello
+echo '{"name":"Johnny"}' | fnctl routes run myapp /hello
 ```
 
 You should see it say `Hello Johnny!` now instead of `Hello World!`. 
