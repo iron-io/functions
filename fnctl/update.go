@@ -81,6 +81,10 @@ func (u *updatecmd) flags() []cli.Flag {
 }
 
 func (u *updatecmd) scan(c *cli.Context) error {
+	if u.verbose {
+		verbwriter = os.Stderr
+	}
+
 	os.Chdir(u.wd)
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
@@ -112,16 +116,18 @@ func (u *updatecmd) walker(path string, info os.FileInfo, err error, w io.Writer
 }
 
 func isvalid(path string, info os.FileInfo) bool {
-	var isvalidfn bool
+	if info.IsDir() {
+		return false
+	}
+
 	basefn := filepath.Base(path)
 	for _, fn := range validfn {
 		if basefn == fn {
-			isvalidfn = true
-			break
+			return true
 		}
 	}
 
-	return isvalidfn && !info.IsDir()
+	return false
 }
 
 // update will take the found function and check for the presence of a Dockerfile,
@@ -129,10 +135,6 @@ func isvalid(path string, info os.FileInfo) bool {
 // container, and finally it will update function's route. Optionally, the route
 // can be overriden inside the functions file.
 func (u *updatecmd) update(path string) error {
-	if u.verbose {
-		verbwriter = os.Stderr
-	}
-
 	fmt.Fprintln(verbwriter, "deploying", path)
 
 	dir := filepath.Dir(path)
