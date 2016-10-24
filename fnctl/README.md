@@ -5,21 +5,21 @@
 Ensure you have Go configured and installed in your environment. Once it is
 done, run:
 
-```ShellSession
+```sh
 $ make
 ```
 
 It will build fnctl compatible with your local environment. You can test this
 CLI, right away with:
 
-```ShellSession
+```sh
 $ ./fnctl
 ```
 
 ## Basic
 You can operate IronFunctions from the command line.
 
-```ShellSession
+```sh
 $ fnctl apps                                       # list apps
 myapp
 
@@ -47,7 +47,7 @@ Also there is the update command that is going to scan all local directory for
 functions, rebuild them and push them to Docker Hub and update them in
 IronFunction.
 
-```ShellSession
+```sh
 $ fnctl update
 Updating for all functions.
 path    	    action
@@ -82,7 +82,7 @@ following this convention:
 
 It will render this pattern of updates:
 
-```ShellSession
+```sh
 $ fnctl update
 Updating for all functions.
 path    	            action

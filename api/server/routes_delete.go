@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"net/http"
-	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
@@ -15,7 +14,7 @@ func handleRouteDelete(c *gin.Context) {
 	log := common.Logger(ctx)
 
 	appName := c.Param("app")
-	routePath := filepath.Clean(c.Param("route"))
+	routePath := c.Param("route")
 	err := Api.Datastore.RemoveRoute(appName, routePath)
 
 	if err != nil {
