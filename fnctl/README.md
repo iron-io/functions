@@ -37,7 +37,7 @@ path	image
 $ fnctl routes create otherapp /hello iron/hello   # create route
 /hello created with iron/hello
 
-$ fnctl routes delete otherapp /hello              # delete route
+$ fnctl routes delete otherapp hello              # delete route
 /hello deleted
 ```
 
