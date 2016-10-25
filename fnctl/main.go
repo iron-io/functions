@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+
 	app := cli.NewApp()
 	app.Name = "fnctl"
 	app.Version = "0.0.1"
@@ -21,6 +22,7 @@ func main() {
 		apps(),
 		routes(),
 		update(),
+		lambda(),
 	}
 	app.Run(os.Args)
 }
