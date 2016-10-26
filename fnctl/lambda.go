@@ -16,18 +16,13 @@ import (
 
 var availableRuntimes = []string{"nodejs", "python2.7", "java8"}
 
-const (
-	skipFunctionName = iota
-	requireFunctionName
-)
-
 type lambdaCmd struct {
 	settings  config.Settings
 	token     *string
 	projectID *string
 }
 
-type LambdaCreateCmd struct {
+type lambdaCreateCmd struct {
 	lambdaCmd
 
 	functionName string
@@ -36,7 +31,7 @@ type LambdaCreateCmd struct {
 	fileNames    []string
 }
 
-func (lcc *LambdaCreateCmd) Config() error {
+func (lcc *lambdaCreateCmd) Config() error {
 	return nil
 }
 
@@ -61,7 +56,7 @@ func (djw *DockerJsonWriter) Write(p []byte) (int, error) {
 	return djw.w.Write(p)
 }
 
-func (lcc *LambdaCreateCmd) run(c *cli.Context) error {
+func (lcc *lambdaCreateCmd) run(c *cli.Context) error {
 
 	handler := c.String("handler")
 	functionName := c.String("name")
@@ -111,7 +106,7 @@ func (lcc *LambdaCreateCmd) run(c *cli.Context) error {
 	return lambdaImpl.CreateImage(opts, files...)
 }
 
-func (lcc *LambdaCreateCmd) getFlags() []cli.Flag {
+func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:        "function-name",
@@ -132,7 +127,7 @@ func (lcc *LambdaCreateCmd) getFlags() []cli.Flag {
 }
 
 func lambda() cli.Command {
-	lcc := LambdaCreateCmd{}
+	lcc := lambdaCreateCmd{}
 	var flags []cli.Flag
 
 	flags = append(flags, lcc.getFlags()...)
@@ -143,7 +138,7 @@ func lambda() cli.Command {
 		Subcommands: []cli.Command{
 			{
 				Name:      "create-function",
-				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS LambdaImpl.`,
+				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS Lambda.`,
 				ArgsUsage: "--function-name NAME --runtime RUNTIME --handler HANDLER file [files...]",
 				Action:    lcc.run,
 				Flags:     flags,

@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	app := cli.NewApp()
 	app.Name = "fnctl"
 	app.Version = "0.0.1"
