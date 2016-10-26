@@ -241,8 +241,14 @@ func lambda() cli.Command {
 
 	//init flags
 	flag.Parse()
-	lcc.Flags()
-	lcc.Args()
+	if err := lcc.Flags(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := lcc.Args(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	flags = append(flags, lcc.getFlags()...)
 	return cli.Command{
