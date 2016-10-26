@@ -163,4 +163,4 @@ TODO:
 
 ## More Documentation
 
-See [docs/](docs/) for full documentation.
+See [docs/](docs/README.md) for full documentation.
