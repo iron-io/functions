@@ -1,8 +1,11 @@
-FROM golang:1.6.2
+FROM iron/go:dev
 
-ADD . $GOPATH/src/func
-WORKDIR $GOPATH/src/func
+ARG FUNCPKG
+
+ADD . $GOPATH/src/$FUNCPKG
+WORKDIR $GOPATH/src/$FUNCPKG
 
 RUN go get .
+RUN go build -o func
 
-ENTRYPOINT ["go", "run", "main.go"]
+ENTRYPOINT ["./func"]

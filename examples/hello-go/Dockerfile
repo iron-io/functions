@@ -1,6 +1,11 @@
-FROM iron/go
+FROM iron/go:dev
 
-WORKDIR /function
-ADD hello .
+ARG FUNCPKG
 
-ENTRYPOINT ["./hello"]
+ADD . $GOPATH/src/$FUNCPKG
+WORKDIR $GOPATH/src/$FUNCPKG
+
+RUN go get .
+RUN go build -o func
+
+ENTRYPOINT ["./func"]

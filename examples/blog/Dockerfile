@@ -1,8 +1,11 @@
 FROM iron/go:dev
 
-ADD . $GOPATH/src/github.com/iron-io/functions/examples/blog
-WORKDIR $GOPATH/src/github.com/iron-io/functions/examples/blog
+ARG FUNCPKG
+
+ADD . $GOPATH/src/$FUNCPKG
+WORKDIR $GOPATH/src/$FUNCPKG
 
 RUN go get .
+RUN go build -o func
 
-ENTRYPOINT ["go", "run", "main.go"]
+ENTRYPOINT ["./func"]
