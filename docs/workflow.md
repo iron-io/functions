@@ -31,3 +31,15 @@ the original caller. It is equivalent of doing:
 ```
 fnctl routes run otherapp /hello | fnctl routes run otherapp /hasher
 ```
+
+## Restrictions
+
+### Loops
+
+IronFuctions will return error in the following situations:
+1 - Direct loops: routes who pipeline to themselves.
+2 - Indirect loops: routes whose chain form loops, ie, some node points to some other known node.
+
+### Timeout
+
+If the work times out, it will not stop the chain. It will let the chain follow its course: either finishing or timing out too.
