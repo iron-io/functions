@@ -1,5 +1,8 @@
 #!/bin/bash
 set -ex
 
+FUNCPKG=$(pwd | sed "s|$GOPATH/src/||")
+
 # build image
-docker build --build-arg FUNCPKG=$(pwd | sed "s|$GOPATH/src/||") -t iron/func-hello-go .
+docker run --rm -v "$PWD":/go/src/$FUNCPKG -w /go/src/$FUNCPKG iron/go:dev go build -o func
+docker build -t iron/func-hello-go .

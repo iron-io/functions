@@ -38,9 +38,7 @@ docker push $USERNAME/func-redis
 
 ## Running it on IronFunctions
 
-First you need a running IronFunctions API
-
-### First, let's define this environment variables
+### Let's define some environment variables
 
 ```
 # Set your Function server address

@@ -6,4 +6,4 @@ set -x
 PAYLOAD='{"username": "getiron"}'
 
 # test it
-echo $PAYLOAD | docker run --rm -i -v func:/func -e TEST=1 iron/func-twitter 
+echo $PAYLOAD | docker run --rm -i iron/func-twitter 
