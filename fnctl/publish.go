@@ -1,17 +1,14 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
-
 
 func publish() cli.Command {
 	cmd := publishcmd{RoutesApi: functions.NewRoutesApi()}

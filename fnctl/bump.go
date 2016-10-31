@@ -11,7 +11,6 @@ import (
 	bumper "github.com/giantswarm/semver-bump/bump"
 	"github.com/giantswarm/semver-bump/storage"
 
-	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
 
@@ -22,10 +21,9 @@ var (
 )
 
 func bump() cli.Command {
-	cmd := bumpcmd{RoutesApi: functions.NewRoutesApi()}
+	cmd := bumpcmd{}
 	var flags []cli.Flag
 	flags = append(flags, cmd.flags()...)
-	flags = append(flags, confFlags(&cmd.Configuration)...)
 	return cli.Command{
 		Name:   "bump",
 		Usage:  "bump function version",
@@ -35,8 +33,6 @@ func bump() cli.Command {
 }
 
 type bumpcmd struct {
-	*functions.RoutesApi
-
 	wd      string
 	verbose bool
 }

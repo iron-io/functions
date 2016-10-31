@@ -5,15 +5,13 @@ import (
 	"io"
 	"os"
 
-	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
 
 func build() cli.Command {
-	cmd := buildcmd{RoutesApi: functions.NewRoutesApi()}
+	cmd := buildcmd{}
 	var flags []cli.Flag
 	flags = append(flags, cmd.flags()...)
-	flags = append(flags, confFlags(&cmd.Configuration)...)
 	return cli.Command{
 		Name:   "build",
 		Usage:  "build function version",
@@ -23,8 +21,6 @@ func build() cli.Command {
 }
 
 type buildcmd struct {
-	*functions.RoutesApi
-
 	wd      string
 	verbose bool
 }
