@@ -85,12 +85,17 @@ func (u *updatecmd) scan(c *cli.Context) error {
 		verbwriter = os.Stderr
 	}
 
-	os.Chdir(u.wd)
+	path := u.wd
+	if !filepath.IsAbs(path) {
+		cwd, _ := os.Getwd()
+		path = filepath.Join(cwd, path)
+	}
+	os.Chdir(path)
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprint(w, "path", "\t", "action", "\n")
 
-	filepath.Walk(u.wd, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		return u.walker(path, info, err, w)
 	})
 
@@ -143,17 +148,17 @@ func (u *updatecmd) update(path string) error {
 		return errDockerFileNotFound
 	}
 
-	funcfile, err := u.parse(path)
+	funcfile, err := parseFuncFile(path)
 	if err != nil {
 		return err
 	}
 
 	if funcfile.Build != nil {
-		if err := u.localbuild(path, funcfile.Build); err != nil {
+		if err := localbuild(path, funcfile.Build); err != nil {
 			return err
 		}
 	}
-	if err := u.dockerbuild(path, funcfile.Image); err != nil {
+	if err := dockerbuild(path, funcfile.Image, u.skippush); err != nil {
 		return err
 	}
 
@@ -164,7 +169,7 @@ func (u *updatecmd) update(path string) error {
 	return nil
 }
 
-func (u *updatecmd) parse(path string) (*funcfile, error) {
+func parseFuncFile(path string) (*funcfile, error) {
 	ext := filepath.Ext(path)
 	switch ext {
 	case ".json":
@@ -202,16 +207,9 @@ type funcfile struct {
 	Build []string
 }
 
-func (u *updatecmd) localbuild(path string, steps []string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("cannot get current working directory. err: %v", err)
-	}
-
-	fullwd := filepath.Join(wd, filepath.Dir(path))
+func localbuild(path string, steps []string) error {
 	for _, cmd := range steps {
 		c := exec.Command("/bin/sh", "-c", cmd)
-		c.Dir = fullwd
 		out, err := c.CombinedOutput()
 		fmt.Fprintf(verbwriter, "- %s:\n%s\n", cmd, out)
 		if err != nil {
@@ -222,11 +220,11 @@ func (u *updatecmd) localbuild(path string, steps []string) error {
 	return nil
 }
 
-func (u *updatecmd) dockerbuild(path, image string) error {
+func dockerbuild(path, image string, skippush bool) error {
 	cmds := [][]string{
 		{"docker", "build", "-t", image, filepath.Dir(path)},
 	}
-	if !u.skippush {
+	if !skippush {
 		cmds = append(cmds, []string{"docker", "push", image})
 	}
 

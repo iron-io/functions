@@ -20,6 +20,8 @@ func main() {
 	app.Commands = []cli.Command{
 		apps(),
 		routes(),
+		build(),
+		bump(),
 		update(),
 		lambda(),
 	}
