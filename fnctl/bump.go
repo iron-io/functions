@@ -65,7 +65,9 @@ func (b *bumpcmd) bump(path string) error {
 		return err
 	}
 
-	ioutil.WriteFile(versionfile, []byte(newver.String()), 0666)
+	if err := ioutil.WriteFile(versionfile, []byte(newver.String()), 0666); err != nil {
+		return err
+	}
 
 	return nil
 }
