@@ -121,7 +121,7 @@ func scan(verbose bool, wd string, walker func(path string, info os.FileInfo, er
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprint(w, "path", "\t", "action", "\n")
+	fmt.Fprint(w, "path", "\t", "result", "\n")
 
 	err := filepath.Walk(wd, func(path string, info os.FileInfo, err error) error {
 		return walker(path, info, err, w)

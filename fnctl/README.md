@@ -49,10 +49,10 @@ IronFunction.
 
 ```sh
 $ fnctl publish
-path    	    action
-/app/hello	    updated
+path    	    result
+/app/hello	    done
 /app/hello-sync	error: no Dockerfile found for this function
-/app/test	    updated
+/app/test	    done
 ```
 
 It works by scanning all children directories of the current working directory,
@@ -83,9 +83,9 @@ It will render this pattern of updates:
 
 ```sh
 $ fnctl publish
-path    	            action
-/myapp/route1/subroute1	updated
-/other/route1	        updated
+path    	            result
+/myapp/route1/subroute1	done
+/other/route1	        done
 ```
 
 It means that first subdirectory are always considered app names (e.g. `myapp`
@@ -127,9 +127,9 @@ individual calls. `fnctl` offers two command to help you with that: `build` and
 
 ```sh
 $ fnctl build
-path    	    action
-/app/hello	    build
-/app/test	    build
+path    	    result
+/app/hello	    done
+/app/test	    done
 ```
 
 `fnctl build` is similar to `publish` except it neither publishes the resulting
@@ -137,9 +137,9 @@ docker image to Docker Hub nor updates the routes in IronFunctions server.
 
 ```sh
 $ fnctl bump
-path    	    action
-/app/hello	    bumped
-/app/test	    bumped
+path    	    result
+/app/hello	    done
+/app/test	    done
 ```
 
 `fnctl bump` will scan all IronFunctions for files named `VERSION` and bump
