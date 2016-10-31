@@ -10,7 +10,6 @@ import (
 
 	bumper "github.com/giantswarm/semver-bump/bump"
 	"github.com/giantswarm/semver-bump/storage"
-
 	"github.com/urfave/cli"
 )
 
@@ -21,9 +20,8 @@ var (
 )
 
 func bump() cli.Command {
-	cmd := bumpcmd{}
-	var flags []cli.Flag
-	flags = append(flags, cmd.flags()...)
+	cmd := bumpcmd{commoncmd: &commoncmd{}}
+	flags := append([]cli.Flag{}, cmd.flags()...)
 	return cli.Command{
 		Name:   "bump",
 		Usage:  "bump function version",
@@ -33,25 +31,7 @@ func bump() cli.Command {
 }
 
 type bumpcmd struct {
-	wd      string
-	verbose bool
-}
-
-func (b *bumpcmd) flags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{
-			Name:        "d",
-			Usage:       "working directory",
-			Destination: &b.wd,
-			EnvVar:      "WORK_DIR",
-			Value:       "./",
-		},
-		cli.BoolFlag{
-			Name:        "v",
-			Usage:       "verbose mode",
-			Destination: &b.verbose,
-		},
-	}
+	*commoncmd
 }
 
 func (b *bumpcmd) scan(c *cli.Context) error {
@@ -60,17 +40,7 @@ func (b *bumpcmd) scan(c *cli.Context) error {
 }
 
 func (b *bumpcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
-	if !isvalid(path, info) {
-		return nil
-	}
-
-	fmt.Fprint(w, path, "\t")
-	if err := b.bump(path); err != nil {
-		fmt.Fprintln(w, err)
-	} else {
-		fmt.Fprintln(w, "bumped")
-	}
-
+	walker(path, info, err, w, b.bump)
 	return nil
 }
 

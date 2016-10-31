@@ -5,15 +5,20 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
 
 func publish() cli.Command {
-	cmd := publishcmd{RoutesApi: functions.NewRoutesApi()}
+	cmd := publishcmd{
+		commoncmd: &commoncmd{},
+		RoutesApi: functions.NewRoutesApi(),
+	}
 	var flags []cli.Flag
 	flags = append(flags, cmd.flags()...)
+	flags = append(flags, cmd.commoncmd.flags()...)
 	flags = append(flags, confFlags(&cmd.Configuration)...)
 	return cli.Command{
 		Name:   "publish",
@@ -24,37 +29,19 @@ func publish() cli.Command {
 }
 
 type publishcmd struct {
+	*commoncmd
 	*functions.RoutesApi
 
-	wd       string
 	dry      bool
 	skippush bool
-	verbose  bool
 }
 
 func (u *publishcmd) flags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringFlag{
-			Name:        "d",
-			Usage:       "working directory",
-			Destination: &u.wd,
-			EnvVar:      "WORK_DIR",
-			Value:       "./",
-		},
 		cli.BoolFlag{
 			Name:        "skip-push",
 			Usage:       "does not push Docker built images onto Docker Hub - useful for local development.",
 			Destination: &u.skippush,
-		},
-		cli.BoolFlag{
-			Name:        "dry-run",
-			Usage:       "display how update will proceed when executed",
-			Destination: &u.dry,
-		},
-		cli.BoolFlag{
-			Name:        "v",
-			Usage:       "verbose mode",
-			Destination: &u.verbose,
 		},
 	}
 }
@@ -65,30 +52,18 @@ func (u *publishcmd) scan(c *cli.Context) error {
 }
 
 func (u *publishcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
-	if !isvalid(path, info) {
-		return nil
-	}
-
-	fmt.Fprint(w, path, "\t")
-	if u.dry {
-		fmt.Fprintln(w, "dry-run")
-	} else if err := u.update(path); err != nil {
-		fmt.Fprintln(w, err)
-	} else {
-		fmt.Fprintln(w, "updated")
-	}
-
+	walker(path, info, err, w, u.publish)
 	return nil
 }
 
-// update will take the found function and check for the presence of a Dockerfile,
-// and run a three step process: parse functions file, build and push the
-// container, and finally it will update function's route. Optionally, the route
-// can be overriden inside the functions file.
-func (u *publishcmd) update(path string) error {
-	fmt.Fprintln(verbwriter, "deploying", path)
+// publish will take the found function and check for the presence of a
+// Dockerfile, and run a three step process: parse functions file, build and
+// push the container, and finally it will update function's route. Optionally,
+// the route can be overriden inside the functions file.
+func (u *publishcmd) publish(path string) error {
+	fmt.Fprintln(verbwriter, "publishing", path)
 
-	funcfile, err := buildFunc(path)
+	funcfile, err := buildfunc(path)
 	if err != nil {
 		return err
 	}
@@ -144,4 +119,26 @@ func (u *publishcmd) route(path string, ff *funcfile) error {
 	}
 
 	return nil
+}
+
+func extractAppNameRoute(path string) (appName, route string) {
+
+	// The idea here is to extract the root-most directory name
+	// as application name, it turns out that stdlib tools are great to
+	// extract the deepest one. Thus, we revert the string and use the
+	// stdlib as it is - and revert back to its normal content. Not fastest
+	// ever, but it is simple.
+
+	rpath := reverse(path)
+	rroute, rappName := filepath.Split(rpath)
+	route = filepath.Dir(reverse(rroute))
+	return reverse(rappName), route
+}
+
+func reverse(s string) string {
+	r := []rune(s)
+	for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
+		r[i], r[j] = r[j], r[i]
+	}
+	return string(r)
 }

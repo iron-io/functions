@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
+	"github.com/urfave/cli"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -36,18 +37,18 @@ type funcfile struct {
 	Build []string
 }
 
-func parseFuncFile(path string) (*funcfile, error) {
+func parsefuncfile(path string) (*funcfile, error) {
 	ext := filepath.Ext(path)
 	switch ext {
 	case ".json":
-		return parseJSON(path)
+		return funcfileJSON(path)
 	case ".yaml", ".yml":
-		return parseYAML(path)
+		return funcfileYAML(path)
 	}
 	return nil, errUnexpectedFileFormat
 }
 
-func parseJSON(path string) (*funcfile, error) {
+func funcfileJSON(path string) (*funcfile, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open %s for parsing. Error: %v", path, err)
@@ -57,7 +58,7 @@ func parseJSON(path string) (*funcfile, error) {
 	return ff, err
 }
 
-func parseYAML(path string) (*funcfile, error) {
+func funcfileYAML(path string) (*funcfile, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open %s for parsing. Error: %v", path, err)
@@ -67,14 +68,14 @@ func parseYAML(path string) (*funcfile, error) {
 	return ff, err
 }
 
-func buildFunc(path string) (*funcfile, error) {
+func buildfunc(path string) (*funcfile, error) {
 	dir := filepath.Dir(path)
 	dockerfile := filepath.Join(dir, "Dockerfile")
 	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
 		return nil, errDockerFileNotFound
 	}
 
-	funcfile, err := parseFuncFile(path)
+	funcfile, err := parsefuncfile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -114,28 +115,6 @@ func dockerbuild(path, image string) error {
 	return nil
 }
 
-func extractAppNameRoute(path string) (appName, route string) {
-
-	// The idea here is to extract the root-most directory name
-	// as application name, it turns out that stdlib tools are great to
-	// extract the deepest one. Thus, we revert the string and use the
-	// stdlib as it is - and revert back to its normal content. Not fastest
-	// ever, but it is simple.
-
-	rpath := reverse(path)
-	rroute, rappName := filepath.Split(rpath)
-	route = filepath.Dir(reverse(rroute))
-	return reverse(rappName), route
-}
-
-func reverse(s string) string {
-	r := []rune(s)
-	for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
-		r[i], r[j] = r[j], r[i]
-	}
-	return string(r)
-}
-
 func scan(verbose bool, wd string, walker func(path string, info os.FileInfo, err error, w io.Writer) error) {
 	if verbose {
 		verbwriter = os.Stderr
@@ -164,4 +143,39 @@ func isvalid(path string, info os.FileInfo) bool {
 	}
 
 	return false
+}
+
+func walker(path string, info os.FileInfo, err error, w io.Writer, f func(path string) error) {
+	if !isvalid(path, info) {
+		return
+	}
+
+	fmt.Fprint(w, path, "\t")
+	if err := f(path); err != nil {
+		fmt.Fprintln(w, err)
+	} else {
+		fmt.Fprintln(w, "done")
+	}
+}
+
+type commoncmd struct {
+	wd      string
+	verbose bool
+}
+
+func (c *commoncmd) flags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:        "d",
+			Usage:       "working directory",
+			Destination: &c.wd,
+			EnvVar:      "WORK_DIR",
+			Value:       "./",
+		},
+		cli.BoolFlag{
+			Name:        "v",
+			Usage:       "verbose mode",
+			Destination: &c.verbose,
+		},
+	}
 }

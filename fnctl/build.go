@@ -9,9 +9,8 @@ import (
 )
 
 func build() cli.Command {
-	cmd := buildcmd{}
-	var flags []cli.Flag
-	flags = append(flags, cmd.flags()...)
+	cmd := buildcmd{commoncmd: &commoncmd{}}
+	flags := append([]cli.Flag{}, cmd.flags()...)
 	return cli.Command{
 		Name:   "build",
 		Usage:  "build function version",
@@ -21,50 +20,22 @@ func build() cli.Command {
 }
 
 type buildcmd struct {
-	wd      string
-	verbose bool
+	*commoncmd
 }
 
-func (u *buildcmd) flags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{
-			Name:        "d",
-			Usage:       "working directory",
-			Destination: &u.wd,
-			EnvVar:      "WORK_DIR",
-			Value:       "./",
-		},
-		cli.BoolFlag{
-			Name:        "v",
-			Usage:       "verbose mode",
-			Destination: &u.verbose,
-		},
-	}
-}
-
-func (u *buildcmd) scan(c *cli.Context) error {
-	scan(u.verbose, u.wd, u.walker)
+func (b *buildcmd) scan(c *cli.Context) error {
+	scan(b.verbose, b.wd, b.walker)
 	return nil
 }
 
-func (u *buildcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
-	if !isvalid(path, info) {
-		return nil
-	}
-
-	fmt.Fprint(w, path, "\t")
-	if err := u.build(path); err != nil {
-		fmt.Fprintln(w, err)
-	} else {
-		fmt.Fprintln(w, "built")
-	}
-
+func (b *buildcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
+	walker(path, info, err, w, b.build)
 	return nil
 }
 
 // build will take the found valid function and build it
-func (u *buildcmd) build(path string) error {
+func (b *buildcmd) build(path string) error {
 	fmt.Fprintln(verbwriter, "building", path)
-	_, err := buildFunc(path)
+	_, err := buildfunc(path)
 	return err
 }
