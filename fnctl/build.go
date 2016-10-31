@@ -24,7 +24,7 @@ type buildcmd struct {
 }
 
 func (b *buildcmd) scan(c *cli.Context) error {
-	scan(b.verbose, b.wd, b.walker)
+	b.commoncmd.scan(b.walker)
 	return nil
 }
 

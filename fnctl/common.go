@@ -115,24 +115,6 @@ func dockerbuild(path, image string) error {
 	return nil
 }
 
-func scan(verbose bool, wd string, walker func(path string, info os.FileInfo, err error, w io.Writer) error) {
-	if verbose {
-		verbwriter = os.Stderr
-	}
-
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprint(w, "path", "\t", "result", "\n")
-
-	err := filepath.Walk(wd, func(path string, info os.FileInfo, err error) error {
-		return walker(path, info, err, w)
-	})
-	if err != nil {
-		fmt.Fprintf(verbwriter, "file walk error: %s\n", err)
-	}
-
-	w.Flush()
-}
-
 func isvalid(path string, info os.FileInfo) bool {
 	if info.IsDir() {
 		return false
@@ -181,4 +163,25 @@ func (c *commoncmd) flags() []cli.Flag {
 			Destination: &c.verbose,
 		},
 	}
+}
+
+func (c commoncmd) scan(walker func(path string, info os.FileInfo, err error, w io.Writer) error) {
+	// TODO(ccirello): this is very annoying, a local execution is actually changing a
+	// global state. I was the one the introduced this and I am not happy, I need to find
+	// a more correct and elegant solution for execution verbosity.
+	if c.verbose {
+		verbwriter = os.Stderr
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+	fmt.Fprint(w, "path", "\t", "result", "\n")
+
+	err := filepath.Walk(c.wd, func(path string, info os.FileInfo, err error) error {
+		return walker(path, info, err, w)
+	})
+	if err != nil {
+		fmt.Fprintf(verbwriter, "file walk error: %s\n", err)
+	}
+
+	w.Flush()
 }

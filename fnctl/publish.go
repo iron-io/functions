@@ -36,23 +36,23 @@ type publishcmd struct {
 	skippush bool
 }
 
-func (u *publishcmd) flags() []cli.Flag {
+func (p *publishcmd) flags() []cli.Flag {
 	return []cli.Flag{
 		cli.BoolFlag{
 			Name:        "skip-push",
 			Usage:       "does not push Docker built images onto Docker Hub - useful for local development.",
-			Destination: &u.skippush,
+			Destination: &p.skippush,
 		},
 	}
 }
 
-func (u *publishcmd) scan(c *cli.Context) error {
-	scan(u.verbose, u.wd, u.walker)
+func (p *publishcmd) scan(c *cli.Context) error {
+	p.commoncmd.scan(p.walker)
 	return nil
 }
 
-func (u *publishcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
-	walker(path, info, err, w, u.publish)
+func (p *publishcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
+	walker(path, info, err, w, p.publish)
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (u *publishcmd) walker(path string, info os.FileInfo, err error, w io.Write
 // Dockerfile, and run a three step process: parse functions file, build and
 // push the container, and finally it will update function's route. Optionally,
 // the route can be overriden inside the functions file.
-func (u *publishcmd) publish(path string) error {
+func (p *publishcmd) publish(path string) error {
 	fmt.Fprintln(verbwriter, "publishing", path)
 
 	funcfile, err := buildfunc(path)
@@ -68,15 +68,15 @@ func (u *publishcmd) publish(path string) error {
 		return err
 	}
 
-	if u.skippush {
+	if p.skippush {
 		return nil
 	}
 
-	if err := u.dockerpush(funcfile.Image); err != nil {
+	if err := p.dockerpush(funcfile.Image); err != nil {
 		return err
 	}
 
-	if err := u.route(path, funcfile); err != nil {
+	if err := p.route(path, funcfile); err != nil {
 		return err
 	}
 
@@ -93,8 +93,8 @@ func (publishcmd) dockerpush(image string) error {
 	return nil
 }
 
-func (u *publishcmd) route(path string, ff *funcfile) error {
-	resetBasePath(&u.Configuration)
+func (p *publishcmd) route(path string, ff *funcfile) error {
+	resetBasePath(&p.Configuration)
 
 	an, r := extractAppNameRoute(path)
 	if ff.App == nil {
@@ -113,7 +113,7 @@ func (u *publishcmd) route(path string, ff *funcfile) error {
 
 	fmt.Fprintf(verbwriter, "updating API with appName: %s route: %s image: %s \n", *ff.App, *ff.Route, ff.Image)
 
-	_, _, err := u.AppsAppRoutesPost(*ff.App, body)
+	_, _, err := p.AppsAppRoutesPost(*ff.App, body)
 	if err != nil {
 		return fmt.Errorf("error getting routes: %v", err)
 	}
