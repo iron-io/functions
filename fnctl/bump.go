@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"text/tabwriter"
 
 	bumper "github.com/giantswarm/semver-bump/bump"
 	"github.com/giantswarm/semver-bump/storage"
@@ -42,53 +41,35 @@ type bumpcmd struct {
 	verbose bool
 }
 
-func (u *bumpcmd) flags() []cli.Flag {
+func (b *bumpcmd) flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:        "d",
 			Usage:       "working directory",
-			Destination: &u.wd,
+			Destination: &b.wd,
 			EnvVar:      "WORK_DIR",
 			Value:       "./",
 		},
 		cli.BoolFlag{
 			Name:        "v",
 			Usage:       "verbose mode",
-			Destination: &u.verbose,
+			Destination: &b.verbose,
 		},
 	}
 }
 
-func (u *bumpcmd) scan(c *cli.Context) error {
-	if u.verbose {
-		verbwriter = os.Stderr
-	}
-
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprint(w, "path", "\t", "action", "\n")
-
-	path := u.wd
-	if !filepath.IsAbs(path) {
-		cwd, _ := os.Getwd()
-		path = filepath.Join(cwd, path)
-	}
-	os.Chdir(path)
-
-	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		return u.walker(path, info, err, w)
-	})
-
-	w.Flush()
+func (b *bumpcmd) scan(c *cli.Context) error {
+	scan(b.verbose, b.wd, b.walker)
 	return nil
 }
 
-func (u *bumpcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
+func (b *bumpcmd) walker(path string, info os.FileInfo, err error, w io.Writer) error {
 	if !isvalid(path, info) {
 		return nil
 	}
 
 	fmt.Fprint(w, path, "\t")
-	if err := u.bump(path); err != nil {
+	if err := b.bump(path); err != nil {
 		fmt.Fprintln(w, err)
 	} else {
 		fmt.Fprintln(w, "bumped")
@@ -98,7 +79,7 @@ func (u *bumpcmd) walker(path string, info os.FileInfo, err error, w io.Writer) 
 }
 
 // bump will take the found valid function and bump its version
-func (u *bumpcmd) bump(path string) error {
+func (b *bumpcmd) bump(path string) error {
 	fmt.Fprintln(verbwriter, "bumping", path)
 
 	dir := filepath.Dir(path)
@@ -108,6 +89,10 @@ func (u *bumpcmd) bump(path string) error {
 	}
 
 	s, err := storage.NewVersionStorage("file", initialVersion)
+	if err != nil {
+		return err
+	}
+
 	version := bumper.NewSemverBumper(s, versionfile)
 	newver, err := version.BumpPatchVersion("", "")
 	if err != nil {

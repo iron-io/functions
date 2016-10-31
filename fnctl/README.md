@@ -41,15 +41,14 @@ $ fnctl routes delete otherapp hello              # delete route
 /hello deleted
 ```
 
-## Bulk Update
+## Publish
 
-Also there is the update command that is going to scan all local directory for
+Also there is the publish command that is going to scan all local directory for
 functions, rebuild them and push them to Docker Hub and update them in
 IronFunction.
 
 ```sh
-$ fnctl update
-Updating for all functions.
+$ fnctl publish
 path    	    action
 /app/hello	    updated
 /app/hello-sync	error: no Dockerfile found for this function
@@ -83,8 +82,7 @@ following this convention:
 It will render this pattern of updates:
 
 ```sh
-$ fnctl update
-Updating for all functions.
+$ fnctl publish
 path    	            action
 /myapp/route1/subroute1	updated
 /other/route1	        updated
@@ -120,3 +118,31 @@ position. You may use it to override the calculated route.
 `build` (optional) is an array of shell calls which are used to helping building
 the image. These calls are executed before `fnctl` calls `docker build` and
 `docker push`.
+
+## Build and Bump
+
+When dealing with a lot of functions you might find yourself making lots of
+individual calls. `fnctl` offers two command to help you with that: `build` and
+`bump`.
+
+```sh
+$ fnctl build
+path    	    action
+/app/hello	    build
+/app/test	    build
+```
+
+`fnctl build` is similar to `publish` except it neither publishes the resulting
+docker image to Docker Hub nor updates the routes in IronFunctions server.
+
+```sh
+$ fnctl bump
+path    	    action
+/app/hello	    bumped
+/app/test	    bumped
+```
+
+`fnctl bump` will scan all IronFunctions for files named `VERSION` and bump
+their version according to [semver](http://semver.org/) rules. In their absence,
+it will skip.
+
