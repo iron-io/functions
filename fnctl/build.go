@@ -35,7 +35,7 @@ func (b *buildcmd) walker(path string, info os.FileInfo, err error, w io.Writer)
 
 // build will take the found valid function and build it
 func (b *buildcmd) build(path string) error {
-	fmt.Fprintln(verbwriter, "building", path)
-	_, err := buildfunc(path)
+	fmt.Fprintln(b.verbwriter, "building", path)
+	_, err := b.buildfunc(path)
 	return err
 }

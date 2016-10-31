@@ -61,9 +61,9 @@ func (p *publishcmd) walker(path string, info os.FileInfo, err error, w io.Write
 // push the container, and finally it will update function's route. Optionally,
 // the route can be overriden inside the functions file.
 func (p *publishcmd) publish(path string) error {
-	fmt.Fprintln(verbwriter, "publishing", path)
+	fmt.Fprintln(p.verbwriter, "publishing", path)
 
-	funcfile, err := buildfunc(path)
+	funcfile, err := p.buildfunc(path)
 	if err != nil {
 		return err
 	}
@@ -83,9 +83,9 @@ func (p *publishcmd) publish(path string) error {
 	return nil
 }
 
-func (publishcmd) dockerpush(image string) error {
+func (p publishcmd) dockerpush(image string) error {
 	out, err := exec.Command("docker", "push", image).CombinedOutput()
-	fmt.Fprintf(verbwriter, "%s\n", out)
+	fmt.Fprintf(p.verbwriter, "%s\n", out)
 	if err != nil {
 		return fmt.Errorf("error running docker push: %v", err)
 	}
@@ -111,7 +111,7 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 		},
 	}
 
-	fmt.Fprintf(verbwriter, "updating API with appName: %s route: %s image: %s \n", *ff.App, *ff.Route, ff.Image)
+	fmt.Fprintf(p.verbwriter, "updating API with appName: %s route: %s image: %s \n", *ff.App, *ff.Route, ff.Image)
 
 	_, _, err := p.AppsAppRoutesPost(*ff.App, body)
 	if err != nil {

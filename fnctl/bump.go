@@ -46,7 +46,7 @@ func (b *bumpcmd) walker(path string, info os.FileInfo, err error, w io.Writer) 
 
 // bump will take the found valid function and bump its version
 func (b *bumpcmd) bump(path string) error {
-	fmt.Fprintln(verbwriter, "bumping", path)
+	fmt.Fprintln(b.verbwriter, "bumping version for", path)
 
 	dir := filepath.Dir(path)
 	versionfile := filepath.Join(dir, "VERSION")

@@ -27,7 +27,6 @@ var (
 
 	errDockerFileNotFound   = errors.New("no Dockerfile found for this function")
 	errUnexpectedFileFormat = errors.New("unexpected file format for function file")
-	verbwriter              = ioutil.Discard
 )
 
 type funcfile struct {
@@ -68,53 +67,6 @@ func funcfileYAML(path string) (*funcfile, error) {
 	return ff, err
 }
 
-func buildfunc(path string) (*funcfile, error) {
-	dir := filepath.Dir(path)
-	dockerfile := filepath.Join(dir, "Dockerfile")
-	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
-		return nil, errDockerFileNotFound
-	}
-
-	funcfile, err := parsefuncfile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := localbuild(path, funcfile.Build); err != nil {
-		return nil, err
-	}
-
-	if err := dockerbuild(path, funcfile.Image); err != nil {
-		return nil, err
-	}
-
-	return funcfile, nil
-}
-
-func localbuild(path string, steps []string) error {
-	for _, cmd := range steps {
-		c := exec.Command("/bin/sh", "-c", cmd)
-		c.Dir = filepath.Dir(path)
-		out, err := c.CombinedOutput()
-		fmt.Fprintf(verbwriter, "- %s:\n%s\n", cmd, out)
-		if err != nil {
-			return fmt.Errorf("error running command %v (%v)", cmd, err)
-		}
-	}
-
-	return nil
-}
-
-func dockerbuild(path, image string) error {
-	out, err := exec.Command("docker", "build", "-t", image, filepath.Dir(path)).CombinedOutput()
-	fmt.Fprintf(verbwriter, "%s\n", out)
-	if err != nil {
-		return fmt.Errorf("error running docker build: %v", err)
-	}
-
-	return nil
-}
-
 func isvalid(path string, info os.FileInfo) bool {
 	if info.IsDir() {
 		return false
@@ -146,6 +98,8 @@ func walker(path string, info os.FileInfo, err error, w io.Writer, f func(path s
 type commoncmd struct {
 	wd      string
 	verbose bool
+
+	verbwriter io.Writer
 }
 
 func (c *commoncmd) flags() []cli.Flag {
@@ -165,12 +119,10 @@ func (c *commoncmd) flags() []cli.Flag {
 	}
 }
 
-func (c commoncmd) scan(walker func(path string, info os.FileInfo, err error, w io.Writer) error) {
-	// TODO(ccirello): this is very annoying, a local execution is actually changing a
-	// global state. I was the one the introduced this and I am not happy, I need to find
-	// a more correct and elegant solution for execution verbosity.
+func (c *commoncmd) scan(walker func(path string, info os.FileInfo, err error, w io.Writer) error) {
+	c.verbwriter = ioutil.Discard
 	if c.verbose {
-		verbwriter = os.Stderr
+		c.verbwriter = os.Stderr
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
@@ -180,8 +132,55 @@ func (c commoncmd) scan(walker func(path string, info os.FileInfo, err error, w 
 		return walker(path, info, err, w)
 	})
 	if err != nil {
-		fmt.Fprintf(verbwriter, "file walk error: %s\n", err)
+		fmt.Fprintf(c.verbwriter, "file walk error: %s\n", err)
 	}
 
 	w.Flush()
+}
+
+func (c commoncmd) buildfunc(path string) (*funcfile, error) {
+	dir := filepath.Dir(path)
+	dockerfile := filepath.Join(dir, "Dockerfile")
+	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
+		return nil, errDockerFileNotFound
+	}
+
+	funcfile, err := parsefuncfile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.localbuild(path, funcfile.Build); err != nil {
+		return nil, err
+	}
+
+	if err := c.dockerbuild(path, funcfile.Image); err != nil {
+		return nil, err
+	}
+
+	return funcfile, nil
+}
+
+func (c commoncmd) localbuild(path string, steps []string) error {
+	for _, cmd := range steps {
+		exe := exec.Command("/bin/sh", "-c", cmd)
+		exe.Dir = filepath.Dir(path)
+		out, err := exe.CombinedOutput()
+		fmt.Fprintf(c.verbwriter, "- %s:\n%s\n", cmd, out)
+		if err != nil {
+			return fmt.Errorf("error running command %v (%v)", cmd, err)
+		}
+	}
+
+	return nil
+}
+
+func (c commoncmd) dockerbuild(path, image string) error {
+	out, err := exec.Command("docker", "build", "-t", image, filepath.Dir(path)).CombinedOutput()
+	fmt.Fprintf(c.verbwriter, "%s\n", out)
+	if err != nil {
+		return fmt.Errorf("error running docker build: %v", err)
+	}
+
+	return nil
 }
