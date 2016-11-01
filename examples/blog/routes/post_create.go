@@ -13,7 +13,7 @@ func HandlePostCreate(db *database.Database, auth map[string]interface{}) {
 	var post *models.Post
 
 	if err := json.NewDecoder(os.Stdin).Decode(&post); err != nil {
-		fmt.Println("Couldn't decode post JSON")
+		fmt.Printf("Couldn't decode post JSON: %v\n", err)
 		return
 	}
 

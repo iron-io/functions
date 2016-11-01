@@ -32,7 +32,7 @@ func HandleToken(db *database.Database) {
 	var login *models.User
 
 	if err := json.NewDecoder(os.Stdin).Decode(&login); err != nil {
-		fmt.Println("Couldn't decode login JSON")
+		fmt.Printf("Couldn't decode login JSON: %v\n", err)
 		return
 	}
 
