@@ -1,4 +1,21 @@
 package: github.com/iron-io/functions/fnctl
 import:
-- package: github.com/urfave/cli
+- package: github.com/docker/docker
+  subpackages:
+  - pkg/jsonmessage
+- package: github.com/giantswarm/semver-bump
+  subpackages:
+  - bump
+  - storage
 - package: github.com/iron-io/functions_go
+- package: github.com/iron-io/iron_go3
+  subpackages:
+  - config
+- package: github.com/iron-io/lambda
+  subpackages:
+  - lambda
+- package: github.com/urfave/cli
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh/terminal
+- package: gopkg.in/yaml.v2

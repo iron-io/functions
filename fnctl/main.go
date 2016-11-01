@@ -19,8 +19,11 @@ func main() {
 	app.CommandNotFound = func(c *cli.Context, cmd string) { fmt.Fprintf(os.Stderr, "command not found: %v\n", cmd) }
 	app.Commands = []cli.Command{
 		apps(),
+		build(),
+		bump(),
+		lambda(),
+		publish(),
 		routes(),
-		update(),
 	}
 	app.Run(os.Args)
 }
