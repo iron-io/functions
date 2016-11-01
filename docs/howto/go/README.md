@@ -46,5 +46,5 @@ cat hello.payload.json | fnctl run goapp /hello
 Here's a curl example to show how easy it is to do in any language:
 
 ```sh
-curl -H "Content-Type: application/json" -X POST -d @hello.payload.json http://localhost:8080/r/myapp/hello
+curl -H "Content-Type: application/json" -X POST -d @hello.payload.json http://localhost:8080/r/goapp/hello
 ```
