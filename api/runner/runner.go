@@ -247,6 +247,9 @@ func getAvailableMemory() int64 {
 				logrus.WithError(err).Fatal("Cannot get the proper information to. You must specify the maximum available memory by passing the -m command with docker run when starting the runner via docker, eg:  `docker run -m 2G ...`")
 			}
 		}
+	} else {
+		// This still lets 10-20 functions execute concurrently assuming a 2GB machine.
+		availableMemory = 2 * 1024 * 1024 * 1024
 	}
 
 	return int64(availableMemory)
