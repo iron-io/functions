@@ -11,10 +11,7 @@ type Person struct {
 }
 
 func main() {
-	p := &Person{}
-	if err := json.NewDecoder(os.Stdin).Decode(p); err != nil {
-		fmt.Println("error:", err)
-		return
-	}
-	fmt.Println("Hello go! My name is", p.Name)
+	p := &Person{Name: "World"}
+	json.NewDecoder(os.Stdin).Decode(p)
+	fmt.Println("Hello", p.Name, "!!!")
 }
