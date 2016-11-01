@@ -25,17 +25,7 @@ fnctl publish
 
 `-v` is optional, but it allows you to see how this function is being built.
 
-### 3. Test
-
-Now test it:
-
-```sh
-cat hello.payload.json | fnctl run goapp /hello
-```
-
-Now that it works, we know it will work on IronFunctions.
-
-### 4. Queue jobs for your function
+### 3. Queue jobs for your function
 
 Now you can start jobs on your function. Let's quickly queue up a job to try it out.
 
