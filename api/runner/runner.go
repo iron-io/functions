@@ -182,6 +182,7 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 	} else {
 		r.ml.LogTime(ctx, metricBaseName+"waittime", 0)
 	}
+	defer r.addUsedMem(-1 * int64(cfg.Memory))
 
 	closer, err := r.driver.Prepare(ctx, ctask)
 	if err != nil {
@@ -195,8 +196,6 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 	if err != nil {
 		return nil, err
 	}
-
-	r.addUsedMem(-1 * int64(cfg.Memory))
 
 	if result.Status() == "success" {
 		r.ml.LogCount(ctx, metricBaseName+"succeeded", 1)
