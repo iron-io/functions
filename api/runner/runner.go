@@ -90,8 +90,7 @@ func (r *Runner) queueHandler() {
 		}
 
 		// Loop waiting for available memory
-		canRun := r.checkRequiredMem(task.cfg.Memory)
-		for ; !canRun; canRun = r.checkRequiredMem(task.cfg.Memory) {
+		for !r.checkRequiredMem(task.cfg.Memory) {
 			waitTime = time.Since(waitStart)
 			if waitTime > WaitMemoryTimeout {
 				timedOut = true
