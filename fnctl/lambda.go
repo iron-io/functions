@@ -93,6 +93,7 @@ func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
 			Name:        "payload",
 			Usage:       "Payload to pass to the Lambda function. This is usually a JSON object.",
 			Destination: &lcc.payload,
+			Value:       "{}",
 		},
 		cli.StringFlag{
 			Name:        "client-context",
