@@ -58,16 +58,53 @@ func (djw *DockerJsonWriter) Write(p []byte) (int, error) {
 	return djw.w.Write(p)
 }
 
-func (lcc *lambdaCreateCmd) run(c *cli.Context) error {
+func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:        "function-name",
+			Usage:       "Name of function. This is usually follows Docker image naming conventions.",
+			Destination: &lcc.functionName,
+		},
+		cli.StringFlag{
+			Name:        "runtime",
+			Usage:       fmt.Sprintf("Runtime that your Lambda function depends on. Valid values are %s.", strings.Join(availableRuntimes, ", ")),
+			Destination: &lcc.runtime,
+		},
+		cli.StringFlag{
+			Name:        "handler",
+			Usage:       "function/class that is the entrypoint for this function. Of the form <module name>.<function name> for nodejs/Python, <full class name>::<function name base> for Java.",
+			Destination: &lcc.handler,
+		},
+		cli.StringFlag{
+			Name:        "payload",
+			Usage:       "Payload to pass to the Lambda function. This is usually a JSON object.",
+			Destination: &lcc.payload,
+		},
+		cli.StringFlag{
+			Name:        "client-context",
+			Usage:       "",
+			Destination: &lcc.clientConext,
+		},
+	}
+}
 
+func (lcc *lambdaCreateCmd) init(c *cli.Context) {
 	handler := c.String("handler")
 	functionName := c.String("name")
 	runtime := c.String("runtime")
+	clientContext := c.String("client-context")
+	payload := c.String("payload")
 
 	lcc.fileNames = c.Args()
 	lcc.handler = handler
 	lcc.functionName = functionName
 	lcc.runtime = runtime
+	lcc.clientConext = clientContext
+	lcc.payload = payload
+}
+
+func (lcc *lambdaCreateCmd) create(c *cli.Context) error {
+	lcc.init(c)
 
 	files := make([]lambdaImpl.FileLike, 0, len(lcc.fileNames))
 	opts := lambdaImpl.CreateImageOptions{
@@ -108,37 +145,8 @@ func (lcc *lambdaCreateCmd) run(c *cli.Context) error {
 	return lambdaImpl.CreateImage(opts, files...)
 }
 
-func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{
-			Name:        "function-name",
-			Usage:       "Name of function. This is usually follows Docker image naming conventions.",
-			Destination: &lcc.functionName,
-		},
-		cli.StringFlag{
-			Name:        "runtime",
-			Usage:       fmt.Sprintf("Runtime that your Lambda function depends on. Valid values are %s.", strings.Join(availableRuntimes, ", ")),
-			Destination: &lcc.runtime,
-		},
-		cli.StringFlag{
-			Name:        "handler",
-			Usage:       "function/class that is the entrypoint for this function. Of the form <module name>.<function name> for nodejs/Python, <full class name>::<function name base> for Java.",
-			Destination: &lcc.handler,
-		},
-		cli.StringFlag{
-			Name:        "payload",
-			Usage:       "Payload to pass to the Lambda function. This is usually a JSON object.",
-			Destination: &lcc.payload,
-		},
-		cli.StringFlag{
-			Name:        "client-context",
-			Usage:       "",
-			Destination: &lcc.clientConext,
-		},
-	}
-}
-
-func (lcc *lambdaCreateCmd) test() error {
+func (lcc *lambdaCreateCmd) runTest(c *cli.Context) error {
+	lcc.init(c)
 	exists, err := lambdaImpl.ImageExists(lcc.functionName)
 	if err != nil {
 		return err
@@ -156,6 +164,7 @@ func lambda() cli.Command {
 	var flags []cli.Flag
 
 	flags = append(flags, lcc.getFlags()...)
+
 	return cli.Command{
 		Name:      "lambda",
 		Usage:     "create and publish lambda functions",
@@ -165,14 +174,14 @@ func lambda() cli.Command {
 				Name:      "create-function",
 				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS Lambda.`,
 				ArgsUsage: "--function-name NAME --runtime RUNTIME --handler HANDLER file [files...]",
-				Action:    lcc.run,
+				Action:    lcc.create,
 				Flags:     flags,
 			},
 			{
 				Name:      "test-function",
 				Usage:     `Runs local Dockerized Lambda function and writes output to stdout.`,
 				ArgsUsage: "--function-name NAME [--client-context <value>] [--payload <value>]",
-				Action:    lcc.test,
+				Action:    lcc.runTest,
 				Flags:     flags,
 			},
 		},
