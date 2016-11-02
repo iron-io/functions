@@ -90,7 +90,7 @@ func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
 
 func (lcc *lambdaCreateCmd) init(c *cli.Context) {
 	handler := c.String("handler")
-	functionName := c.String("name")
+	functionName := c.String("function-name")
 	runtime := c.String("runtime")
 	clientContext := c.String("client-context")
 	payload := c.String("payload")
