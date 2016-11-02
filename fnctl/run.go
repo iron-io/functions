@@ -42,12 +42,12 @@ func (r *runCmd) run(c *cli.Context) error {
 	sh := []string{"docker", "run", "--rm", "-i"}
 
 	var env []string
-	selectedEnv := os.Environ()
-	if len(selectedEnv) > 0 {
-		selectedEnv = c.StringSlice("e")
+	detectedEnv := os.Environ()
+	if se := c.StringSlice("e"); len(se) > 0 {
+		detectedEnv = se
 	}
 
-	for _, e := range selectedEnv {
+	for _, e := range detectedEnv {
 		shellvar, envvar := extractEnvVar(e)
 		sh = append(sh, shellvar...)
 		env = append(env, envvar)

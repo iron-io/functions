@@ -131,19 +131,7 @@ func (a *routesCmd) call(c *cli.Context) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	selectedEnv := c.StringSlice("e")
-	if len(selectedEnv) > 0 {
-		fmt.Println("selected env")
-		for _, e := range selectedEnv {
-			req.Header.Set(e, os.Getenv(e))
-		}
-	} else {
-		for _, e := range os.Environ() {
-			kv := strings.Split(e, "=")
-			fmt.Println(kv)
-			req.Header.Set(kv[0], kv[1])
-		}
-	}
+	envAsHeader(req, c.StringSlice("e"))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -152,6 +140,19 @@ func (a *routesCmd) call(c *cli.Context) error {
 
 	io.Copy(os.Stdout, resp.Body)
 	return nil
+}
+
+func envAsHeader(req *http.Request, selectedEnv []string) {
+	detectedEnv := os.Environ()
+	if len(selectedEnv) > 0 {
+		detectedEnv = selectedEnv
+	}
+
+	for _, e := range detectedEnv {
+		kv := strings.Split(e, "=")
+		name := kv[0]
+		req.Header.Set(name, os.Getenv(name))
+	}
 }
 
 func (a *routesCmd) create(c *cli.Context) error {
