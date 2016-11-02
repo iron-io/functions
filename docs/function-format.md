@@ -2,22 +2,13 @@
 
 This document will describe the details of how a function works, inputs/outputs, etc.
 
-## Packaging
-
-TODO: 
-Currently Docker
-
-Create Dockerfile
-
-Must have ENTRYPOINT and be executable. 
-
 ## Input
 
 ### STDIN and Environment Variables
 
-While wanting to keep things simple, flexible and expandable, we decided to go back to the basics, using Unix input and output. STDIN is easy to use in any
-language and doesn't require anything extra. It also enables streaming input so we can do things like keeping a container running some time and stream
-requests into the container. Or it can just stream one request in and shutdown right away, but the point is that the option for the container to say hot is there.
+While wanting to keep things simple, flexible and expandable, we decided to go back to the basics, using Unix input and output. Standard in is easy to use in any
+language and doesn't require anything extra. It also allows streaming input so we can do things like keeping a container running some time and stream
+requests into the container. 
 
 Configuration values, environment information and other things will be passed in through environment variables.
 
@@ -104,7 +95,8 @@ Cons:
 
 ### STDOUT
 
-For synchronous: True to form, whatever is written to STDOUT is returned as the response. If you want to return some JSON output, just write it directly to STDOUT.
+For synchronous: True to form, whatever is written to standard out is returned as the response. If you want to return some JSON output, just write it directly to STDOUT.
+
 TODO: How to change response headers? Perhaps a similar style as input? Headers, then body. Default headers can be defined on the route and overridden on output. 
 
 For asynchronous: STDOUT will be written to /dev/null until [further notice](https://github.com/iron-io/functions/issues/173). We do not want to write this 
@@ -112,5 +104,5 @@ to the logs now, then change it later, otherwise people will start to depend on 
 
 ### STDERR
 
-STDERR is reserved for logging, like it was meant to be. Anything you output to STDOUT will show up in the logs. And if you use a log 
+Standard error is reserved for logging, like it was meant to be. Anything you output to STDERR will show up in the logs. And if you use a log 
 collector like logspout, you can collect those logs in a central location. See [logging](logging.md).

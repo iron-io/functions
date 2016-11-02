@@ -17,7 +17,7 @@ This guide will get you up and running in a few minutes.
 To get started quickly with IronFunctions, you can just fire up an `iron/functions` container:
 
 ```sh
-docker run --rm --name functions --privileged -it -v $PWD/data:/app/data -p 8080:8080 iron/functions
+docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080:8080 iron/functions
 ```
 
 **Note**: A list of configurations via env variables can be found [here](docs/api.md).*
