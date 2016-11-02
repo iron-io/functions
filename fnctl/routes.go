@@ -62,7 +62,7 @@ func call() cli.Command {
 	return cli.Command{
 		Name:      "call",
 		Usage:     "call a remote function",
-		ArgsUsage: "fnclt call appName /path",
+		ArgsUsage: "appName /path",
 		Flags:     flags,
 		Action:    r.call,
 	}

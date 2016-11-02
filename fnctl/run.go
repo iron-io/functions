@@ -16,7 +16,7 @@ func run() cli.Command {
 	return cli.Command{
 		Name:      "run",
 		Usage:     "run a function locally",
-		ArgsUsage: "fnclt run USERNAME/image:tag",
+		ArgsUsage: "USERNAME/image:tag",
 		Flags:     append(runflags(), []cli.Flag{}...),
 		Action:    r.run,
 	}
