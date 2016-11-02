@@ -111,6 +111,7 @@ func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
 			Name:        "version",
 			Usage:       "Version of the function to import.",
 			Destination: &lcc.version,
+			Value:       "$LATEST",
 		},
 
 		cli.BoolFlag{
@@ -224,6 +225,7 @@ func (lcc *lambdaCreateCmd) getFunction() (*aws_lambda.GetFunctionOutput, error)
 	conf := aws.NewConfig().WithCredentials(creds).WithCredentialsChainVerboseErrors(true).WithRegion(lcc.awsRegion)
 	sess := aws_session.New(conf)
 	conn := aws_lambda.New(sess)
+	fmt.Println(">>>>>>", lcc.arn, lcc.version)
 	resp, err := conn.GetFunction(&aws_lambda.GetFunctionInput{
 		FunctionName: aws.String(lcc.arn),
 		Qualifier:    aws.String(lcc.version),
@@ -244,7 +246,12 @@ func (lcc *lambdaCreateCmd) init(c *cli.Context) {
 	profile := c.String("profile")
 	region := c.String("region")
 
-	lcc.fileNames = c.Args()
+	fmt.Println(c.Args())
+	if c.Command.Name == "aws-import" {
+		lcc.arn = c.Args()[0]
+	} else {
+		lcc.fileNames = c.Args()
+	}
 	lcc.handler = handler
 	lcc.functionName = functionName
 	lcc.runtime = runtime
