@@ -221,7 +221,6 @@ func (lcc *lambdaCmd) getFunction() (*aws_lambda.GetFunctionOutput, error) {
 	conf := aws.NewConfig().WithCredentials(creds).WithCredentialsChainVerboseErrors(true).WithRegion(lcc.awsRegion)
 	sess := aws_session.New(conf)
 	conn := aws_lambda.New(sess)
-	fmt.Println(">>>>>>", lcc.arn, lcc.version)
 	resp, err := conn.GetFunction(&aws_lambda.GetFunctionInput{
 		FunctionName: aws.String(lcc.arn),
 		Qualifier:    aws.String(lcc.version),
