@@ -159,7 +159,7 @@ Read more on [logging](docs/logging.md).
 
 ## Writing Functions
 
-TODO:
+See [Writing Functions)(docs/writing.md).
 
 ## More Documentation
 
