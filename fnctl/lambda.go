@@ -29,6 +29,8 @@ type lambdaCreateCmd struct {
 	runtime      string
 	handler      string
 	fileNames    []string
+	payload      string
+	clientConext string
 }
 
 func (lcc *lambdaCreateCmd) Config() error {
@@ -123,7 +125,30 @@ func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
 			Usage:       "function/class that is the entrypoint for this function. Of the form <module name>.<function name> for nodejs/Python, <full class name>::<function name base> for Java.",
 			Destination: &lcc.handler,
 		},
+		cli.StringFlag{
+			Name:        "payload",
+			Usage:       "Payload to pass to the Lambda function. This is usually a JSON object.",
+			Destination: &lcc.payload,
+		},
+		cli.StringFlag{
+			Name:        "client-context",
+			Usage:       "",
+			Destination: &lcc.clientConext,
+		},
 	}
+}
+
+func (lcc *lambdaCreateCmd) test() error {
+	exists, err := lambdaImpl.ImageExists(lcc.functionName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("Function %s does not exist.", lcc.functionName)
+	}
+
+	// Redirect output to stdout.
+	return lambdaImpl.RunImageWithPayload(lcc.functionName, lcc.payload)
 }
 
 func lambda() cli.Command {
@@ -141,6 +166,13 @@ func lambda() cli.Command {
 				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS Lambda.`,
 				ArgsUsage: "--function-name NAME --runtime RUNTIME --handler HANDLER file [files...]",
 				Action:    lcc.run,
+				Flags:     flags,
+			},
+			{
+				Name:      "test-function",
+				Usage:     `Runs local Dockerized Lambda function and writes output to stdout.`,
+				ArgsUsage: "--function-name NAME [--client-context <value>] [--payload <value>]",
+				Action:    lcc.test,
 				Flags:     flags,
 			},
 		},
