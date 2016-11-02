@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/iron-io/functions_go"
@@ -22,18 +23,20 @@ type routesCmd struct {
 func routes() cli.Command {
 	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
 
+	flags := append(confFlags(&r.Configuration), []cli.Flag{}...)
 	return cli.Command{
 		Name:      "routes",
 		Usage:     "list routes",
 		ArgsUsage: "fnclt routes",
-		Flags:     append(confFlags(&r.Configuration), []cli.Flag{}...),
+		Flags:     flags,
 		Action:    r.list,
 		Subcommands: []cli.Command{
 			{
-				Name:      "run",
-				Usage:     "run a route",
+				Name:      "call",
+				Usage:     "call a route",
 				ArgsUsage: "appName /path",
-				Action:    r.run,
+				Action:    r.call,
+				Flags:     append(flags, runflags()...),
 			},
 			{
 				Name:      "create",
@@ -48,6 +51,20 @@ func routes() cli.Command {
 				Action:    r.delete,
 			},
 		},
+	}
+}
+
+func call() cli.Command {
+	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
+
+	flags := append([]cli.Flag{}, confFlags(&r.Configuration)...)
+	flags = append(flags, runflags()...)
+	return cli.Command{
+		Name:      "call",
+		Usage:     "call a remote function",
+		ArgsUsage: "fnclt call appName /path",
+		Flags:     flags,
+		Action:    r.call,
 	}
 }
 
@@ -85,7 +102,7 @@ func (a *routesCmd) list(c *cli.Context) error {
 	return nil
 }
 
-func (a *routesCmd) run(c *cli.Context) error {
+func (a *routesCmd) call(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: routes listing takes three arguments: an app name and a route")
 	}
@@ -108,7 +125,27 @@ func (a *routesCmd) run(c *cli.Context) error {
 		content = os.Stdin
 	}
 
-	resp, err := http.Post(baseURL.ResolveReference(u).String(), "application/json", content)
+	req, err := http.NewRequest("POST", baseURL.ResolveReference(u).String(), content)
+	if err != nil {
+		return fmt.Errorf("error running route: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	selectedEnv := c.StringSlice("e")
+	if len(selectedEnv) > 0 {
+		fmt.Println("selected env")
+		for _, e := range selectedEnv {
+			req.Header.Set(e, os.Getenv(e))
+		}
+	} else {
+		for _, e := range os.Environ() {
+			kv := strings.Split(e, "=")
+			fmt.Println(kv)
+			req.Header.Set(kv[0], kv[1])
+		}
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("error running route: %v", err)
 	}
