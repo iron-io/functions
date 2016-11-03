@@ -22,9 +22,6 @@ import (
 
 var availableRuntimes = []string{"nodejs", "python2.7", "java8"}
 
-type lambdaCmd struct {
-}
-
 type dockerJSONWriter struct {
 	under io.Writer
 	w     io.Writer
@@ -46,7 +43,7 @@ func (djw *dockerJSONWriter) Write(p []byte) (int, error) {
 	return djw.w.Write(p)
 }
 
-func (lcc *lambdaCmd) getFlags() []cli.Flag {
+func getFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "payload",
@@ -65,7 +62,7 @@ func (lcc *lambdaCmd) getFlags() []cli.Flag {
 	}
 }
 
-func (lcc *lambdaCmd) downloadToFile(url string) (string, error) {
+func downloadToFile(url string) (string, error) {
 	downloadResp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -87,7 +84,7 @@ func (lcc *lambdaCmd) downloadToFile(url string) (string, error) {
 	return tmpFile.Name(), nil
 }
 
-func (lcc *lambdaCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaImpl.FileLike, topErr error) {
+func unzipAndGetTopLevelFiles(dst, src string) (files []lambdaImpl.FileLike, topErr error) {
 	files = make([]lambdaImpl.FileLike, 0)
 
 	zipReader, err := zip.OpenReader(src)
@@ -151,7 +148,7 @@ func (lcc *lambdaCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaI
 	return
 }
 
-func (lcc *lambdaCmd) getFunction(awsProfile, awsRegion, version, arn string) (*aws_lambda.GetFunctionOutput, error) {
+func getFunction(awsProfile, awsRegion, version, arn string) (*aws_lambda.GetFunctionOutput, error) {
 	creds := aws_credentials.NewChainCredentials([]aws_credentials.Provider{
 		&aws_credentials.EnvProvider{},
 		&aws_credentials.SharedCredentialsProvider{
@@ -171,7 +168,7 @@ func (lcc *lambdaCmd) getFunction(awsProfile, awsRegion, version, arn string) (*
 	return resp, err
 }
 
-func (lcc *lambdaCmd) create(c *cli.Context) error {
+func create(c *cli.Context) error {
 	args := c.Args()
 	if len(args) < 4 {
 		return fmt.Errorf("Expected at least 4 arguments, NAME RUNTIME HANDLER and file %d", len(args))
@@ -220,7 +217,7 @@ func (lcc *lambdaCmd) create(c *cli.Context) error {
 	return lambdaImpl.CreateImage(opts, files...)
 }
 
-func (lcc *lambdaCmd) test(c *cli.Context) error {
+func test(c *cli.Context) error {
 
 	args := c.Args()
 	if len(args) < 1 {
@@ -241,8 +238,8 @@ func (lcc *lambdaCmd) test(c *cli.Context) error {
 	return lambdaImpl.RunImageWithPayload(functionName, payload)
 }
 
-func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
-	//lcc.init(c)
+func awsImport(c *cli.Context) error {
+	//init(c)
 
 	args := c.Args()
 	if len(args) < 3 {
@@ -256,7 +253,7 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 	region := args[1]
 	image := args[2]
 
-	function, err := lcc.getFunction(profile, region, version, arn)
+	function, err := getFunction(profile, region, version, arn)
 	if err != nil {
 		return err
 	}
@@ -267,7 +264,7 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 		return err
 	}
 
-	tmpFileName, err := lcc.downloadToFile(*function.Code.Location)
+	tmpFileName, err := downloadToFile(*function.Code.Location)
 	if err != nil {
 		return err
 	}
@@ -288,7 +285,7 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 
 		files = append(files, fd)
 	} else {
-		files, err = lcc.unzipAndGetTopLevelFiles(functionName, tmpFileName)
+		files, err = unzipAndGetTopLevelFiles(functionName, tmpFileName)
 		if err != nil {
 			return err
 		}
@@ -321,10 +318,9 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 }
 
 func lambda() cli.Command {
-	lcc := lambdaCmd{}
 	var flags []cli.Flag
 
-	flags = append(flags, lcc.getFlags()...)
+	flags = append(flags, getFlags()...)
 
 	return cli.Command{
 		Name:      "lambda",
@@ -335,21 +331,21 @@ func lambda() cli.Command {
 				Name:      "create-function",
 				Usage:     `create Docker image that can run your Lambda function, where files are the contents of the zip file to be uploaded to AWS Lambda.`,
 				ArgsUsage: "name runtime handler /path [/paths...]",
-				Action:    lcc.create,
+				Action:    create,
 				Flags:     flags,
 			},
 			{
 				Name:      "test-function",
 				Usage:     `runs local dockerized Lambda function and writes output to stdout.`,
 				ArgsUsage: "name [--payload <value>]",
-				Action:    lcc.test,
+				Action:    test,
 				Flags:     flags,
 			},
 			{
 				Name:      "aws-import",
 				Usage:     `converts an existing Lambda function to an image, where the function code is downloaded to a directory in the current working directory that has the same name as the Lambda function.`,
 				ArgsUsage: "arn region image/name [--profile <aws profile>] [--version <version>] [--download-only]",
-				Action:    lcc.awsImport,
+				Action:    awsImport,
 				Flags:     flags,
 			},
 		},
