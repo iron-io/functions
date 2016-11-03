@@ -34,7 +34,7 @@ named `<Docker Hub username>/<image name>`. This is used to uniquely identify
 images on Docker Hub. Please use the `<Docker Hub username>/<image
 name>` as the image name with `aws-import` to create a correctly named image.
 
-If you only want to download the code, pass the `-download-only` flag. The
- `-profile` flag is available similar to the `aws` tool to help
+If you only want to download the code, pass the `--download-only` flag. The
+ `--profile` flag is available similar to the `aws` tool to help
 you tweak the settings on a command level. Finally, you can import a different version of your lambda function than the latest one
-by passing `-version <version>.`
+by passing `--version <version>.`

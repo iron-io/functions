@@ -8,18 +8,18 @@ images using `docker run`.
 
 An example of a valid `test-function` command would look as follows:
 ```
-fnctl lambda test-function user/my-function --payload="{ \"firstName\":\"John\", \"lastName\":\"Yo\" }"
+fnctl lambda test-function user/my-function --payload='{"firstName":"John", "lastName":"Yo" }'
 ```
 
 ## Payload
 
-The `payload` argument is written to a random, opaque directory on the host.
+The payload is passed via stdin.
+It is also possible to pass the payload by using the `payload` argument. Using it the payload is written to a random, opaque directory on the host.
 The file itself is called `payload.json`. This directory is mapped to the
 `/mnt` volume in the container, so that the payload is available in
 `/mnt/payload.json`. This is not REQUIRED, since the actual runtimes use the
 `PAYLOAD_FILE` environment variable to discover the payload location.
 
-It is also possible to push in the payload as stdin.
 
 ## Environment variables
 
@@ -48,10 +48,9 @@ run` command:
 
 ```sh
 mkdir /tmp/payload_dir
-echo "<payload>" >> /tmp/payload_dir/my_payload.json
+echo "<payload>" |
 docker run -v /tmp/payload_dir:/mnt \
            -m 1G \
-           -e PAYLOAD_FILE=/mnt/my_payload.json \
            -e TASK_ID=$RANDOM \
            -e TASK_MAXRAM=1G \
            -e AWS_LAMBDA_FUNCTION_NAME=user/fancyfunction \
