@@ -11,48 +11,39 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/iron-io/iron_go3/config"
-	lambdaImpl "github.com/iron-io/lambda/lambda"
 	"github.com/urfave/cli"
 
-	"github.com/aws/aws-sdk-go/aws"
 	aws_credentials "github.com/aws/aws-sdk-go/aws/credentials"
 	aws_session "github.com/aws/aws-sdk-go/aws/session"
 	aws_lambda "github.com/aws/aws-sdk-go/service/lambda"
+	lambdaImpl "github.com/iron-io/lambda/lambda"
 )
 
 var availableRuntimes = []string{"nodejs", "python2.7", "java8"}
 
 type lambdaCmd struct {
-	settings  config.Settings
-	token     *string
-	projectID *string
-
-	functionName string
-	runtime      string
-	handler      string
-	fileNames    []string
-	payload      string
-	clientConext string
-	arn          string
-	version      string
-	downloadOnly bool
-	awsProfile   string
-	image        string
-	awsRegion    string
+	functionName  string
+	runtime       string
+	handler       string
+	fileNames     []string
+	payload       string
+	clientContext string
+	arn           string
+	version       string
+	downloadOnly  bool
+	awsProfile    string
+	image         string
+	awsRegion     string
 }
 
-func (lcc *lambdaCmd) Config() error {
-	return nil
-}
-
-type dockerJsonWriter struct {
+type dockerJSONWriter struct {
 	under io.Writer
 	w     io.Writer
 }
 
-func newDockerJsonWriter(under io.Writer) *dockerJsonWriter {
+func newdockerJSONWriter(under io.Writer) *dockerJSONWriter {
 	r, w := io.Pipe()
 	go func() {
 		err := jsonmessage.DisplayJSONMessagesStream(r, under, 1, true, nil)
@@ -61,10 +52,10 @@ func newDockerJsonWriter(under io.Writer) *dockerJsonWriter {
 			os.Exit(1)
 		}
 	}()
-	return &dockerJsonWriter{under, w}
+	return &dockerJSONWriter{under, w}
 }
 
-func (djw *dockerJsonWriter) Write(p []byte) (int, error) {
+func (djw *dockerJSONWriter) Write(p []byte) (int, error) {
 	return djw.w.Write(p)
 }
 
@@ -94,7 +85,7 @@ func (lcc *lambdaCmd) getFlags() []cli.Flag {
 		cli.StringFlag{
 			Name:        "client-context",
 			Usage:       "",
-			Destination: &lcc.clientConext,
+			Destination: &lcc.clientContext,
 		},
 
 		cli.StringFlag{
@@ -144,8 +135,12 @@ func (lcc *lambdaCmd) downloadToFile(url string) (string, error) {
 		return "", err
 	}
 
-	io.Copy(tmpFile, downloadResp.Body)
-	tmpFile.Close()
+	if _, err := io.Copy(tmpFile, downloadResp.Body); err != nil {
+		return "", err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", err
+	}
 	return tmpFile.Name(), nil
 }
 
@@ -163,7 +158,9 @@ func (lcc *lambdaCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaI
 		path := filepath.Join(dst, f.Name)
 		fmt.Printf("Extracting '%s' to '%s'\n", f.Name, path)
 		if f.FileInfo().IsDir() {
-			os.Mkdir(path, 0644)
+			if err := os.Mkdir(path, 0644); err != nil {
+				return nil, err
+			}
 			// Only top-level dirs go into the list since that is what CreateImage expects.
 			if filepath.Dir(f.Name) == filepath.Base(f.Name) {
 				fd, topErr = os.Open(path)
@@ -185,24 +182,26 @@ func (lcc *lambdaCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaI
 				break
 			}
 
-			_, topErr = io.Copy(fd, zipFd)
-			if topErr != nil {
+			if _, topErr = io.Copy(fd, zipFd); topErr != nil {
 				// OK to skip closing fd here.
 				break
 			}
 
-			zipFd.Close()
+			if err := zipFd.Close(); err != nil {
+				return nil, err
+			}
 
 			// Only top-level files go into the list since that is what CreateImage expects.
 			if filepath.Dir(f.Name) == "." {
-				_, topErr = fd.Seek(0, 0)
-				if topErr != nil {
+				if _, topErr = fd.Seek(0, 0); topErr != nil {
 					break
 				}
 
 				files = append(files, fd)
 			} else {
-				fd.Close()
+				if err := fd.Close(); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -251,7 +250,7 @@ func (lcc *lambdaCmd) init(c *cli.Context) {
 	lcc.handler = handler
 	lcc.functionName = functionName
 	lcc.runtime = runtime
-	lcc.clientConext = clientContext
+	lcc.clientContext = clientContext
 	lcc.payload = payload
 	lcc.version = version
 	lcc.downloadOnly = downloadOnly
@@ -269,7 +268,7 @@ func (lcc *lambdaCmd) create(c *cli.Context) error {
 		Base:          fmt.Sprintf("iron/lambda-%s", lcc.runtime),
 		Package:       "",
 		Handler:       lcc.handler,
-		OutputStream:  newDockerJsonWriter(os.Stdout),
+		OutputStream:  newdockerJSONWriter(os.Stdout),
 		RawJSONStream: true,
 	}
 
@@ -278,7 +277,7 @@ func (lcc *lambdaCmd) create(c *cli.Context) error {
 	}
 
 	// For Java we allow only 1 file and it MUST be a JAR.
-	if lcc.runtime == "java8" {
+	if lcc.runtime == availableRuntimes[2] {
 		if len(lcc.fileNames) != 1 {
 			return errors.New("Java Lambda functions can only include 1 file and it must be a JAR file.")
 		}
@@ -292,10 +291,10 @@ func (lcc *lambdaCmd) create(c *cli.Context) error {
 
 	for _, fileName := range lcc.fileNames {
 		file, err := os.Open(fileName)
-		defer file.Close()
 		if err != nil {
 			return err
 		}
+		defer file.Close()
 		files = append(files, file)
 	}
 
@@ -337,10 +336,12 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 
 	var files []lambdaImpl.FileLike
 
-	if *function.Configuration.Runtime == "java8" {
+	if *function.Configuration.Runtime == availableRuntimes[2] {
 		fmt.Println("Found Java Lambda function. Going to assume code is a single JAR file.")
 		path := filepath.Join(functionName, "function.jar")
-		os.Rename(tmpFileName, path)
+		if err := os.Rename(tmpFileName, path); err != nil {
+			return err
+		}
 		fd, err := os.Open(path)
 		if err != nil {
 			return err
@@ -365,7 +366,7 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 		Base:          fmt.Sprintf("iron/lambda-%s", *function.Configuration.Runtime),
 		Package:       "",
 		Handler:       *function.Configuration.Handler,
-		OutputStream:  newDockerJsonWriter(os.Stdout),
+		OutputStream:  newdockerJSONWriter(os.Stdout),
 		RawJSONStream: true,
 	}
 
@@ -373,15 +374,11 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 		opts.Name = lcc.image
 	}
 
-	if *function.Configuration.Runtime == "java8" {
+	if *function.Configuration.Runtime == availableRuntimes[2] {
 		opts.Package = filepath.Base(files[0].(*os.File).Name())
 	}
 
-	err = lambdaImpl.CreateImage(opts, files...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return lambdaImpl.CreateImage(opts, files...)
 }
 
 func lambda() cli.Command {
