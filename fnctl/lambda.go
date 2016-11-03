@@ -28,10 +28,6 @@ type lambdaCmd struct {
 	settings  config.Settings
 	token     *string
 	projectID *string
-}
-
-type lambdaCreateCmd struct {
-	lambdaCmd
 
 	functionName string
 	runtime      string
@@ -47,7 +43,7 @@ type lambdaCreateCmd struct {
 	awsRegion    string
 }
 
-func (lcc *lambdaCreateCmd) Config() error {
+func (lcc *lambdaCmd) Config() error {
 	return nil
 }
 
@@ -72,7 +68,7 @@ func (djw *DockerJsonWriter) Write(p []byte) (int, error) {
 	return djw.w.Write(p)
 }
 
-func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
+func (lcc *lambdaCmd) getFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:        "function-name",
@@ -135,7 +131,7 @@ func (lcc *lambdaCreateCmd) getFlags() []cli.Flag {
 	}
 }
 
-func (lcc *lambdaCreateCmd) downloadToFile(url string) (string, error) {
+func (lcc *lambdaCmd) downloadToFile(url string) (string, error) {
 	downloadResp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -153,7 +149,7 @@ func (lcc *lambdaCreateCmd) downloadToFile(url string) (string, error) {
 	return tmpFile.Name(), nil
 }
 
-func (lcc *lambdaCreateCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaImpl.FileLike, topErr error) {
+func (lcc *lambdaCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaImpl.FileLike, topErr error) {
 	files = make([]lambdaImpl.FileLike, 0)
 
 	zipReader, err := zip.OpenReader(src)
@@ -213,7 +209,7 @@ func (lcc *lambdaCreateCmd) unzipAndGetTopLevelFiles(dst, src string) (files []l
 	return
 }
 
-func (lcc *lambdaCreateCmd) getFunction() (*aws_lambda.GetFunctionOutput, error) {
+func (lcc *lambdaCmd) getFunction() (*aws_lambda.GetFunctionOutput, error) {
 	creds := aws_credentials.NewChainCredentials([]aws_credentials.Provider{
 		&aws_credentials.EnvProvider{},
 		&aws_credentials.SharedCredentialsProvider{
@@ -233,7 +229,7 @@ func (lcc *lambdaCreateCmd) getFunction() (*aws_lambda.GetFunctionOutput, error)
 	return resp, err
 }
 
-func (lcc *lambdaCreateCmd) init(c *cli.Context) {
+func (lcc *lambdaCmd) init(c *cli.Context) {
 	handler := c.String("handler")
 	functionName := c.String("function-name")
 	runtime := c.String("runtime")
@@ -264,7 +260,7 @@ func (lcc *lambdaCreateCmd) init(c *cli.Context) {
 	lcc.awsRegion = region
 }
 
-func (lcc *lambdaCreateCmd) create(c *cli.Context) error {
+func (lcc *lambdaCmd) create(c *cli.Context) error {
 	lcc.init(c)
 
 	files := make([]lambdaImpl.FileLike, 0, len(lcc.fileNames))
@@ -306,7 +302,7 @@ func (lcc *lambdaCreateCmd) create(c *cli.Context) error {
 	return lambdaImpl.CreateImage(opts, files...)
 }
 
-func (lcc *lambdaCreateCmd) runTest(c *cli.Context) error {
+func (lcc *lambdaCmd) runTest(c *cli.Context) error {
 	lcc.init(c)
 	exists, err := lambdaImpl.ImageExists(lcc.functionName)
 	if err != nil {
@@ -320,7 +316,7 @@ func (lcc *lambdaCreateCmd) runTest(c *cli.Context) error {
 	return lambdaImpl.RunImageWithPayload(lcc.functionName, lcc.payload)
 }
 
-func (lcc *lambdaCreateCmd) awsImport(c *cli.Context) error {
+func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 	lcc.init(c)
 	function, err := lcc.getFunction()
 	if err != nil {
@@ -389,7 +385,7 @@ func (lcc *lambdaCreateCmd) awsImport(c *cli.Context) error {
 }
 
 func lambda() cli.Command {
-	lcc := lambdaCreateCmd{}
+	lcc := lambdaCmd{}
 	var flags []cli.Flag
 
 	flags = append(flags, lcc.getFlags()...)
