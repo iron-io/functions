@@ -5,6 +5,8 @@ This guide will walk you through creating and testing a simple Lambda function.
 We need the the `fnctl` tool for the rest of this guide. You can install it
 by following [these instructions](https://github.com/iron-io/function/fnctl).
 
+*For this getting started we are assuming you already have working lambda function code available, if not head to the [import instructions] (import.md) and skip the next section.*
+
 ## Creating the function
 
 Let's convert the `node-exec` AWS Lambda example to Docker. This simply
@@ -71,3 +73,12 @@ right parameters.
 
 You should see the output. Try changing the command to `date` or something more
 useful.
+
+## Commands documentation
+* [create-function](create.md)
+* [test-function](test.md)
+* [aws-import](import.md)
+
+## More documentation
+* [env](environment.md)
+* [aws](aws.md)

@@ -20,16 +20,24 @@ region. You can use the `aws` tool to set this up. Full instructions are in the
 
 ### Importing
 
-Assuming you have a lambda with the following arn `arn:aws:lambda:us-west-2:123141564251:function:my-function`, the following command:
+The aws-import command is constructed as follows:
 
-```sh
-fnclt lambda aws-import arn:aws:lambda:us-west-2:123141564251:function:my-function us-east-1 user/my-function
+```bash
+fnclt lambda aws-import <arn> <region> <image>
 ```
 
+* arn: describes the ARN formats which uniquely identify the AWS lambda resource
+* region: region on which the lambda is hosted
+* image: the name of the created docker image which should have the format <username>/<image-name>
+
+Assuming you have a lambda with the following arn `arn:aws:lambda:us-west-2:123141564251:function:my-function`, the following command:
+```bash
+fnclt lambda aws-import arn:aws:lambda:us-west-2:123141564251:function:my-function us-east-1 user/my-function
+```
 will import the function code from the region `us-east-1` to a directory called `./my-function`. It will
 then create a docker image called `my-function`.
 
-Using Lambda with Docker Hub and Iron Functions requires that the Docker image be
+Using Lambda with Docker Hub and IronFunctions requires that the Docker image be
 named `<Docker Hub username>/<image name>`. This is used to uniquely identify
 images on Docker Hub. Please use the `<Docker Hub username>/<image
 name>` as the image name with `aws-import` to create a correctly named image.

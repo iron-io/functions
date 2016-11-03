@@ -1,4 +1,4 @@
-# Running the Lambda Docker images
+# Testing the Lambda Docker images
 
 The `test-function` subcommand can pass the correct parameters to `docker run`
 to run those images with the payload and environment variables set up
