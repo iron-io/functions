@@ -23,18 +23,6 @@ import (
 var availableRuntimes = []string{"nodejs", "python2.7", "java8"}
 
 type lambdaCmd struct {
-	functionName  string
-	runtime       string
-	handler       string
-	fileNames     []string
-	payload       string
-	clientContext string
-	arn           string
-	version       string
-	downloadOnly  bool
-	awsProfile    string
-	image         string
-	awsRegion     string
 }
 
 type dockerJSONWriter struct {
@@ -61,47 +49,18 @@ func (djw *dockerJSONWriter) Write(p []byte) (int, error) {
 func (lcc *lambdaCmd) getFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
-			Name:        "payload",
-			Usage:       "Payload to pass to the Lambda function. This is usually a JSON object.",
-			Destination: &lcc.payload,
-			Value:       "{}",
+			Name:  "payload",
+			Usage: "Payload to pass to the Lambda function. This is usually a JSON object.",
+			Value: "{}",
 		},
 		cli.StringFlag{
-			Name:        "client-context",
-			Usage:       "",
-			Destination: &lcc.clientContext,
+			Name:  "version",
+			Usage: "Version of the function to import.",
+			Value: "$LATEST",
 		},
-
-		cli.StringFlag{
-			Name:        "image",
-			Usage:       "By default the name of the Docker image is the name of the Lambda function. Use this to set a custom name.",
-			Destination: &lcc.image,
-		},
-
-		cli.StringFlag{
-			Name:        "version",
-			Usage:       "Version of the function to import.",
-			Destination: &lcc.version,
-			Value:       "$LATEST",
-		},
-
 		cli.BoolFlag{
-			Name:        "download-only",
-			Usage:       "Only download the function into a directory. Will not create a Docker image.",
-			Destination: &lcc.downloadOnly,
-		},
-
-		cli.StringFlag{
-			Name:        "profile",
-			Usage:       "AWS Profile to load from credentials file.",
-			Destination: &lcc.awsProfile,
-		},
-
-		cli.StringFlag{
-			Name:        "region",
-			Usage:       "AWS region to use.",
-			Value:       "us-east-1",
-			Destination: &lcc.awsRegion,
+			Name:  "download-only",
+			Usage: "Only download the function into a directory. Will not create a Docker image.",
 		},
 	}
 }
@@ -192,49 +151,24 @@ func (lcc *lambdaCmd) unzipAndGetTopLevelFiles(dst, src string) (files []lambdaI
 	return
 }
 
-func (lcc *lambdaCmd) getFunction() (*aws_lambda.GetFunctionOutput, error) {
+func (lcc *lambdaCmd) getFunction(awsProfile, awsRegion, version, arn string) (*aws_lambda.GetFunctionOutput, error) {
 	creds := aws_credentials.NewChainCredentials([]aws_credentials.Provider{
 		&aws_credentials.EnvProvider{},
 		&aws_credentials.SharedCredentialsProvider{
 			Filename: "", // Look in default location.
-			Profile:  lcc.awsProfile,
+			Profile:  awsProfile,
 		},
 	})
 
-	conf := aws.NewConfig().WithCredentials(creds).WithCredentialsChainVerboseErrors(true).WithRegion(lcc.awsRegion)
+	conf := aws.NewConfig().WithCredentials(creds).WithCredentialsChainVerboseErrors(true).WithRegion(awsRegion)
 	sess := aws_session.New(conf)
 	conn := aws_lambda.New(sess)
 	resp, err := conn.GetFunction(&aws_lambda.GetFunctionInput{
-		FunctionName: aws.String(lcc.arn),
-		Qualifier:    aws.String(lcc.version),
+		FunctionName: aws.String(arn),
+		Qualifier:    aws.String(version),
 	})
 
 	return resp, err
-}
-
-func (lcc *lambdaCmd) init(c *cli.Context) {
-	clientContext := c.String("client-context")
-	payload := c.String("payload")
-	version := c.String("version")
-	downloadOnly := c.Bool("download-only")
-	image := c.String("image")
-	profile := c.String("profile")
-	region := c.String("region")
-
-	if c.Command.Name == "aws-import" {
-		if len(c.Args()) > 0 {
-			lcc.arn = c.Args()[0]
-		}
-	} else {
-		lcc.fileNames = c.Args()
-	}
-	lcc.clientContext = clientContext
-	lcc.payload = payload
-	lcc.version = version
-	lcc.downloadOnly = downloadOnly
-	lcc.awsProfile = profile
-	lcc.image = image
-	lcc.awsRegion = region
 }
 
 func (lcc *lambdaCmd) create(c *cli.Context) error {
@@ -286,23 +220,43 @@ func (lcc *lambdaCmd) create(c *cli.Context) error {
 	return lambdaImpl.CreateImage(opts, files...)
 }
 
-func (lcc *lambdaCmd) runTest(c *cli.Context) error {
-	lcc.init(c)
-	exists, err := lambdaImpl.ImageExists(lcc.functionName)
+func (lcc *lambdaCmd) test(c *cli.Context) error {
+
+	args := c.Args()
+	if len(args) < 1 {
+		return fmt.Errorf("Missing NAME argument")
+	}
+	functionName := args[0]
+
+	exists, err := lambdaImpl.ImageExists(functionName)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("Function %s does not exist.", lcc.functionName)
+		return fmt.Errorf("Function %s does not exist.", functionName)
 	}
 
+	payload := c.String("payload")
 	// Redirect output to stdout.
-	return lambdaImpl.RunImageWithPayload(lcc.functionName, lcc.payload)
+	return lambdaImpl.RunImageWithPayload(functionName, payload)
 }
 
 func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
-	lcc.init(c)
-	function, err := lcc.getFunction()
+	//lcc.init(c)
+
+	args := c.Args()
+	if len(args) < 3 {
+		return fmt.Errorf("Missing arguments ARN, REGION and/or IMAGE")
+	}
+
+	version := c.String("version")
+	downloadOnly := c.Bool("download-only")
+	profile := c.String("profile")
+	arn := args[0]
+	region := args[1]
+	image := args[2]
+
+	function, err := lcc.getFunction(profile, region, version, arn)
 	if err != nil {
 		return err
 	}
@@ -340,7 +294,7 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 		}
 	}
 
-	if lcc.downloadOnly {
+	if downloadOnly {
 		// Since we are a command line program that will quit soon, it is OK to
 		// let the OS clean `files` up.
 		return err
@@ -355,8 +309,8 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 		RawJSONStream: true,
 	}
 
-	if lcc.image != "" {
-		opts.Name = lcc.image
+	if image != "" {
+		opts.Name = image
 	}
 
 	if *function.Configuration.Runtime == availableRuntimes[2] {
@@ -380,21 +334,21 @@ func lambda() cli.Command {
 			{
 				Name:      "create-function",
 				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS Lambda.`,
-				ArgsUsage: "NAME RUNTIME HANDLER file [files...]",
+				ArgsUsage: "name runtime handler /path [/paths...]",
 				Action:    lcc.create,
 				Flags:     flags,
 			},
 			{
 				Name:      "test-function",
 				Usage:     `Runs local Dockerized Lambda function and writes output to stdout.`,
-				ArgsUsage: "--function-name NAME [--client-context <value>] [--payload <value>]",
-				Action:    lcc.runTest,
+				ArgsUsage: "name [--payload <value>]",
+				Action:    lcc.test,
 				Flags:     flags,
 			},
 			{
 				Name:      "aws-import",
 				Usage:     `Converts an existing Lambda function to an image. The function code is downloaded to a directory in the current working directory that has the same name as the Lambda function..`,
-				ArgsUsage: "[--region <region>] [--profile <aws profile>] [--version <version>] [--download-only] [--image <name>] ARN",
+				ArgsUsage: "arn region image/name [--profile <aws profile>] [--version <version>] [--download-only]",
 				Action:    lcc.awsImport,
 				Flags:     flags,
 			},
