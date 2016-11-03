@@ -333,21 +333,21 @@ func lambda() cli.Command {
 		Subcommands: []cli.Command{
 			{
 				Name:      "create-function",
-				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS Lambda.`,
+				Usage:     `create Docker image that can run your Lambda function, where files are the contents of the zip file to be uploaded to AWS Lambda.`,
 				ArgsUsage: "name runtime handler /path [/paths...]",
 				Action:    lcc.create,
 				Flags:     flags,
 			},
 			{
 				Name:      "test-function",
-				Usage:     `Runs local Dockerized Lambda function and writes output to stdout.`,
+				Usage:     `runs local dockerized Lambda function and writes output to stdout.`,
 				ArgsUsage: "name [--payload <value>]",
 				Action:    lcc.test,
 				Flags:     flags,
 			},
 			{
 				Name:      "aws-import",
-				Usage:     `Converts an existing Lambda function to an image. The function code is downloaded to a directory in the current working directory that has the same name as the Lambda function..`,
+				Usage:     `converts an existing Lambda function to an image, where the function code is downloaded to a directory in the current working directory that has the same name as the Lambda function.`,
 				ArgsUsage: "arn region image/name [--profile <aws profile>] [--version <version>] [--download-only]",
 				Action:    lcc.awsImport,
 				Flags:     flags,
