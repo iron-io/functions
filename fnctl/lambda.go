@@ -47,12 +47,12 @@ func (lcc *lambdaCmd) Config() error {
 	return nil
 }
 
-type DockerJsonWriter struct {
+type dockerJsonWriter struct {
 	under io.Writer
 	w     io.Writer
 }
 
-func NewDockerJsonWriter(under io.Writer) *DockerJsonWriter {
+func newDockerJsonWriter(under io.Writer) *dockerJsonWriter {
 	r, w := io.Pipe()
 	go func() {
 		err := jsonmessage.DisplayJSONMessagesStream(r, under, 1, true, nil)
@@ -61,10 +61,10 @@ func NewDockerJsonWriter(under io.Writer) *DockerJsonWriter {
 			os.Exit(1)
 		}
 	}()
-	return &DockerJsonWriter{under, w}
+	return &dockerJsonWriter{under, w}
 }
 
-func (djw *DockerJsonWriter) Write(p []byte) (int, error) {
+func (djw *dockerJsonWriter) Write(p []byte) (int, error) {
 	return djw.w.Write(p)
 }
 
@@ -269,7 +269,7 @@ func (lcc *lambdaCmd) create(c *cli.Context) error {
 		Base:          fmt.Sprintf("iron/lambda-%s", lcc.runtime),
 		Package:       "",
 		Handler:       lcc.handler,
-		OutputStream:  NewDockerJsonWriter(os.Stdout),
+		OutputStream:  newDockerJsonWriter(os.Stdout),
 		RawJSONStream: true,
 	}
 
@@ -365,7 +365,7 @@ func (lcc *lambdaCmd) awsImport(c *cli.Context) error {
 		Base:          fmt.Sprintf("iron/lambda-%s", *function.Configuration.Runtime),
 		Package:       "",
 		Handler:       *function.Configuration.Handler,
-		OutputStream:  NewDockerJsonWriter(os.Stdout),
+		OutputStream:  newDockerJsonWriter(os.Stdout),
 		RawJSONStream: true,
 	}
 
