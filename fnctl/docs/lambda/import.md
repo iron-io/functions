@@ -1,7 +1,7 @@
 Import existing AWS Lambda functions
 ====================================
 
-The [ironcli](https://github.com/iron-io/functions/fnctl/) tool includes a set of
+The [fnctl](https://github.com/iron-io/functions/fnctl/) tool includes a set of
 commands to act on Lambda functions. Most of these are described in
 [getting-started](./getting-started.md). One more subcommand is `aws-import`.
 
