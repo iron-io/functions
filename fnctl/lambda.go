@@ -218,7 +218,6 @@ func create(c *cli.Context) error {
 }
 
 func test(c *cli.Context) error {
-
 	args := c.Args()
 	if len(args) < 1 {
 		return fmt.Errorf("Missing NAME argument")
@@ -239,8 +238,6 @@ func test(c *cli.Context) error {
 }
 
 func awsImport(c *cli.Context) error {
-	//init(c)
-
 	args := c.Args()
 	if len(args) < 3 {
 		return fmt.Errorf("Missing arguments ARN, REGION and/or IMAGE")
