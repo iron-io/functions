@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -61,21 +60,6 @@ func (djw *dockerJSONWriter) Write(p []byte) (int, error) {
 
 func (lcc *lambdaCmd) getFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringFlag{
-			Name:        "function-name",
-			Usage:       "Name of function. This is usually follows Docker image naming conventions.",
-			Destination: &lcc.functionName,
-		},
-		cli.StringFlag{
-			Name:        "runtime",
-			Usage:       fmt.Sprintf("Runtime that your Lambda function depends on. Valid values are %s.", strings.Join(availableRuntimes, ", ")),
-			Destination: &lcc.runtime,
-		},
-		cli.StringFlag{
-			Name:        "handler",
-			Usage:       "function/class that is the entrypoint for this function. Of the form <module name>.<function name> for nodejs/Python, <full class name>::<function name base> for Java.",
-			Destination: &lcc.handler,
-		},
 		cli.StringFlag{
 			Name:        "payload",
 			Usage:       "Payload to pass to the Lambda function. This is usually a JSON object.",
@@ -229,9 +213,6 @@ func (lcc *lambdaCmd) getFunction() (*aws_lambda.GetFunctionOutput, error) {
 }
 
 func (lcc *lambdaCmd) init(c *cli.Context) {
-	handler := c.String("handler")
-	functionName := c.String("function-name")
-	runtime := c.String("runtime")
 	clientContext := c.String("client-context")
 	payload := c.String("payload")
 	version := c.String("version")
@@ -247,9 +228,6 @@ func (lcc *lambdaCmd) init(c *cli.Context) {
 	} else {
 		lcc.fileNames = c.Args()
 	}
-	lcc.handler = handler
-	lcc.functionName = functionName
-	lcc.runtime = runtime
 	lcc.clientContext = clientContext
 	lcc.payload = payload
 	lcc.version = version
@@ -260,36 +238,43 @@ func (lcc *lambdaCmd) init(c *cli.Context) {
 }
 
 func (lcc *lambdaCmd) create(c *cli.Context) error {
-	lcc.init(c)
+	args := c.Args()
+	if len(args) < 4 {
+		return fmt.Errorf("Expected at least 4 arguments, NAME RUNTIME HANDLER and file %d", len(args))
+	}
+	functionName := args[0]
+	runtime := args[1]
+	handler := args[2]
+	fileNames := args[3:]
 
-	files := make([]lambdaImpl.FileLike, 0, len(lcc.fileNames))
+	files := make([]lambdaImpl.FileLike, 0, len(fileNames))
 	opts := lambdaImpl.CreateImageOptions{
-		Name:          lcc.functionName,
-		Base:          fmt.Sprintf("iron/lambda-%s", lcc.runtime),
+		Name:          functionName,
+		Base:          fmt.Sprintf("iron/lambda-%s", runtime),
 		Package:       "",
-		Handler:       lcc.handler,
+		Handler:       handler,
 		OutputStream:  newdockerJSONWriter(os.Stdout),
 		RawJSONStream: true,
 	}
 
-	if lcc.handler == "" {
+	if handler == "" {
 		return errors.New("No handler specified.")
 	}
 
 	// For Java we allow only 1 file and it MUST be a JAR.
-	if lcc.runtime == availableRuntimes[2] {
-		if len(lcc.fileNames) != 1 {
+	if runtime == availableRuntimes[2] {
+		if len(fileNames) != 1 {
 			return errors.New("Java Lambda functions can only include 1 file and it must be a JAR file.")
 		}
 
-		if filepath.Ext(lcc.fileNames[0]) != ".jar" {
+		if filepath.Ext(fileNames[0]) != ".jar" {
 			return errors.New("Java Lambda function package must be a JAR file.")
 		}
 
-		opts.Package = filepath.Base(lcc.fileNames[0])
+		opts.Package = filepath.Base(fileNames[0])
 	}
 
-	for _, fileName := range lcc.fileNames {
+	for _, fileName := range fileNames {
 		file, err := os.Open(fileName)
 		if err != nil {
 			return err
@@ -395,7 +380,7 @@ func lambda() cli.Command {
 			{
 				Name:      "create-function",
 				Usage:     `Create Docker image that can run your Lambda function. The files are the contents of the zip file to be uploaded to AWS Lambda.`,
-				ArgsUsage: "--function-name NAME --runtime RUNTIME --handler HANDLER file [files...]",
+				ArgsUsage: "NAME RUNTIME HANDLER file [files...]",
 				Action:    lcc.create,
 				Flags:     flags,
 			},
