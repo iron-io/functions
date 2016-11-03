@@ -20,7 +20,7 @@ To get started quickly with IronFunctions, you can just fire up an `iron/functio
 docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080:8080 iron/functions
 ```
 
-**Note**: A list of configurations via env variables can be found [here](docs/api.md).*
+**Note**: A list of configurations via env variables can be found [here](docs/options.md).*
 
 ### CLI tool
 

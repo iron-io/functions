@@ -52,7 +52,7 @@ BODY
 
 The header keys and values would be populated with information about the function call such as the request URL and query parameters.  
 
-Body length is determined by the [Content-Length](https://tools.ietf.org/html/rfc7230#section-3.3.3) header.
+Body length is determined by the [Content-Length](https://tools.ietf.org/html/rfc7230#section-3.3.3) header, which is mandatory.
 
 Pros:
 
