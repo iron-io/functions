@@ -89,8 +89,8 @@ You should also now see the generated Docker image.
 
 ```sh
     $ docker images
-    REPOSITORY                              TAG                 IMAGE ID            CREATED              VIRTUAL SIZE
-    irontest/hello_world                    latest              db9b9644168e        About a minute ago   108.4 MB
+    REPOSITORY                TAG         IMAGE ID            CREATED              VIRTUAL SIZE
+    irontest/hello_world      latest      db9b9644168e        About a minute ago   108.4 MB
     ...
 ```
 
