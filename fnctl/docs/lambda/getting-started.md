@@ -46,7 +46,7 @@ to Lambda, we just pass the list of files to `fnctl`.
 
 Next we want to publish the function to our IronFunctions
 ```sh
-    fnctl publish -v -f -d ./irontest
+    $ fnctl publish -v -f -d ./irontest
     publishing irontest/hello_world/function.yaml
     Sending build context to Docker daemon 4.096 kB
     Step 1 : FROM iron/lambda-python2.7
@@ -100,7 +100,7 @@ The `test-function` subcommand can launch the Dockerized function with the
 right parameters.
 
 ```sh
-    fnctl lambda test-function irontest/hello_world --payload '{ "first_name": "Jon", "last_name": "Snow" }'
+    $ fnctl lambda test-function irontest/hello_world --payload '{ "first_name": "Jon", "last_name": "Snow" }'
     {"message": "Hello Jon Snow!"}%                     
 ```
 
@@ -111,7 +111,7 @@ You should see the output.
 The `fnctl call` command can call the published version with a given payload.
 
 ```sh
-    echo  '{ "first_name": "Jon", "last_name": "Snow" }' | ./fnctl call irontest /hello_world
+    $ echo  '{ "first_name": "Jon", "last_name": "Snow" }' | ./fnctl call irontest /hello_world
     {"message": "Hello Jon Snow!"}
 ```
 
