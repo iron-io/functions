@@ -7,7 +7,7 @@ IronFunction compatible Docker Image as follows:
 fnctl lambda create-function <name> <runtime> <handler> <files...>
 ```
 
-* name: the name of the created docker image which should have the format <username>/<image-name>
+* name: the name of the created docker image which should have the format `<username>/<image-name>`
 * runtime: any of the following `nodejs`, `python2.7` or `java8`
 * handler: a handler takes a different form per runtime
     * java8: `<namespace>.<class>::<handler>`
