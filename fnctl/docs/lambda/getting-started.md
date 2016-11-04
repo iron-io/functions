@@ -101,7 +101,7 @@ right parameters.
 
 ```sh
     $ fnctl lambda test-function irontest/hello_world --payload '{ "first_name": "Jon", "last_name": "Snow" }'
-    {"message": "Hello Jon Snow!"}%                     
+    {"message": "Hello Jon Snow!"}
 ```
 
 You should see the output. 
