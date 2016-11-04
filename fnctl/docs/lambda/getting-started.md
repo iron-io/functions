@@ -83,7 +83,7 @@ Next we want to publish the function to our IronFunctions
 ```
 
 This will publish the generated function under the app `irontest` with `hello_world` as a route, e.g:
-`http://hostname/r/irontest/hello_world`,
+`http://<hostname>/r/irontest/hello_world`,
 
 You should also now see the generated Docker image.
 
