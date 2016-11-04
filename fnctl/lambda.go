@@ -28,9 +28,6 @@ const fnYAMLTemplate = `
 app: %s
 image: %s
 route: "/%s"
-build:
-- make
-- make test
 `
 
 func createFunctionYaml(image string) error {
