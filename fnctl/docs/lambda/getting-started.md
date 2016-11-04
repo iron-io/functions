@@ -9,63 +9,88 @@ by following [these instructions](https://github.com/iron-io/function/fnctl).
 
 ## Creating the function
 
-Let's convert the `node-exec` AWS Lambda example to Docker. This simply
-executes the command passed to it as the payload and logs the output.
+Let's convert the `hello_world` AWS Lambda example to Docker.
 
-```js
-    var exec = require('child_process').exec;
-    
-    exports.handler = function(event, context) {
-        if (!event.cmd) {
-            context.fail('Please specify a command to run as event.cmd');
-            return;
-        }
-        var child = exec(event.cmd, function(error) {
-            // Resolve with result of process
-            context.done(error, 'Process complete!');
-        });
-    
-        // Log process stdout and stderr
-        child.stdout.on('data', console.log);
-        child.stderr.on('data', console.error);
-    };
+```python
+def my_handler(event, context):
+    message = 'Hello {} {}!'.format(event['first_name'], 
+                                    event['last_name'])  
+    return { 
+        'message' : message
+    }  
 ```
 
 Create an empty directory for your project and save this code in a file called
-`node_exec.js`.
+`hello_world.py`.
 
 Now let's use `fnctl`'s Lambda functionality to create a Docker image. We can
 then run the Docker image with a payload to execute the Lambda function.
 
 ```sh
-    $ fnctl lambda create-function irontest/node-exec:1 nodejs node_exec.handler node_exec.js
-    Image output Step 1 : FROM iron/lambda-nodejs
-    ---> 66fb7af42230
-    Step 2 : ADD node_exec.js ./node_exec.js
-    ---> 6f922128da71
-    Removing intermediate container 9644b02e95bc
-    Step 3 : CMD node_exec.handler
-    ---> Running in 47b2b1f3e779
-    ---> 5eef8d2d3111
-    Removing intermediate container 47b2b1f3e779
-    Successfully built 5eef8d2d3111
+fnctl lambda create-function irontest/hello_world:1 python2.7 hello_world.my_handler hello_world.py
+Creating directory: irontest/hello_world:1 ... OK
+Creating Dockerfile: irontest/hello_world:1/Dockerfile ... OK
+Copying file: irontest/hello_world:1/hello_world.py ... OK
+Creating function.yaml ... OK
 ```
 
 As you can see, this is very similar to creating a Lambda function using the
 `aws` CLI tool. We name the function as we would name other Docker images. The
 `1` indicates the version. You can use any string. This way you can configure
 your deployment environment to use different versions. The handler is
-the name of the function to run, in the form that nodejs expects
+the name of the function to run, in the form that python expects
 (`module.function`). Where you would package the files into a `.zip` to upload
-to Lambda, we just pass the list of files to `fnctl`. If you had node
-dependencies you could pass the `node_modules` folder too.
+to Lambda, we just pass the list of files to `fnctl`.
 
-You should now see the generated Docker image.
+## Publishing the function to IronFunctions
+
+Next we want to publish the function to our IronFunctions
+```sh
+    fnctl publish -v -f -d ./irontest
+    publishing irontest/hello_world/function.yaml
+    Sending build context to Docker daemon 4.096 kB
+    Step 1 : FROM iron/lambda-python2.7
+    latest: Pulling from iron/lambda-python2.7
+    c52e3ed763ff: Pull complete 
+    789cf808491a: Pull complete 
+    d1b635efed57: Pull complete 
+    fe23c3dbcfa8: Pull complete 
+    63c874a9687e: Pull complete 
+    a6d462dae1df: Pull complete 
+    Digest: sha256:c5dde3bf3be776c0f6b909d4ad87255a0af9b6696831fbe17c5f659655a0494a
+    Status: Downloaded newer image for iron/lambda-python2.7:latest
+    ---> 66d3adf47835
+    Step 2 : ADD hello_world.py ./hello_world.py
+    ---> 91a592e0dfa9
+    Removing intermediate container 1a1ef40ff0dd
+    Step 3 : CMD hello_world.my_handler
+    ---> Running in 318da1bba060
+    ---> db9b9644168e
+    Removing intermediate container 318da1bba060
+    Successfully built db9b9644168e
+    The push refers to a repository [docker.io/irontest/hello_world]
+    5d9d142e21b2: Pushed 
+    11d8145d6038: Layer already exists 
+    23885f85dbd0: Layer already exists 
+    6a350a8d14ee: Layer already exists 
+    e67f7ef625c5: Layer already exists 
+    321db514ef85: Layer already exists 
+    6102f0d2ad33: Layer already exists 
+    latest: digest: sha256:5926ff413f134fa353e4b42f2d4a0d2d4f5b3a39489cfdf6dd5b4a63c4e40dee size: 1784
+    updating API with appName: irontest route: /hello_world image: irontest/hello_world 
+    path                                    result
+    irontest/hello_world/function.yaml     done
+```
+
+This will publish the generated function under the app `irontest` with `hello_world` as a route, e.g:
+`http://hostname/r/irontest/hello_world`,
+
+You should also now see the generated Docker image.
 
 ```sh
     $ docker images
-    REPOSITORY                                      TAG    IMAGE ID         CREATED             VIRTUAL SIZE
-    irontest/node-exec                              1      5eef8d2d3111     9 seconds ago       44.94 MB
+    REPOSITORY                              TAG                 IMAGE ID            CREATED              VIRTUAL SIZE
+    irontest/hello_world                    latest              db9b9644168e        About a minute ago   108.4 MB
     ...
 ```
 
@@ -75,12 +100,23 @@ The `test-function` subcommand can launch the Dockerized function with the
 right parameters.
 
 ```sh
-    $ fnctl lambda test-function irontest/node-exec:1 --payload '{ "cmd": "echo Dockerized Lambda" }'
-    Dockerized Lambda!
+    fnctl lambda test-function irontest/hello_world --payload '{ "first_name": "Jon", "last_name": "Snow" }'
+    {"message": "Hello Jon Snow!"}%                     
 ```
 
-You should see the output. Try changing the command to `date` or something more
-useful.
+You should see the output. 
+
+## Calling the function from IronFunctions
+
+The `fnctl call` command can call the published version with a given payload.
+
+```sh
+    echo  '{ "first_name": "Jon", "last_name": "Snow" }' | ./fnctl call irontest /hello_world
+    {"message": "Hello Jon Snow!"}
+```
+
+You should see the output. 
+
 
 ## Commands documentation
 * [create-function](create.md)
