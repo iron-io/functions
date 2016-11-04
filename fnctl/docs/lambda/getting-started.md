@@ -27,7 +27,7 @@ Now let's use `fnctl`'s Lambda functionality to create a Docker image. We can
 then run the Docker image with a payload to execute the Lambda function.
 
 ```sh
-fnctl lambda create-function irontest/hello_world:1 python2.7 hello_world.my_handler hello_world.py
+$ fnctl lambda create-function irontest/hello_world:1 python2.7 hello_world.my_handler hello_world.py
 Creating directory: irontest/hello_world:1 ... OK
 Creating Dockerfile: irontest/hello_world:1/Dockerfile ... OK
 Copying file: irontest/hello_world/hello_world:1.py ... OK
