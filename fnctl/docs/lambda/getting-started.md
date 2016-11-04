@@ -30,7 +30,7 @@ then run the Docker image with a payload to execute the Lambda function.
 fnctl lambda create-function irontest/hello_world:1 python2.7 hello_world.my_handler hello_world.py
 Creating directory: irontest/hello_world:1 ... OK
 Creating Dockerfile: irontest/hello_world:1/Dockerfile ... OK
-Copying file: irontest/hello_world:1/hello_world.py ... OK
+Copying file: irontest/hello_world/hello_world:1.py ... OK
 Creating function.yaml ... OK
 ```
 
@@ -47,7 +47,7 @@ to Lambda, we just pass the list of files to `fnctl`.
 Next we want to publish the function to our IronFunctions
 ```sh
     $ fnctl publish -v -f -d ./irontest
-    publishing irontest/hello_world/function.yaml
+    publishing irontest/hello_world:1/function.yaml
     Sending build context to Docker daemon 4.096 kB
     Step 1 : FROM iron/lambda-python2.7
     latest: Pulling from iron/lambda-python2.7
@@ -60,7 +60,7 @@ Next we want to publish the function to our IronFunctions
     Digest: sha256:c5dde3bf3be776c0f6b909d4ad87255a0af9b6696831fbe17c5f659655a0494a
     Status: Downloaded newer image for iron/lambda-python2.7:latest
     ---> 66d3adf47835
-    Step 2 : ADD hello_world.py ./hello_world.py
+    Step 2 : ADD hello_world.py ./hello_world:1.py
     ---> 91a592e0dfa9
     Removing intermediate container 1a1ef40ff0dd
     Step 3 : CMD hello_world.my_handler
@@ -68,7 +68,7 @@ Next we want to publish the function to our IronFunctions
     ---> db9b9644168e
     Removing intermediate container 318da1bba060
     Successfully built db9b9644168e
-    The push refers to a repository [docker.io/irontest/hello_world]
+    The push refers to a repository [docker.io/irontest/hello_world:1]
     5d9d142e21b2: Pushed 
     11d8145d6038: Layer already exists 
     23885f85dbd0: Layer already exists 
@@ -77,20 +77,20 @@ Next we want to publish the function to our IronFunctions
     321db514ef85: Layer already exists 
     6102f0d2ad33: Layer already exists 
     latest: digest: sha256:5926ff413f134fa353e4b42f2d4a0d2d4f5b3a39489cfdf6dd5b4a63c4e40dee size: 1784
-    updating API with appName: irontest route: /hello_world image: irontest/hello_world 
+    updating API with appName: irontest route: /hello_world:1 image: irontest/hello_world:1 
     path                                    result
-    irontest/hello_world/function.yaml     done
+    irontest/hello_world:1/function.yaml     done
 ```
 
 This will publish the generated function under the app `irontest` with `hello_world` as a route, e.g:
-`http://<hostname>/r/irontest/hello_world`,
+`http://<hostname>/r/irontest/hello_world:1`,
 
 You should also now see the generated Docker image.
 
 ```sh
     $ docker images
     REPOSITORY                TAG         IMAGE ID            CREATED              VIRTUAL SIZE
-    irontest/hello_world      latest      db9b9644168e        About a minute ago   108.4 MB
+    irontest/hello_world:1      latest      db9b9644168e        About a minute ago   108.4 MB
     ...
 ```
 
@@ -100,7 +100,7 @@ The `test-function` subcommand can launch the Dockerized function with the
 right parameters.
 
 ```sh
-    $ fnctl lambda test-function irontest/hello_world --payload '{ "first_name": "Jon", "last_name": "Snow" }'
+    $ fnctl lambda test-function irontest/hello_world:1 --payload '{ "first_name": "Jon", "last_name": "Snow" }'
     {"message": "Hello Jon Snow!"}
 ```
 
@@ -111,7 +111,7 @@ You should see the output.
 The `fnctl call` command can call the published version with a given payload.
 
 ```sh
-    $ echo  '{ "first_name": "Jon", "last_name": "Snow" }' | ./fnctl call irontest /hello_world
+    $ echo  '{ "first_name": "Jon", "last_name": "Snow" }' | ./fnctl call irontest /hello_world:1
     {"message": "Hello Jon Snow!"}
 ```
 
