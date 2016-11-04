@@ -4,7 +4,10 @@ The `test-function` subcommand can pass the correct parameters to `docker run`
 to run those images with the payload and environment variables set up
 correctly. If you would like more control, like mounting volumes, or adding
 more environment variables this guide describes how to directly run these
-images using `docker run`.
+images using:
+```sh
+docker run
+```
 
 An example of a valid `test-function` command would look as follows:
 ```
