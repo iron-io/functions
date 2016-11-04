@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -21,6 +23,120 @@ import (
 )
 
 var availableRuntimes = []string{"nodejs", "python2.7", "java8"}
+
+const fnYAMLTemplate = `
+app: %s
+image: %s
+route: "/%s"
+build:
+- make
+- make test
+`
+
+func createFunctionYaml(image string) error {
+	strs := strings.Split(image, "/")
+	data := []byte(fmt.Sprintf(fnYAMLTemplate, strs[0], image, strs[1]))
+	return ioutil.WriteFile(filepath.Join(image, "function.yaml"), data, 0644)
+}
+
+type createImageOptions struct {
+	Name          string
+	Base          string
+	Package       string // Used for Java, empty string for others.
+	Handler       string
+	OutputStream  io.Writer
+	RawJSONStream bool
+}
+
+type fileLike interface {
+	io.Reader
+	Stat() (os.FileInfo, error)
+}
+
+var ErrorNoFiles = errors.New("No files to add to image")
+
+// Create a Dockerfile that adds each of the files to the base image. The
+// expectation is that the base image sets up the current working directory
+// inside the image correctly.  `handler` is set to be passed to node-lambda
+// for now, but we may have to change this to accomodate other stacks.
+func makeDockerfile(base string, package_ string, handler string, files ...fileLike) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("FROM %s\n", base))
+
+	for _, file := range files {
+		// FIXME(nikhil): Validate path, no parent paths etc.
+		info, err := file.Stat()
+		if err != nil {
+			return buf.Bytes(), err
+		}
+		buf.WriteString(fmt.Sprintf("ADD [\"%s\", \"./%s\"]\n", info.Name(), info.Name()))
+	}
+
+	buf.WriteString("CMD [")
+	if package_ != "" {
+		buf.WriteString(fmt.Sprintf("\"%s\", ", package_))
+	}
+	// FIXME(nikhil): Validate handler.
+	buf.WriteString(fmt.Sprintf("\"%s\"", handler))
+	buf.WriteString("]\n")
+
+	return buf.Bytes(), nil
+}
+
+// Creates a docker image called `name`, using `base` as the base image.
+// `handler` is the runtime-specific name to use for a lambda invocation (i.e.
+// <module>.<function> for nodejs). `files` should be a list of files+dirs
+// *relative to the current directory* that are to be included in the image.
+func createDockerfile(opts createImageOptions, files ...fileLike) error {
+	if len(files) == 0 {
+		return ErrorNoFiles
+	}
+
+	df, err := makeDockerfile(opts.Base, opts.Package, opts.Handler, files...)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(fmt.Sprintf("Creating directory: %s ... ", opts.Name))
+	if err := os.MkdirAll(opts.Name, os.ModePerm); err != nil {
+		return err
+	}
+	fmt.Println("OK")
+
+	fmt.Print(fmt.Sprintf("Creating Dockerfile: %s ... ", filepath.Join(opts.Name, "Dockerfile")))
+	outputFile, err := os.Create(filepath.Join(opts.Name, "Dockerfile"))
+	if err != nil {
+		return err
+	}
+	fmt.Println("OK")
+
+	for _, f := range files {
+		fstat, err := f.Stat()
+		if err != nil {
+			return err
+		}
+		fmt.Print(fmt.Sprintf("Copying file: %s", filepath.Join(opts.Name, fstat.Name())))
+		src, err := os.Create(filepath.Join(opts.Name, fstat.Name()))
+		if err != nil {
+			return err
+		}
+		if _, err := io.Copy(src, f); err != nil {
+			return err
+		}
+		fmt.Println("OK")
+	}
+
+	if _, err = outputFile.Write(df); err != nil {
+		return err
+	}
+
+	fmt.Print("Creating function.yaml ... ")
+	if err := createFunctionYaml(opts.Name); err != nil {
+		return err
+	}
+	fmt.Println("OK")
+	return nil
+}
 
 type dockerJSONWriter struct {
 	under io.Writer
@@ -84,8 +200,8 @@ func downloadToFile(url string) (string, error) {
 	return tmpFile.Name(), nil
 }
 
-func unzipAndGetTopLevelFiles(dst, src string) (files []lambdaImpl.FileLike, topErr error) {
-	files = make([]lambdaImpl.FileLike, 0)
+func unzipAndGetTopLevelFiles(dst, src string) (files []fileLike, topErr error) {
+	files = make([]fileLike, 0)
 
 	zipReader, err := zip.OpenReader(src)
 	if err != nil {
@@ -178,8 +294,8 @@ func create(c *cli.Context) error {
 	handler := args[2]
 	fileNames := args[3:]
 
-	files := make([]lambdaImpl.FileLike, 0, len(fileNames))
-	opts := lambdaImpl.CreateImageOptions{
+	files := make([]fileLike, 0, len(fileNames))
+	opts := createImageOptions{
 		Name:          functionName,
 		Base:          fmt.Sprintf("iron/lambda-%s", runtime),
 		Package:       "",
@@ -214,7 +330,8 @@ func create(c *cli.Context) error {
 		files = append(files, file)
 	}
 
-	return lambdaImpl.CreateImage(opts, files...)
+	return createDockerfile(opts, files...)
+
 }
 
 func test(c *cli.Context) error {
@@ -267,7 +384,7 @@ func awsImport(c *cli.Context) error {
 	}
 	defer os.Remove(tmpFileName)
 
-	var files []lambdaImpl.FileLike
+	var files []fileLike
 
 	if *function.Configuration.Runtime == availableRuntimes[2] {
 		fmt.Println("Found Java Lambda function. Going to assume code is a single JAR file.")
@@ -294,7 +411,7 @@ func awsImport(c *cli.Context) error {
 		return err
 	}
 
-	opts := lambdaImpl.CreateImageOptions{
+	opts := createImageOptions{
 		Name:          functionName,
 		Base:          fmt.Sprintf("iron/lambda-%s", *function.Configuration.Runtime),
 		Package:       "",
@@ -311,7 +428,7 @@ func awsImport(c *cli.Context) error {
 		opts.Package = filepath.Base(files[0].(*os.File).Name())
 	}
 
-	return lambdaImpl.CreateImage(opts, files...)
+	return createDockerfile(opts, files...)
 }
 
 func lambda() cli.Command {
