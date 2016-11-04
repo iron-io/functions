@@ -21,12 +21,11 @@ such assumptions, please rewrite it.
 
 ## nodejs
 
-* node.js version [0.10.42][nodev]. Thanks to Michael Hart for creating the
-  smaller, Alpine Linux based image.
+* node.js version [0.10.42][iron/node]
 * ImageMagick version [6.9.3][magickv] and nodejs [wrapper 6.9.3][magickwrapperv]
 * aws-sdk version [2.2.12][awsnodev]
 
-[nodev]: https://github.com/mhart/alpine-node/blob/f025a0516b87e2a505c6be4ff2c7bf485a95dc5a/Dockerfile
+[iron/node]: https://github.com/iron-io/dockers/blob/master/node/Dockerfile
 [magickv]: https://pkgs.alpinelinux.org/package/main/x86_64/imagemagick
 [magickwrapperv]: https://www.npmjs.com/package/imagemagick
 [awsnodev]: https://aws.amazon.com/sdk-for-node-js/
