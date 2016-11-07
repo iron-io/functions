@@ -125,7 +125,7 @@ func (c *commoncmd) flags() []cli.Flag {
 		},
 		cli.BoolFlag{
 			Name:        "r",
-			Usage:       "recusively scan all functions",
+			Usage:       "recursively scan all functions",
 			Destination: &c.recursively,
 		},
 	}
