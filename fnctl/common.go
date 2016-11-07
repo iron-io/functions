@@ -152,7 +152,7 @@ func (c *commoncmd) scan(walker func(path string, info os.FileInfo, err error, w
 			return nil
 		}
 
-		if !c.force && !isstale(path) {
+		if c.recursively && !c.force && !isstale(path) {
 			return nil
 		}
 
