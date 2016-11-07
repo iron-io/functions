@@ -143,7 +143,8 @@ func (c *commoncmd) scan(walker func(path string, info os.FileInfo, err error, w
 	fmt.Fprint(w, "path", "\t", "result", "\n")
 
 	err := filepath.Walk(c.wd, func(path string, info os.FileInfo, err error) error {
-		if !c.recursively && info.IsDir() {
+
+		if !c.recursively && path != c.wd && info.IsDir() {
 			return filepath.SkipDir
 		}
 
