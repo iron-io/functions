@@ -1,12 +1,62 @@
 # IronFunctions
 
-Welcome to IronFunctions!  The open source Functions as a Service platform.
+[![CircleCI](https://circleci.com/gh/iron-io/functions.svg?style=svg)](https://circleci.com/gh/iron-io/functions) 
+[![GoDoc](https://godoc.org/github.com/iron-io/functions?status.svg)](https://godoc.org/github.com/iron-io/functions)
+
+Welcome to IronFunctions!  The open source servlerless platform. 
+
+## What is IronFunctions?
+
+IronFunctions is an open source serverless platform, or as we like to refer to it, Functions as a 
+Service -- FaaS -- platform that you can run anywhere. 
+
+* [Run anywhere](docs/faq.md#where-can-run-ironfunctions) -- public cloud, hybrid, on-premise
+* [Any language](docs/faq.md#which-languages-are-supported)
+  * [AWS Lambda support](docs/lambda/README.md)
+* Easy to use
+* Easy to scale
+
+## What is Serverless/FaaS?
+
+Serverless is a new paradigm in computing that enables simplicity, efficiency and scalability for both developers 
+and operators. It's important to distinguish the two, because the benefits differ:
+
+### Benefits for developers
+
+It's on the developer side, that the term `serverless` applies as it's one of the main benefits.  The main benefits
+that most people refer to are on the developer side and they include:
+
+* No servers to manage -- you just update your code and the platform deals with the infrastructure
+* Super simple coding -- no more monoliths! Just simple little bits of code
+* Pay by the milliseconds your code is executing -- unlike a typical application that runs 24/7, and you're paying
+24/7, functions only run when needed
+
+Since you'll be running IronFunctions yourself, the paying for something part may not apply, but it does apply to 
+major cost savings on your infrastructure bills as you'll read below. 
+
+### Benefits for operators
+
+If you will be operating IronFunctions (the person who has to manage the servers behind the serverless), 
+then the benefits are different, but related. 
+
+* Extremely efficient use of resources
+  * Unlike an app/API/microservice that consumes resources 24/7 whether they 
+are in use or not, functions are time sliced across your infrastructure and only consume resources while they are 
+actually doing something.
+* Easy to manage and scale
+  * Single system for code written in any language or any technology
+  * Single system to monitor
+  * Scaling is the same for all functions, you don't need to think about how each app scales
+  * Scaling is simply adding more IronFunctions nodes
+
+There is a lot more reading you can do on the topic, just search for ["what is serverless"](https://www.google.com/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8#q=what%20is%20serverless) 
+and you'll find plenty of information. We have pretty thorough post on the Iron.io blog called [What is Serverless Computing and Why is it Important].
 
 ## Join Our Community
 
 First off, join the community!
 
-[![Slack Status](https://open-iron.herokuapp.com/badge.svg)](https://open-iron.herokuapp.com)
+[![Slack Status](https://open-iron.herokuapp.com/badge.svg)](http://get.iron.io/open-slack)
 
 ## Quickstart
 
@@ -24,19 +74,10 @@ docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080
 
 ### CLI tool
 
-You can easily operate IronFunctions with its CLI tool. Install it with:
+The IronFunctions CLI tool is optional, but it makes things easier. Install it with:
 
 ```sh
-curl -sSL https://fn.iron.io/install | sh
-```
-
-If you're concerned about the [potential insecurity](http://curlpipesh.tumblr.com/)
-of using `curl | sh`, feel free to use a two-step version of our installation and examine our
-installation script:
-
-```bash
-curl -f -sSL https://fn.iron.io/install -O
-sh install
+curl -sSL http://get.iron.io/fnctl | sh
 ```
 
 ### Create an Application
@@ -47,7 +88,8 @@ An application is essentially a grouping of functions, that put together, form a
 fnctl apps create myapp
 ```
 
-Or using a cURL call:
+Or using a cURL:
+
 ```sh
 curl -H "Content-Type: application/json" -X POST -d '{
     "app": { "name":"myapp" }
@@ -59,13 +101,15 @@ Now that we have an app, we can map routes to functions.
 ### Add a Route
 
 A route is a way to define a path in your application that maps to a function. In this example, we'll map
-`/path` to a simple `Hello World!` image called `iron/hello`.
+`/hello` to a simple `Hello World!` function called `iron/hello` which is a function we already made that you
+can use -- yes, you can share functions! The source code for this function is in the [examples directory](examples/hello-go). 
 
 ```sh
 fnctl routes create myapp /hello iron/hello
 ```
 
-Or using a cURL call:
+Or using cURL:
+
 ```sh
 curl -H "Content-Type: application/json" -X POST -d '{
     "route": {
@@ -78,28 +122,32 @@ curl -H "Content-Type: application/json" -X POST -d '{
 ### Calling your Function
 
 Calling your function is as simple as requesting a URL. Each app has it's own namespace and each route mapped to the app.
-The app `myapp` that we created above along with the `/hello` route we added would be called via the following URL.
+The app `myapp` that we created above along with the `/hello` route we added would be called via the following 
+URL: http://localhost:8080/r/myapp/hello
+
+Either surf to it in your browser or use `fnctl`:
 
 ```sh
 fnctl routes run myapp /hello
 ```
 
-Or using a cURL call:
+Or using a cURL:
+
 ```sh
 curl http://localhost:8080/r/myapp/hello
 ```
 
-You also may just surf to it: http://localhost:8080/r/myapp/hello
-
 ### Passing data into a function
 
-Your function will get the body of the HTTP request via STDIN, and the headers of the request will be passed in as env vars. Try this:
+Your function will get the body of the HTTP request via STDIN, and the headers of the request will be passed in
+as env vars. You can test a function with the CLI tool:
 
 ```sh
 echo '{"name":"Johnny"}' | fnctl routes run myapp /hello
 ```
 
-Or using a cURL call:
+Or using cURL:
+
 ```sh
 curl -H "Content-Type: application/json" -X POST -d '{
     "name":"Johnny"
@@ -151,16 +199,31 @@ If you watch the logs, you will see the function actually runs in the background
 
 Read more on [logging](docs/logging.md).
 
+## Writing Functions
+
+See [Writing Functions](docs/writing.md).
+
 ## Client Libraries
+
+These are swagger generated libraries to use the API. 
 
 - [Go](https://github.com/iron-io/functions_go)
 - [Ruby](https://github.com/iron-io/functions_ruby)
 - [Javascript](https://github.com/iron-io/functions_js)
 
-## Writing Functions
-
-See [Writing Functions)(docs/writing.md).
-
 ## More Documentation
 
 See [docs/](docs/README.md) for full documentation.
+
+## Want to contribute to IronFunctions?
+
+See [contributing](CONTRIBUTING.md).
+
+## Support
+
+You can get community support via:
+
+* [Stack Overflow](http://stackoverflow.com/questions/tagged/ironfunctions)
+* [Slack](https://get.iron.io/open-slack)
+
+You can get commercial support by contacting [Iron.io](https://iron.io)
