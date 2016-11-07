@@ -58,8 +58,7 @@ func (a *appsCmd) create(c *cli.Context) error {
 		return errors.New("error: app creating takes one argument, an app name")
 	}
 
-	err := resetBasePath(&a.Configuration)
-	if err != nil {
+	if err := resetBasePath(&a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
