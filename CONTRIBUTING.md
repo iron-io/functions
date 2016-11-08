@@ -1,6 +1,6 @@
 # Contributing to IronFunctions
 
-We welcome all contributions! 
+We welcome all contributions!
 
 ## How to contribute
 
@@ -34,7 +34,7 @@ to build the `functions` binary.
 ./functions
 ```
 
-will start IronFunctions using an embedded `Bolt` database running on port `8080`. 
+will start IronFunctions using an embedded `Bolt` database running on port `8080`.
 
 #### Run in Docker
 
@@ -43,3 +43,12 @@ make run-docker
 ```
 
 will start IronFunctions inside a Docker container.
+
+## Tests in Docker
+
+```
+make test-docker
+
+```
+
+will test IronFunctions inside a Docker container.
