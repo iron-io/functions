@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/iron-io/functions_go"
@@ -22,18 +23,20 @@ type routesCmd struct {
 func routes() cli.Command {
 	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
 
+	flags := append(confFlags(&r.Configuration), []cli.Flag{}...)
 	return cli.Command{
 		Name:      "routes",
 		Usage:     "list routes",
-		ArgsUsage: "fnclt routes",
-		Flags:     append(confFlags(&r.Configuration), []cli.Flag{}...),
+		ArgsUsage: "fnctl routes",
+		Flags:     flags,
 		Action:    r.list,
 		Subcommands: []cli.Command{
 			{
-				Name:      "run",
-				Usage:     "run a route",
+				Name:      "call",
+				Usage:     "call a route",
 				ArgsUsage: "appName /path",
-				Action:    r.run,
+				Action:    r.call,
+				Flags:     append(flags, runflags()...),
 			},
 			{
 				Name:      "create",
@@ -51,12 +54,28 @@ func routes() cli.Command {
 	}
 }
 
+func call() cli.Command {
+	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
+
+	flags := append([]cli.Flag{}, confFlags(&r.Configuration)...)
+	flags = append(flags, runflags()...)
+	return cli.Command{
+		Name:      "call",
+		Usage:     "call a remote function",
+		ArgsUsage: "appName /path",
+		Flags:     flags,
+		Action:    r.call,
+	}
+}
+
 func (a *routesCmd) list(c *cli.Context) error {
 	if c.Args().First() == "" {
 		return errors.New("error: routes listing takes one argument, an app name")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	appName := c.Args().Get(0)
 	wrapper, _, err := a.AppsAppRoutesGet(appName)
@@ -85,12 +104,14 @@ func (a *routesCmd) list(c *cli.Context) error {
 	return nil
 }
 
-func (a *routesCmd) run(c *cli.Context) error {
+func (a *routesCmd) call(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: routes listing takes three arguments: an app name and a route")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	baseURL, err := url.Parse(a.Configuration.BasePath)
 	if err != nil {
@@ -108,7 +129,15 @@ func (a *routesCmd) run(c *cli.Context) error {
 		content = os.Stdin
 	}
 
-	resp, err := http.Post(baseURL.ResolveReference(u).String(), "application/json", content)
+	req, err := http.NewRequest("POST", baseURL.ResolveReference(u).String(), content)
+	if err != nil {
+		return fmt.Errorf("error running route: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	envAsHeader(req, c.StringSlice("e"))
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("error running route: %v", err)
 	}
@@ -117,12 +146,27 @@ func (a *routesCmd) run(c *cli.Context) error {
 	return nil
 }
 
+func envAsHeader(req *http.Request, selectedEnv []string) {
+	detectedEnv := os.Environ()
+	if len(selectedEnv) > 0 {
+		detectedEnv = selectedEnv
+	}
+
+	for _, e := range detectedEnv {
+		kv := strings.Split(e, "=")
+		name := kv[0]
+		req.Header.Set(name, os.Getenv(name))
+	}
+}
+
 func (a *routesCmd) create(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
 		return errors.New("error: routes listing takes three arguments: an app name, a route path and an image")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
@@ -139,7 +183,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 		return fmt.Errorf("error creating route: %v", err)
 	}
 	if wrapper.Route.Path == "" || wrapper.Route.Image == "" {
-		return fmt.Errorf("could not create this route (%s at %s), check if route path is correct.", route, appName)
+		return fmt.Errorf("could not create this route (%s at %s), check if route path is correct", route, appName)
 	}
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
@@ -151,7 +195,9 @@ func (a *routesCmd) delete(c *cli.Context) error {
 		return errors.New("error: routes listing takes three arguments: an app name and a path")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
