@@ -1,14 +1,127 @@
-hash: ba755dafecdd69ab73589e55d3b10216684aa885d65fa459fca69a0c4da6d959
-updated: 2016-10-20T18:19:35.100655097-07:00
+hash: aed45d068e76dc473f16657f44281db6f793e4724e7305b4a6cef45a132da29f
+updated: 2016-11-07T23:22:33.135398009+01:00
 imports:
-- name: github.com/go-resty/resty
-  version: 1a3bb60986d90e32c04575111b1ccb8eab24a3e5
-- name: github.com/iron-io/functions_go
-  version: 584f4a6e13b53370f036012347cf0571128209f0
-- name: github.com/urfave/cli
-  version: 55f715e28c46073d0e217e2ce8eb46b0b45e3db6
-- name: golang.org/x/net
-  version: daba796358cd2742b75aae05761f1b898c9f6a5c
+- name: github.com/aws/aws-sdk-go
+  version: 90dec2183a5f5458ee79cbaf4b8e9ab910bc81a6
   subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - private/endpoints
+  - private/protocol
+  - private/protocol/json/jsonutil
+  - private/protocol/jsonrpc
+  - private/protocol/rest
+  - private/protocol/restjson
+  - service/lambda
+- name: github.com/Azure/go-ansiterm
+  version: fa152c58bc15761d0200cb75fe958b89a9d4888e
+  subpackages:
+  - winterm
+- name: github.com/coreos/go-semver
+  version: 8ab6407b697782a06568d4b7f1db25550ec2e4c6
+  subpackages:
+  - semver
+- name: github.com/docker/docker
+  version: fae5a9e053ad06bea0429babae2507762d8cc1de
+  subpackages:
+  - api/types/blkiodev
+  - api/types/container
+  - api/types/filters
+  - api/types/mount
+  - api/types/strslice
+  - api/types/swarm
+  - api/types/versions
+  - opts
+  - pkg/archive
+  - pkg/fileutils
+  - pkg/homedir
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/jsonlog
+  - pkg/jsonmessage
+  - pkg/longpath
+  - pkg/pools
+  - pkg/promise
+  - pkg/stdcopy
+  - pkg/system
+  - pkg/term
+  - pkg/term/windows
+- name: github.com/docker/go-connections
+  version: f512407a188ecb16f31a33dbc9c4e4814afc1b03
+  subpackages:
+  - nat
+- name: github.com/docker/go-units
+  version: 8a7beacffa3009a9ac66bad506b18ffdd110cf97
+- name: github.com/fsouza/go-dockerclient
+  version: 5cfde1d138cd2cdc13e4aa36af631beb19dcbe9c
+- name: github.com/giantswarm/semver-bump
+  version: 7ec6ac8985c24dd50b4942f9a908d13cdfe70f23
+  subpackages:
+  - bump
+  - storage
+- name: github.com/go-ini/ini
+  version: 6e4869b434bd001f6983749881c7ead3545887d8
+- name: github.com/go-resty/resty
+  version: 24dc7ba4bc1ef9215048b28e7248f99c42901db5
+- name: github.com/hashicorp/go-cleanhttp
+  version: ad28ea4487f05916463e2423a55166280e8254b5
+- name: github.com/iron-io/functions_go
+  version: ec65bad1ceb32b29f106483ecdd3e7588b5fde30
+- name: github.com/iron-io/iron_go3
+  version: b50ecf8ff90187fc5fabccd9d028dd461adce4ee
+  subpackages:
+  - api
+  - config
+  - worker
+- name: github.com/iron-io/lambda
+  version: d883e4b5ef216c3fcda72cf6628d9d72dd53be49
+  subpackages:
+  - lambda
+- name: github.com/jmespath/go-jmespath
+  version: 3433f3ea46d9f8019119e7dd41274e112a2359a9
+- name: github.com/juju/errgo
+  version: 08cceb5d0b5331634b9826762a8fd53b29b86ad8
+  subpackages:
+  - errors
+- name: github.com/Microsoft/go-winio
+  version: ce2922f643c8fd76b46cadc7f404a06282678b34
+- name: github.com/opencontainers/runc
+  version: 49ed0a10e4edba88f9221ec730d668099f6d6de8
+  subpackages:
+  - libcontainer/system
+  - libcontainer/user
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/Sirupsen/logrus
+  version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+- name: github.com/urfave/cli
+  version: d86a009f5e13f83df65d0d6cee9a2e3f1445f0da
+- name: golang.org/x/crypto
+  version: c10c31b5e94b6f7a0283272dc2bb27163dcea24b
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/net
+  version: f315505cf3349909cdf013ea56690da34e96a451
+  subpackages:
+  - context
+  - context/ctxhttp
   - publicsuffix
+- name: golang.org/x/sys
+  version: c200b10b5d5e122be351b67af224adc6128af5bf
+  subpackages:
+  - unix
+  - windows
+- name: gopkg.in/yaml.v2
+  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports: []

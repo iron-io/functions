@@ -41,19 +41,18 @@ $ fnctl routes delete otherapp hello              # delete route
 /hello deleted
 ```
 
-## Bulk Update
+## Publish
 
-Also there is the update command that is going to scan all local directory for
+Also there is the publish command that is going to scan all local directory for
 functions, rebuild them and push them to Docker Hub and update them in
 IronFunction.
 
 ```sh
-$ fnctl update
-Updating for all functions.
-path    	    action
-/app/hello	    updated
+$ fnctl publish
+path    	    result
+/app/hello	    done
 /app/hello-sync	error: no Dockerfile found for this function
-/app/test	    updated
+/app/test	    done
 ```
 
 It works by scanning all children directories of the current working directory,
@@ -83,11 +82,10 @@ following this convention:
 It will render this pattern of updates:
 
 ```sh
-$ fnctl update
-Updating for all functions.
-path    	            action
-/myapp/route1/subroute1	updated
-/other/route1	        updated
+$ fnctl publish
+path    	            result
+/myapp/route1/subroute1	done
+/other/route1	        done
 ```
 
 It means that first subdirectory are always considered app names (e.g. `myapp`
@@ -120,3 +118,54 @@ position. You may use it to override the calculated route.
 `build` (optional) is an array of shell calls which are used to helping building
 the image. These calls are executed before `fnctl` calls `docker build` and
 `docker push`.
+
+## Build and Bump
+
+When dealing with a lot of functions you might find yourself making lots of
+individual calls. `fnctl` offers two command to help you with that: `build` and
+`bump`.
+
+```sh
+$ fnctl build
+path    	    result
+/app/hello	    done
+/app/test	    done
+```
+
+`fnctl build` is similar to `publish` except it neither publishes the resulting
+docker image to Docker Hub nor updates the routes in IronFunctions server.
+
+```sh
+$ fnctl bump
+path    	    result
+/app/hello	    done
+/app/test	    done
+```
+
+`fnctl bump` will scan all IronFunctions for files named `VERSION` and bump
+their version according to [semver](http://semver.org/) rules. In their absence,
+it will skip.
+
+## Route level configuration
+
+When creating a route, you can configure it to tweak its behavior, the possible
+choices are: `memory`, `type` and `config`.
+
+Thus a more complete example of route creation will look like:
+```sh
+fnctl routes create --memory 256 --type async --config DB_URL=http://example.org/ otherapp /hello iron/hello
+```
+
+`--memory` is number of usable MiB for this function. If during the execution it
+exceeds this maximum threshold, it will halt and return an error in the logs.
+
+`--type` is the type of the function. Either `sync`, in which the client waits
+until the request is successfully completed, or `async`, in which the clients
+dispatches a new request, gets a task ID back and closes the HTTP connection.
+
+`--config` is a map of values passed to the route runtime in the form of
+environment variables prefixed with `CONFIG_`.
+
+Repeated calls to `fnctl route create` will trigger an update of the given
+route, thus you will be able to change any of these attributes later in time
+if necessary.
