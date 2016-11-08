@@ -30,7 +30,7 @@ to build the `functions` binary.
 
 ### Run
 
-```
+```sh
 ./functions
 ```
 
@@ -38,13 +38,13 @@ will start IronFunctions using an embedded `Bolt` database running on port `8080
 
 ### Test
 
-```
+```sh
 make test
 ```
 
 #### Run in Docker
 
-```
+```sh
 make run-docker
 ```
 
@@ -52,7 +52,7 @@ will start IronFunctions inside a Docker container.
 
 ## Tests in Docker
 
-```
+```sh
 make test-docker
 
 ```
