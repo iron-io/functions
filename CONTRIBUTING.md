@@ -36,6 +36,12 @@ to build the `functions` binary.
 
 will start IronFunctions using an embedded `Bolt` database running on port `8080`.
 
+### Test
+
+```
+make test
+```
+
 #### Run in Docker
 
 ```
