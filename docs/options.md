@@ -43,14 +43,14 @@ docker run -e VAR_NAME=VALUE ...
 ## Starting without Docker in Docker
 
 The default way to run IronFunctions, as it is in the Quickstart guide, is to use docker-in-docker (dind). There are
-a few couple why we did it that way:
+a couple reasons why we did it this way:
 
 * It's clean. Once the container exits, there is nothing left behind including all the function images.
 * You can set resource restrictions for the entire IronFunctions instance. For instance, you can set `--memory` on
 the docker run command to set the max memory for the IronFunctions instance AND all of the functions it's running. 
 
 There are some reasons you may not want to use dind, such as using the image cache during testing or you're running
-[Windows](windows.md). 
+[Windows](windows.md).
 
 ### Mount the Host Docker
 
@@ -62,8 +62,7 @@ docker run --rm --name functions -it -v /var/run/docker.sock:/var/run/docker.soc
 
 ### Run outside Docker
 
-You can of course just run the binary directly, you'll just have to change you set the environment variables above. 
+You can of course just run the binary directly, you'll just have to change how you set the environment variables above.
 
-See [contributing doc](../CONTRIBUTING.md) for information on how to build and run. 
-
+See [contributing doc](../CONTRIBUTING.md) for information on how to build and run.
 
