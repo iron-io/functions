@@ -8,7 +8,6 @@
 * [Extending IronFunctions](extending.md)
 * [Function Format](function-format.md)
 * [Message Queues](mqs/README.md)
-* [Databases](databases/README.md)
 
 ## Operating IronFunctions
 * [Docker Configuration](operating/docker.md)
