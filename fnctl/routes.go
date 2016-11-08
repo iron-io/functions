@@ -27,7 +27,7 @@ func routes() cli.Command {
 	return cli.Command{
 		Name:      "routes",
 		Usage:     "list routes",
-		ArgsUsage: "fnclt routes",
+		ArgsUsage: "fnctl routes",
 		Flags:     flags,
 		Action:    r.list,
 		Subcommands: []cli.Command{
@@ -43,6 +43,22 @@ func routes() cli.Command {
 				Usage:     "create a route",
 				ArgsUsage: "appName /path image/name",
 				Action:    r.create,
+				Flags: []cli.Flag{
+					cli.Int64Flag{
+						Name:  "memory",
+						Usage: "memory in MiB",
+						Value: 128,
+					},
+					cli.StringFlag{
+						Name:  "type",
+						Usage: "route type - sync or async",
+						Value: "sync",
+					},
+					cli.StringSliceFlag{
+						Name:  "config",
+						Usage: "route configuration",
+					},
+				},
 			},
 			{
 				Name:      "delete",
@@ -73,7 +89,9 @@ func (a *routesCmd) list(c *cli.Context) error {
 		return errors.New("error: routes listing takes one argument, an app name")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	appName := c.Args().Get(0)
 	wrapper, _, err := a.AppsAppRoutesGet(appName)
@@ -107,7 +125,9 @@ func (a *routesCmd) call(c *cli.Context) error {
 		return errors.New("error: routes listing takes three arguments: an app name and a route")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	baseURL, err := url.Parse(a.Configuration.BasePath)
 	if err != nil {
@@ -160,7 +180,9 @@ func (a *routesCmd) create(c *cli.Context) error {
 		return errors.New("error: routes listing takes three arguments: an app name, a route path and an image")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
@@ -170,8 +192,16 @@ func (a *routesCmd) create(c *cli.Context) error {
 			AppName: appName,
 			Path:    route,
 			Image:   image,
+			Memory:  c.Int64("memory"),
+			Type_:   c.String("type"),
 		},
 	}
+	configs := make(map[string]string)
+	for _, v := range c.StringSlice("config") {
+		kv := strings.SplitN(v, "=", 2)
+		configs[kv[0]] = kv[1]
+	}
+	body.Route.Config = configs
 	wrapper, _, err := a.AppsAppRoutesPost(appName, body)
 	if err != nil {
 		return fmt.Errorf("error creating route: %v", err)
@@ -189,7 +219,9 @@ func (a *routesCmd) delete(c *cli.Context) error {
 		return errors.New("error: routes listing takes three arguments: an app name and a path")
 	}
 
-	resetBasePath(&a.Configuration)
+	if err := resetBasePath(&a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
