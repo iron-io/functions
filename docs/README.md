@@ -1,6 +1,6 @@
 # IronFunctions Documentation
 
-## General
+## General Docs
 * [IronFunctions Run Options](options.md)
 * [Writing Functions](function-format.md)
 * [API Reference](https://app.swaggerhub.com/api/iron/functions/)
@@ -10,7 +10,7 @@
 * [Message Queues](mqs/README.md)
 * [Databases](databases/README.md)
 
-## Operating Functions
+## Operating IronFunctions
 * [Docker Configuration](operating/docker.md)
 * [Databases](databases/README.md)
 * [Windows](operating/windows.md)
