@@ -10,7 +10,9 @@ Welcome to IronFunctions!  The open source serverless platform.
 IronFunctions is an open source serverless platform, or as we like to refer to it, Functions as a 
 Service -- FaaS -- platform that you can run anywhere. 
 
-* [Run anywhere](docs/faq.md#where-can-run-ironfunctions) -- public cloud, hybrid, on-premise
+* [Run anywhere](docs/faq.md#where-can-run-ironfunctions)
+  * Public cloud, hybrid, on-premise
+  * [Import Lambda functions](docs/lambda/import.md) from AWS and run them wherever you want
 * [Any language](docs/faq.md#which-languages-are-supported)
   * [AWS Lambda support](docs/lambda/README.md)
 * Easy to use
@@ -28,20 +30,20 @@ The main benefits that most people refer to are on the developer side and they i
 * No servers to manage (serverless) -- you just upload your code and the platform deals with the infrastructure
 * Super simple coding -- no more monoliths! Just simple little bits of code
 * Pay by the milliseconds your code is executing -- unlike a typical application that runs 24/7, and you're paying
-24/7, functions only run when needed
+  24/7, functions only run when needed
 
 Since you'll be running IronFunctions yourself, the paying part may not apply, but it does apply to 
 cost savings on your infrastructure bills as you'll read below. 
 
 ### Benefits for operators
 
-If you will be operating IronFunctions (the person who has to manage the servers behind the serverless), 
-then the benefits are different, but related. 
+If you will be operating IronFunctions (the person who has to manage the servers behind the serverless),
+then the benefits are different, but related.
 
 * Extremely efficient use of resources
   * Unlike an app/API/microservice that consumes resources 24/7 whether they 
-are in use or not, functions are time sliced across your infrastructure and only consume resources while they are 
-actually doing something
+    are in use or not, functions are time sliced across your infrastructure and only consume resources while they are
+    actually doing something
 * Easy to manage and scale
   * Single system for code written in any language or any technology
   * Single system to monitor
@@ -104,6 +106,7 @@ Now that we have an app, we can map routes to functions.
 A route is a way to define a path in your application that maps to a function. In this example, we'll map
 `/hello` to a simple `Hello World!` function called `iron/hello` which is a function we already made that you
 can use -- yes, you can share functions! The source code for this function is in the [examples directory](examples/hello-go). 
+You can read more about [writing your own functions here](docs/writing.md).
 
 ```sh
 fnctl routes create myapp /hello iron/hello
