@@ -7,11 +7,11 @@
 * [Triggers](triggers.md)
 * [Extending IronFunctions](extending.md)
 * [Function Format](function-format.md)
+* [Databases](databases/README.md)
 * [Message Queues](mqs/README.md)
 
 ## Operating IronFunctions
 * [Docker Configuration](operating/docker.md)
-* [Databases](databases/README.md)
 * [Windows](operating/windows.md)
 * [Metrics](operating/metrics.md)
 * [Logging](operating/logging.md)
