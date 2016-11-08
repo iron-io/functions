@@ -69,7 +69,7 @@ To get started quickly with IronFunctions, you can just fire up an `iron/functio
 docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080:8080 iron/functions
 ```
 
-**Note**: A list of configurations via env variables can be found [here](docs/options.md).*
+**Note**: A list of configurations via env variables can be found [here](docs/options.md).
 
 ### CLI tool
 
@@ -95,6 +95,8 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps
 ```
 
+[More on apps](docs/apps.md).
+
 Now that we have an app, we can map routes to functions.
 
 ### Add a Route
@@ -117,6 +119,8 @@ curl -H "Content-Type: application/json" -X POST -d '{
     }
 }' http://localhost:8080/v1/apps/myapp/routes
 ```
+
+[More on routes](docs/routes.md).
 
 ### Calling your Function
 
