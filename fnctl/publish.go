@@ -110,8 +110,8 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 		Route: functions.Route{
 			Path:   *ff.Route,
 			Image:  ff.Image,
-			Memory: ff.Memory,
-			Type_:  ff.Type,
+			Memory: *ff.Memory,
+			Type_:  *ff.Type,
 			Config: expandEnvConfig(ff.Config),
 		},
 	}
