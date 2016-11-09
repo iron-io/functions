@@ -2,11 +2,9 @@
 
 Metrics are emitted via the logs for few couple of reasons:
 
-1) Everything supports STDERR.
-
-2) User can optionally use them, if not, they just end up in the logs.
-
-3) No particular metrics system required, in other words, all metrics systems can be used via adapters (see below).
+1. Everything supports STDERR.
+2. User can optionally use them, if not, they just end up in the logs.
+3. No particular metrics system required, in other words, all metrics systems can be used via adapters (see below).
 
 ## Metrics
 
