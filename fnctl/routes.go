@@ -194,14 +194,10 @@ func (a *routesCmd) create(c *cli.Context) error {
 			Image:   image,
 			Memory:  c.Int64("memory"),
 			Type_:   c.String("type"),
+			Config:  extractEnvConfig(c.StringSlice("config")),
 		},
 	}
-	configs := make(map[string]string)
-	for _, v := range c.StringSlice("config") {
-		kv := strings.SplitN(v, "=", 2)
-		configs[kv[0]] = kv[1]
-	}
-	body.Route.Config = configs
+
 	wrapper, _, err := a.AppsAppRoutesPost(appName, body)
 	if err != nil {
 		return fmt.Errorf("error creating route: %v", err)
@@ -212,6 +208,15 @@ func (a *routesCmd) create(c *cli.Context) error {
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
 	return nil
+}
+
+func extractEnvConfig(configs []string) map[string]string {
+	c := make(map[string]string)
+	for _, v := range configs {
+		kv := strings.SplitN(v, "=", 2)
+		c[kv[0]] = os.ExpandEnv(kv[1])
+	}
+	return c
 }
 
 func (a *routesCmd) delete(c *cli.Context) error {
