@@ -210,15 +210,6 @@ func (a *routesCmd) create(c *cli.Context) error {
 	return nil
 }
 
-func extractEnvConfig(configs []string) map[string]string {
-	c := make(map[string]string)
-	for _, v := range configs {
-		kv := strings.SplitN(v, "=", 2)
-		c[kv[0]] = os.ExpandEnv(kv[1])
-	}
-	return c
-}
-
 func (a *routesCmd) delete(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: routes listing takes three arguments: an app name and a path")
