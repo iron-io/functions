@@ -47,7 +47,7 @@ func confFlags(c *functions.Configuration) []cli.Flag {
 			Name:        "endpoint",
 			Usage:       "url to functions api endpoint e.g. http://functions.iron.io",
 			Destination: &c.Host,
-			EnvVar:      "HOST",
+			EnvVar:      "FNCTL_HOST",
 			Value:       "http://localhost:8080",
 		},
 	}
