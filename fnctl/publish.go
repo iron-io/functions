@@ -105,6 +105,12 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 	if ff.Route == nil {
 		ff.Route = &r
 	}
+	if ff.Memory == nil {
+		ff.Memory = new(int64)
+	}
+	if ff.Type == nil {
+		ff.Type = new(string)
+	}
 
 	body := functions.RouteWrapper{
 		Route: functions.Route{
