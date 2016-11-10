@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -34,13 +35,13 @@ var (
 )
 
 type funcfile struct {
-	App    *string
-	Image  string
-	Route  *string
-	Type   string
-	Memory int64
-	Config map[string]string
-	Build  []string
+	App    *string           `yaml:"app,omitempty",json:"app,omitempty"`
+	Image  string            `yaml:"image,omitempty",json:"image,omitempty"`
+	Route  *string           `yaml:"route,omitempty",json:"route,omitempty"`
+	Type   *string           `yaml:"type,omitempty",json:"type,omitempty"`
+	Memory *int64            `yaml:"memory,omitempty",json:"memory,omitempty"`
+	Config map[string]string `yaml:"config,omitempty",json:"config,omitempty"`
+	Build  []string          `yaml:"build,omitempty",json:"build,omitempty"`
 }
 
 func parsefuncfile(path string) (*funcfile, error) {
@@ -252,4 +253,13 @@ func (c commoncmd) dockerbuild(path, image string) error {
 	}
 
 	return nil
+}
+
+func extractEnvConfig(configs []string) map[string]string {
+	c := make(map[string]string)
+	for _, v := range configs {
+		kv := strings.SplitN(v, "=", 2)
+		c[kv[0]] = os.ExpandEnv(kv[1])
+	}
+	return c
 }

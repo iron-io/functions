@@ -105,14 +105,20 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 	if ff.Route == nil {
 		ff.Route = &r
 	}
+	if ff.Memory == nil {
+		ff.Memory = new(int64)
+	}
+	if ff.Type == nil {
+		ff.Type = new(string)
+	}
 
 	body := functions.RouteWrapper{
 		Route: functions.Route{
 			Path:   *ff.Route,
 			Image:  ff.Image,
-			Memory: ff.Memory,
-			Type_:  ff.Type,
-			Config: ff.Config,
+			Memory: *ff.Memory,
+			Type_:  *ff.Type,
+			Config: expandEnvConfig(ff.Config),
 		},
 	}
 
@@ -127,6 +133,13 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 	}
 
 	return nil
+}
+
+func expandEnvConfig(configs map[string]string) map[string]string {
+	for k, v := range configs {
+		configs[k] = os.ExpandEnv(v)
+	}
+	return configs
 }
 
 func extractAppNameRoute(path string) (appName, route string) {
