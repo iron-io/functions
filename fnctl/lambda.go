@@ -221,12 +221,6 @@ func awsImport(c *cli.Context) error {
 		return err
 	}
 
-	configs := make(map[string]string)
-	for _, v := range c.StringSlice("config") {
-		kv := strings.SplitN(v, "=", 2)
-		configs[kv[0]] = kv[1]
-	}
-
 	opts := createImageOptions{
 		Name:          functionName,
 		Base:          fmt.Sprintf("iron/lambda-%s", *function.Configuration.Runtime),
@@ -234,7 +228,7 @@ func awsImport(c *cli.Context) error {
 		Handler:       *function.Configuration.Handler,
 		OutputStream:  newdockerJSONWriter(os.Stdout),
 		RawJSONStream: true,
-		Config:        configs,
+		Config:        transcribeEnvConfig(c.StringSlice("config")),
 	}
 
 	runtime := *function.Configuration.Runtime
