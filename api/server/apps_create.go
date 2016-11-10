@@ -41,6 +41,17 @@ func handleAppCreate(c *gin.Context) {
 		return
 	}
 
+	app, err := Api.Datastore.GetApp(wapp.App.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
+		log.Error(err)
+		return
+	}
+	if app != nil {
+		c.JSON(http.StatusConflict, simpleError(models.ErrAppsAlreadyExists))
+		return
+	}
+
 	_, err = Api.Datastore.StoreApp(wapp.App)
 	if err != nil {
 		log.WithError(err).Errorln(models.ErrAppsCreate)
