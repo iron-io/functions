@@ -88,6 +88,20 @@ func getFlags() []cli.Flag {
 	}
 }
 
+func transcribeEnvConfig(configs []string) map[string]string {
+	c := make(map[string]string)
+	for _, v := range configs {
+		kv := strings.SplitN(v, "=", 2)
+		if len(kv) == 1 {
+			// TODO: Make sure it is compatible cross platform
+			c[kv[0]] = fmt.Sprintf("$%s", kv[0])
+		} else {
+			c[kv[0]] = kv[1]
+		}
+	}
+	return c
+}
+
 func create(c *cli.Context) error {
 	args := c.Args()
 	if len(args) < 4 {
@@ -98,12 +112,6 @@ func create(c *cli.Context) error {
 	handler := args[2]
 	fileNames := args[3:]
 
-	configs := make(map[string]string)
-	for _, v := range c.StringSlice("config") {
-		kv := strings.SplitN(v, "=", 2)
-		configs[kv[0]] = kv[1]
-	}
-
 	files := make([]fileLike, 0, len(fileNames))
 	opts := createImageOptions{
 		Name:          functionName,
@@ -112,7 +120,7 @@ func create(c *cli.Context) error {
 		Handler:       handler,
 		OutputStream:  newdockerJSONWriter(os.Stdout),
 		RawJSONStream: true,
-		Config:        configs,
+		Config:        transcribeEnvConfig(c.StringSlice("config")),
 	}
 
 	if handler == "" {
