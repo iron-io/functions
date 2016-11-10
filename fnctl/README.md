@@ -49,14 +49,10 @@ $ fnctl routes delete otherapp hello              # delete route
 
 `fnctl` is configured by default to talk to a locally installed IronFunctions.
 You may reconfigure it to talk to a remote installation by updating a local
-environment variable (`$API_URL`) or using a flag (`--endpoint`):
+environment variable (`$API_URL`):
 ```sh
 $ export API_URL="http://myfunctions.example.org/"
 $ fnctl ...
-```
-or
-```sh
-$ fnctl --endpoint "http://myfunctions.example.org/" ...
 ```
 
 ## Publish
