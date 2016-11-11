@@ -213,9 +213,18 @@ See [Writing Functions](docs/writing.md).
 
 See [docs/](docs/README.md) for full documentation.
 
-## Want to contribute to IronFunctions?
+## Roadmap
 
-See [contributing](CONTRIBUTING.md).
+These are the high level roadmap goals. See [milestones](https://github.com/iron-io/functions/milestones) for detailed issues.
+
+* Alpha - November 2017
+  * Initial release with base framework to build from
+* Beta 1 - January 2017
+  * Streaming input for hot containers #214
+  * Smart Load Balancer #151
+* Beta 2 - February 2017
+  * Cron like scheduler #100
+* GA - March 2017
 
 ## Support
 
@@ -225,3 +234,7 @@ You can get community support via:
 * [Slack](https://get.iron.io/open-slack)
 
 You can get commercial support by contacting [Iron.io](https://iron.io)
+
+## Want to contribute to IronFunctions?
+
+See [contributing](CONTRIBUTING.md).
