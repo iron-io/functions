@@ -101,26 +101,20 @@ It means that first subdirectory are always considered app names (e.g. `myapp`
 and `other`), each subdirectory of these firsts are considered part of the route
 (e.g. `route1/subroute1`).
 
-`fnctl update` expects that each directory to contain a file `functions.yaml`
+`fnctl update` expects that each directory to contain a file `function.yaml`
 which instructs `fnctl` on how to act with that particular update, and a
 Dockerfile which it is going to use to build the image and push to Docker Hub.
 
-## Functions files (functions.yaml)
+## Function files (function.yaml)
 
 Functions files are used to assist fnctl to execute bulk updates of your
 functions. The files can be named as:
 
-- functions.yaml
-- functions.yml
 - function.yaml
-- function.yml
-- functions.json
 - function.json
-- fn.yaml
-- fn.yml
-- fn.json
 
 An example of a function file:
+
 ```yaml
 app: myapp
 name: iron/hello

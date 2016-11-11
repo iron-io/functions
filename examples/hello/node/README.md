@@ -3,7 +3,9 @@
 This example will show you how to test and deploy a Node function to IronFunctions.
 
 ```sh
+# create your function.yaml file
 fnctl init <YOUR_DOCKERHUB_USERNAME>/hello
+# build the function
 fnctl build
 # test it
 cat hello.payload.json | fnctl run

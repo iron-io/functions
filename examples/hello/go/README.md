@@ -3,7 +3,9 @@
 This example will show you how to test and deploy Go (Golang) code to IronFunctions.
 
 ```sh
+# create your function.yaml file
 fnctl init <YOUR_DOCKERHUB_USERNAME>/hello
+# build the function
 fnctl build
 # test it
 cat hello.payload.json | fnctl run
@@ -15,10 +17,8 @@ fnctl routes create myapp /hello YOUR_DOCKERHUB_USERNAME/hello:0.0.X
 fnctl routes create myapp /hello
 ```
 
-Now you use your function on IronFunctions:
+Now you can call your function on IronFunctions:
 
  ```sh
  curl -H "Content-Type: application/json" -X POST -d @hello.payload.json http://localhost:8080/r/myapp/hello
  ```
-
-Or surf to it: http://localhost:8080/r/myapp/hello

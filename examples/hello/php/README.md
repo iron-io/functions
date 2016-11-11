@@ -2,9 +2,9 @@
 
 This example will show you how to test and deploy Go (Golang) code to IronFunctions.
 
-### 1. Prepare the `functions.yaml` file:
+### 1. Prepare the `function.yaml` file:
 
-At functions.yaml you will find:
+At function.yaml you will find:
 ```yml
 app: phpapp
 route: /hello

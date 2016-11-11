@@ -8,7 +8,7 @@ Welcome to IronFunctions! The open source serverless platform.
 ## What is IronFunctions?
 
 IronFunctions is an open source serverless platform, or as we like to refer to it, Functions as a
-Service (FaaS) platform that you can run anywhere.
+Service (FaaS) platform that you can run anywhere. 
 
 * [Run anywhere](docs/faq.md#where-can-i-run-ironfunctions)
   * Public cloud, hybrid, on-premise
@@ -55,7 +55,7 @@ and you'll find plenty of information. We have pretty thorough post on the Iron.
 
 ## Join Our Community
 
-First off, join the community!
+Join our Slack community to get help and give feedback.
 
 [![Slack Status](https://open-iron.herokuapp.com/badge.svg)](http://get.iron.io/open-slack)
 
@@ -63,7 +63,12 @@ First off, join the community!
 
 This guide will get you up and running in a few minutes.
 
-### Run IronFunctions Container
+### Prequisites
+
+* Docker 1.10 or later installed and running
+* Logged into Docker Hub 
+
+### Run IronFunctions
 
 To get started quickly with IronFunctions, you can just fire up an `iron/functions` container:
 
@@ -71,7 +76,9 @@ To get started quickly with IronFunctions, you can just fire up an `iron/functio
 docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080:8080 iron/functions
 ```
 
-**Note**: A list of configurations via env variables can be found [here](docs/options.md).
+This will start IronFunctions in single server mode, using an embedded database and message queue. 
+
+You can find all the configuration options [here](docs/options.md). If you are on Windows, see [windows](docs/operating/windows.md).
 
 ### CLI tool
 
@@ -80,6 +87,40 @@ The IronFunctions CLI tool is optional, but it makes things easier. Install it w
 ```sh
 curl -sSL http://get.iron.io/fnctl | sh
 ```
+
+### Write a Function
+
+Functions are small, bite sized bits of code that do one simple thing. Forget about monoliths when using functions, 
+just focus on the task that you want the function to perform. The following is a Go function that just returns "Hello ${NAME}":
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+type Person struct {
+	Name string
+}
+
+func main() {
+	p := &Person{Name: "World"}
+	json.NewDecoder(os.Stdin).Decode(p)
+	fmt.Println("Hello", p.Name, "!!!")
+}
+```
+
+Copy and paste that code into a file called `hello.go`, then run:
+
+```sh
+fnctl init $USERNAME/hello
+fnctl publish
+```
+
+Replace $USERNAME above with your Docker Hub username. 
 
 ### Create an Application
 
@@ -99,7 +140,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 
 [More on apps](docs/apps.md).
 
-Now that we have an app, we can map routes to functions.
+Now that we have an app, we can route endpoints to functions.
 
 ### Add a Route
 
@@ -209,6 +250,8 @@ Read more on [logging](docs/logging.md).
 
 See [Writing Functions](docs/writing.md).
 
+And you can find a bunch of examples in the [/examples](/examples) directory.
+
 ## More Documentation
 
 See [docs/](docs/README.md) for full documentation.
@@ -217,10 +260,13 @@ See [docs/](docs/README.md) for full documentation.
 
 These are the high level roadmap goals. See [milestones](https://github.com/iron-io/functions/milestones) for detailed issues.
 
-* Alpha - November 2017
-  * Initial release with base framework to build from
-* Beta 1 - January 2017
+* Alpha 1 - November 2016
+  * Initial release of base framework
+  * Lambda support
+* Alpha 2 - December 2016
   * Streaming input for hot containers #214
+  * Logging endpoint(s) for per function debugging #263
+* Beta 1 - January 2017
   * Smart Load Balancer #151
 * Beta 2 - February 2017
   * Cron like scheduler #100
