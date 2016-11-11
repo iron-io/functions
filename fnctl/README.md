@@ -130,6 +130,7 @@ An example of a function file:
 app: myapp
 image: iron/hello
 route: "/custom/route"
+version: 0.0.1
 type: sync
 memory: 128
 config:
@@ -149,6 +150,9 @@ route updated to use it.
 
 `route` (optional) allows you to overwrite the calculated route from the path
 position. You may use it to override the calculated route.
+
+`version` represents current version of the function. When publishing, it is
+appended to the image as a tag.
 
 `type` (optional) allows you to set the type of the route. `sync`, for functions
 whose response are sent back to the requester; or `async`, for functions that
