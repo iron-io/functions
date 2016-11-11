@@ -29,9 +29,6 @@ export aws_secret_access_key=<secret_key>
 or
 
 ```sh
-export aws_access_key_id=<access-key>
-export aws_secret_access_key=<secret_key>
-
 ./fnctl lambda create-function <user>/s3 nodejs example.run ../../lambda/examples/s3/example.js ../../lambda/examples/s3/example-payload.json --config aws_access_key_id=<access-key> --config aws_secret_access_key=<secret_key>
 ```
 
