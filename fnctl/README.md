@@ -194,9 +194,8 @@ path    	    result
 /app/test	    done
 ```
 
-`fnctl bump` will scan all IronFunctions for files named `VERSION` and bump
-their version according to [semver](http://semver.org/) rules. In their absence,
-it will skip.
+`fnctl bump` will scan all IronFunctions whose `version` key in function file
+follows [semver](http://semver.org/) rules and bump their version according.
 
 `fnctl push` will scan all IronFunctions and push their images to Docker Hub,
 and update their routes accordingly.
