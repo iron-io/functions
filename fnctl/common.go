@@ -186,10 +186,11 @@ func (c commoncmd) dockerbuild(path string, ff *funcfile) error {
 
 	dockerfile := filepath.Join(dir, "Dockerfile")
 	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
-		if err := writeTmpDockerfile(dir, ff); err != nil {
+		err := writeTmpDockerfile(dir, ff)
+		defer os.Remove(filepath.Join(dir, "Dockerfile"))
+		if err != nil {
 			return err
 		}
-		defer os.Remove(filepath.Join(dir, "Dockerfile"))
 	}
 
 	cmd := exec.Command("docker", "build", "-t", ff.FullImage(), ".")
@@ -203,7 +204,23 @@ func (c commoncmd) dockerbuild(path string, ff *funcfile) error {
 	return nil
 }
 
-const tplDockerfile = `FROM {{ .Runtime }}
+var acceptableFnRuntimes = map[string]string{
+	"elixir":    "iron/elixir",
+	"erlang":    "iron/erlang",
+	"gcc":       "iron/gcc",
+	"go":        "iron/go",
+	"java":      "iron/java",
+	"leiningen": "iron/leiningen",
+	"mono":      "iron/mono",
+	"node":      "iron/node",
+	"perl":      "iron/perl",
+	"php":       "iron/php",
+	"python":    "iron/python",
+	"ruby":      "iron/ruby",
+	"scala":     "iron/scala",
+}
+
+const tplDockerfile = `FROM {{ .BaseImage }}
 
 ADD ./ /
 
@@ -211,13 +228,29 @@ ENTRYPOINT ["{{ .Entrypoint }}"]
 `
 
 func writeTmpDockerfile(dir string, ff *funcfile) error {
+	if ff.Entrypoint == nil || *ff.Entrypoint == "" {
+		return errors.New("entrypoint is missing")
+	}
+
+	runtime, tag := ff.RuntimeTag()
+	rt, ok := acceptableFnRuntimes[runtime]
+	if !ok {
+		return fmt.Errorf("cannot use runtime %s", runtime)
+	}
+
+	if tag != "" {
+		rt = fmt.Sprintf("%s:%s", rt, tag)
+	}
+
 	fd, err := os.Create(filepath.Join(dir, "Dockerfile"))
 	if err != nil {
 		return err
 	}
 
 	t := template.Must(template.New("Dockerfile").Parse(tplDockerfile))
-	err = t.Execute(fd, ff)
+	err = t.Execute(fd, struct {
+		BaseImage, Entrypoint string
+	}{rt, *ff.Entrypoint})
 	fd.Close()
 	return err
 }

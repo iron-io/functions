@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -46,6 +47,20 @@ func (ff *funcfile) FullImage() string {
 		image = fmt.Sprintf("%s:%s", image, ff.Version)
 	}
 	return image
+}
+
+func (ff *funcfile) RuntimeTag() (runtime, tag string) {
+	if ff.Runtime == nil {
+		return "", ""
+	}
+
+	rt := *ff.Runtime
+	tagpos := strings.Index(rt, ":")
+	if tagpos == -1 {
+		return rt, ""
+	}
+
+	return rt[:tagpos], rt[tagpos+1:]
 }
 
 func parsefuncfile(path string) (*funcfile, error) {
