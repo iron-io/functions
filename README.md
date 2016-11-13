@@ -66,7 +66,7 @@ This guide will get you up and running in a few minutes.
 ### Prequisites
 
 * Docker 1.10 or later installed and running
-* Logged into Docker Hub 
+* Logged into Docker Hub (`docker login`)
 
 ### Run IronFunctions
 
@@ -82,7 +82,7 @@ You can find all the configuration options [here](docs/options.md). If you are o
 
 ### CLI tool
 
-The IronFunctions CLI tool is optional, but it makes things easier. Install it with:
+Install the IronFunctions CLI tool:
 
 ```sh
 curl -sSL http://get.iron.io/fnctl | sh
@@ -91,7 +91,7 @@ curl -sSL http://get.iron.io/fnctl | sh
 ### Write a Function
 
 Functions are small, bite sized bits of code that do one simple thing. Forget about monoliths when using functions, 
-just focus on the task that you want the function to perform. The following is a Go function that just returns "Hello ${NAME}":
+just focus on the task that you want the function to perform. The following is a Go function that just returns "Hello ${NAME}!":
 
 ```go
 package main
@@ -109,7 +109,7 @@ type Person struct {
 func main() {
 	p := &Person{Name: "World"}
 	json.NewDecoder(os.Stdin).Decode(p)
-	fmt.Println("Hello", p.Name, "!!!")
+	fmt.Printf("Hello %v!", p.Name)
 }
 ```
 
@@ -117,7 +117,10 @@ Copy and paste that code into a file called `hello.go`, then run:
 
 ```sh
 fnctl init $USERNAME/hello
-fnctl publish
+fnctl build
+# test it
+fnctl run $USERNAME/hello 
+TODO: finish this after fnctl changes merged
 ```
 
 Replace $USERNAME above with your Docker Hub username. 
