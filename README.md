@@ -1,4 +1,4 @@
-# IronFunctions
+![IronFunctions](docs/assets/logo-black-400w.png)
 
 [![CircleCI](https://circleci.com/gh/iron-io/functions.svg?style=svg)](https://circleci.com/gh/iron-io/functions)
 [![GoDoc](https://godoc.org/github.com/iron-io/functions?status.svg)](https://godoc.org/github.com/iron-io/functions)
