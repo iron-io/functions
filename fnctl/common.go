@@ -13,12 +13,13 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/iron-io/functions/fnctl/langs"
 	"github.com/urfave/cli"
 )
 
 var errDockerFileNotFound = errors.New("no Dockerfile found for this function")
 
-func isvalid(path string, info os.FileInfo) bool {
+func isFuncfile(path string, info os.FileInfo) bool {
 	if info.IsDir() {
 		return false
 	}
@@ -38,7 +39,7 @@ func walker(path string, info os.FileInfo, err error, w io.Writer, f func(path s
 	if err := f(path); err != nil {
 		fmt.Fprintln(w, err)
 	} else {
-		fmt.Fprintln(w, "done")
+		// fmt.Fprintln(w, "done")
 	}
 }
 
@@ -87,15 +88,15 @@ func (c *commoncmd) scan(walker func(path string, info os.FileInfo, err error, w
 	var walked bool
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
-	fmt.Fprint(w, "path", "\t", "result", "\n")
+	// fmt.Fprint(w, "path", "\t", "result", "\n")
 
 	err := filepath.Walk(c.wd, func(path string, info os.FileInfo, err error) error {
-
+		// fmt.Println("walking", info.Name())
 		if !c.recursively && path != c.wd && info.IsDir() {
 			return filepath.SkipDir
 		}
 
-		if !isvalid(path, info) {
+		if !isFuncfile(path, info) {
 			return nil
 		}
 
@@ -114,7 +115,7 @@ func (c *commoncmd) scan(walker func(path string, info os.FileInfo, err error, w
 	}
 
 	if !walked {
-		fmt.Println("all functions are up-to-date.")
+		fmt.Println("No function file found.")
 		return
 	}
 
@@ -184,24 +185,50 @@ func (c commoncmd) localbuild(path string, steps []string) error {
 func (c commoncmd) dockerbuild(path string, ff *funcfile) error {
 	dir := filepath.Dir(path)
 
+	var helper langs.LangHelper
 	dockerfile := filepath.Join(dir, "Dockerfile")
-	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
+	if !Exists(dockerfile) {
 		err := writeTmpDockerfile(dir, ff)
 		defer os.Remove(filepath.Join(dir, "Dockerfile"))
 		if err != nil {
 			return err
 		}
+		helper, err = langs.GetLangHelper(*ff.Runtime)
+		if err != nil {
+			return err
+		}
+		if helper.HasPreBuild() {
+			err := helper.PreBuild()
+			if err != nil {
+				return err
+			}
+		}
 	}
 
+	fmt.Printf("Building image %v\n", ff.FullName())
 	cmd := exec.Command("docker", "build", "-t", ff.FullName(), ".")
 	cmd.Dir = dir
-	cmd.Stderr = c.verbwriter
-	cmd.Stdout = c.verbwriter
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error running docker build: %v", err)
 	}
-
+	if helper != nil {
+		err := helper.AfterBuild()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func Exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 var acceptableFnRuntimes = map[string]string{
@@ -221,9 +248,8 @@ var acceptableFnRuntimes = map[string]string{
 }
 
 const tplDockerfile = `FROM {{ .BaseImage }}
-
-ADD ./ /
-
+WORKDIR /function
+ADD . /function/
 ENTRYPOINT ["{{ .Entrypoint }}"]
 `
 
