@@ -26,6 +26,10 @@ myapp
 $ fnctl apps create otherapp                       # create new app
 otherapp created
 
+$ fnctl apps describe otherapp                     # describe an app
+app: otherapp
+no specific configuration
+
 $ fnctl apps
 myapp
 otherapp
@@ -39,6 +43,16 @@ $ fnctl routes create otherapp /hello iron/hello   # create route
 
 $ fnctl routes delete otherapp hello              # delete route
 /hello deleted
+```
+
+## Changing target host
+
+`fnctl` is configured by default to talk to a locally installed IronFunctions.
+You may reconfigure it to talk to a remote installation by updating a local
+environment variable (`$API_URL`):
+```sh
+$ export API_URL="http://myfunctions.example.org/"
+$ fnctl ...
 ```
 
 ## Publish
@@ -114,8 +128,9 @@ functions. The files can be named as:
 An example of a function file:
 ```yaml
 app: myapp
-image: iron/hello
+name: iron/hello
 route: "/custom/route"
+version: 0.0.1
 type: sync
 memory: 128
 config:
@@ -136,6 +151,9 @@ route updated to use it.
 `route` (optional) allows you to overwrite the calculated route from the path
 position. You may use it to override the calculated route.
 
+`version` represents current version of the function. When publishing, it is
+appended to the image as a tag.
+
 `type` (optional) allows you to set the type of the route. `sync`, for functions
 whose response are sent back to the requester; or `async`, for functions that
 are started and return a task ID to customer while it executes in background.
@@ -153,7 +171,7 @@ during functions execution.
 the image. These calls are executed before `fnctl` calls `docker build` and
 `docker push`.
 
-## Build and Bump
+## Build, Bump, Push
 
 When dealing with a lot of functions you might find yourself making lots of
 individual calls. `fnctl` offers two command to help you with that: `build` and
@@ -176,9 +194,28 @@ path    	    result
 /app/test	    done
 ```
 
-`fnctl bump` will scan all IronFunctions for files named `VERSION` and bump
-their version according to [semver](http://semver.org/) rules. In their absence,
-it will skip.
+`fnctl bump` will scan all IronFunctions whose `version` key in function file
+follows [semver](http://semver.org/) rules and bump their version according.
+
+`fnctl push` will scan all IronFunctions and push their images to Docker Hub,
+and update their routes accordingly.
+
+## Application level configuration
+
+When creating an application, you can configure it to tweak its behavior and its
+routes' with an appropriate flag, `config`.
+
+Thus a more complete example of an application creation will look like:
+```sh
+fnctl apps create --config DB_URL=http://example.org/ otherapp
+```
+
+`--config` is a map of values passed to the route runtime in the form of
+environment variables prefixed with `CONFIG_`.
+
+Repeated calls to `fnctl apps create` will trigger an update of the given
+route, thus you will be able to change any of these attributes later in time
+if necessary.
 
 ## Route level configuration
 

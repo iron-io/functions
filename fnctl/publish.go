@@ -20,7 +20,6 @@ func publish() cli.Command {
 	var flags []cli.Flag
 	flags = append(flags, cmd.flags()...)
 	flags = append(flags, cmd.commoncmd.flags()...)
-	flags = append(flags, confFlags(&cmd.Configuration)...)
 	return cli.Command{
 		Name:   "publish",
 		Usage:  "scan local directory for functions, build and publish them.",
@@ -72,7 +71,7 @@ func (p *publishcmd) publish(path string) error {
 		return nil
 	}
 
-	if err := p.dockerpush(funcfile.Image); err != nil {
+	if err := p.dockerpush(funcfile); err != nil {
 		return err
 	}
 
@@ -83,8 +82,8 @@ func (p *publishcmd) publish(path string) error {
 	return nil
 }
 
-func (p publishcmd) dockerpush(image string) error {
-	cmd := exec.Command("docker", "push", image)
+func (p publishcmd) dockerpush(ff *funcfile) error {
+	cmd := exec.Command("docker", "push", ff.FullName())
 	cmd.Stderr = p.verbwriter
 	cmd.Stdout = p.verbwriter
 	if err := cmd.Run(); err != nil {
@@ -105,18 +104,24 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 	if ff.Route == nil {
 		ff.Route = &r
 	}
+	if ff.Memory == nil {
+		ff.Memory = new(int64)
+	}
+	if ff.Type == nil {
+		ff.Type = new(string)
+	}
 
 	body := functions.RouteWrapper{
 		Route: functions.Route{
 			Path:   *ff.Route,
-			Image:  ff.Image,
-			Memory: ff.Memory,
-			Type_:  ff.Type,
-			Config: ff.Config,
+			Image:  ff.FullName(),
+			Memory: *ff.Memory,
+			Type_:  *ff.Type,
+			Config: expandEnvConfig(ff.Config),
 		},
 	}
 
-	fmt.Fprintf(p.verbwriter, "updating API with appName: %s route: %s image: %s \n", *ff.App, *ff.Route, ff.Image)
+	fmt.Fprintf(p.verbwriter, "updating API with app: %s route: %s name: %s \n", *ff.App, *ff.Route, ff.Name)
 
 	wrapper, resp, err := p.AppsAppRoutesPost(*ff.App, body)
 	if err != nil {
@@ -127,6 +132,13 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 	}
 
 	return nil
+}
+
+func expandEnvConfig(configs map[string]string) map[string]string {
+	for k, v := range configs {
+		configs[k] = os.ExpandEnv(v)
+	}
+	return configs
 }
 
 func extractAppNameRoute(path string) (appName, route string) {
