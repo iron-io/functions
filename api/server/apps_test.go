@@ -42,11 +42,6 @@ func TestAppCreate(t *testing.T) {
 		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "1234567890123456789012345678901" } }`, http.StatusInternalServerError, models.ErrAppsValidationTooLongName},
 		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
 		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
-		{&datastore.Mock{
-			FakeApp: &models.App{
-				Name: "myapp",
-			},
-		}, "/v1/apps", `{ "app": { "name": "myapp" } }`, http.StatusConflict, models.ErrAppsAlreadyExists},
 
 		// success
 		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "teste" } }`, http.StatusCreated, nil},
@@ -187,7 +182,6 @@ func TestAppUpdate(t *testing.T) {
 	}{
 		// errors
 		{&datastore.Mock{}, "/v1/apps/myapp", ``, http.StatusBadRequest, models.ErrInvalidJSON},
-		{&datastore.Mock{}, "/v1/apps/myunknownapp", `{ "app": {} }`, http.StatusNotFound, models.ErrAppsNotFound},
 
 		// success
 		{&datastore.Mock{

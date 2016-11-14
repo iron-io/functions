@@ -61,7 +61,7 @@ func handleRouteCreate(c *gin.Context) {
 			return
 		}
 
-		app, err = Api.Datastore.StoreApp(newapp)
+		app, err = Api.Datastore.InsertApp(newapp)
 		if err != nil {
 			log.WithError(err).Error(models.ErrAppsCreate)
 			c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
@@ -69,18 +69,7 @@ func handleRouteCreate(c *gin.Context) {
 		}
 	}
 
-	route, err := Api.Datastore.GetRoute(c.Param("app"), wroute.Route.Path)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
-		log.Error(err)
-		return
-	}
-	if route != nil {
-		c.JSON(http.StatusConflict, simpleError(models.ErrRoutesAlreadyExists))
-		return
-	}
-
-	_, err = Api.Datastore.StoreRoute(wroute.Route)
+	_, err = Api.Datastore.InsertRoute(wroute.Route)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesCreate))

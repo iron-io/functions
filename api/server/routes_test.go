@@ -29,9 +29,6 @@ func TestRouteCreate(t *testing.T) {
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello" } }`, http.StatusInternalServerError, models.ErrRoutesValidationMissingPath},
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "myroute" } }`, http.StatusInternalServerError, models.ErrRoutesValidationInvalidPath},
 		{&datastore.Mock{}, "/v1/apps/$/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
-		{&datastore.Mock{
-			FakeRoute: &models.Route{Path: "/myroute"},
-		}, "/v1/apps/a/routes", `{ "route": { "path": "/myroute", "image": "iron/hello" } }`, http.StatusConflict, models.ErrRoutesAlreadyExists},
 
 		// success
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusCreated, nil},

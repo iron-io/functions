@@ -28,21 +28,10 @@ func handleAppUpdate(c *gin.Context) {
 		return
 	}
 
-	app, err := Api.Datastore.GetApp(c.Param("app"))
+	app, err := Api.Datastore.UpdateApp(wapp.App)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
-		log.Error(err)
-		return
-	}
-	if app == nil {
-		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
-		return
-	}
-
-	app, err = Api.Datastore.StoreApp(wapp.App)
-	if err != nil {
-		log.WithError(err).Debug(models.ErrAppsCreate)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
+		log.WithError(err).Debug(models.ErrAppsUpdate)
+		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsUpdate))
 		return
 	}
 
