@@ -137,7 +137,7 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 		return errors.New("Please specify a name for your function in the following format <DOCKERHUB_USERNAME>:<FUNCTION_NAME>")
 	}
 
-	if Exists("Dockerfile") {
+	if exists("Dockerfile") {
 		// then don't need anything else
 		fmt.Println("Dockerfile found, will use that to build.")
 		return nil

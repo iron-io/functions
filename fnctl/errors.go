@@ -8,6 +8,6 @@ func (e *NotFoundError) Error() string {
 	return e.S
 }
 
-func NewNotFoundError(s string) *NotFoundError {
+func newNotFoundError(s string) *NotFoundError {
 	return &NotFoundError{S: s}
 }

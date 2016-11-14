@@ -59,11 +59,11 @@ func (ff *funcfile) RuntimeTag() (runtime, tag string) {
 
 func findFuncfile() (*funcfile, error) {
 	for _, fn := range validfn {
-		if Exists(fn) {
+		if exists(fn) {
 			return parsefuncfile(fn)
 		}
 	}
-	return nil, NewNotFoundError("could not find function file")
+	return nil, newNotFoundError("could not find function file")
 }
 
 func parsefuncfile(path string) (*funcfile, error) {

@@ -188,7 +188,7 @@ func (c commoncmd) dockerbuild(path string, ff *funcfile) error {
 
 	var helper langs.LangHelper
 	dockerfile := filepath.Join(dir, "Dockerfile")
-	if !Exists(dockerfile) {
+	if !exists(dockerfile) {
 		err := writeTmpDockerfile(dir, ff)
 		defer os.Remove(filepath.Join(dir, "Dockerfile"))
 		if err != nil {
@@ -223,7 +223,7 @@ func (c commoncmd) dockerbuild(path string, ff *funcfile) error {
 	return nil
 }
 
-func Exists(name string) bool {
+func exists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {
 			return false

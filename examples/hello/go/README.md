@@ -7,7 +7,7 @@ fnctl init <YOUR_DOCKERHUB_USERNAME>/hello
 fnctl build
 # test it
 cat hello.payload.json | fnctl run
-# push it to Docker Hub for use with IronFunctions
+# push it to Docker Hub
 fnctl push
 # Create a route to this function on IronFunctions
 fnctl routes create myapp /hello YOUR_DOCKERHUB_USERNAME/hello:0.0.X
@@ -15,4 +15,10 @@ fnctl routes create myapp /hello YOUR_DOCKERHUB_USERNAME/hello:0.0.X
 fnctl routes create myapp /hello
 ```
 
-Now surf to: http://localhost:8080/r/myapp/hello
+Now you use your function on IronFunctions:
+
+ ```sh
+ curl -H "Content-Type: application/json" -X POST -d @hello.payload.json http://localhost:8080/r/myapp/hello
+ ```
+
+Or surf to it: http://localhost:8080/r/myapp/hello
