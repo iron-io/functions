@@ -17,6 +17,8 @@ Service (FaaS) platform that you can run anywhere.
   * [AWS Lambda support](docs/lambda/README.md)
 * Easy to use
 * Easy to scale
+* Written in Go
+* API Gateway built in
 
 ## What is Serverless/FaaS?
 
@@ -70,15 +72,14 @@ This guide will get you up and running in a few minutes.
 
 ### Run IronFunctions
 
-To get started quickly with IronFunctions, you can just fire up an `iron/functions` container:
+To get started quickly with IronFunctions, just fire up an `iron/functions` container:
 
 ```sh
 docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080:8080 iron/functions
 ```
 
-This will start IronFunctions in single server mode, using an embedded database and message queue. 
-
-You can find all the configuration options [here](docs/options.md). If you are on Windows, see [windows](docs/operating/windows.md).
+This will start IronFunctions in single server mode, using an embedded database and message queue. You can find all the
+configuration options [here](docs/options.md). If you are on Windows, see [windows](docs/operating/windows.md).
 
 ### CLI tool
 
@@ -91,7 +92,9 @@ curl -sSL http://get.iron.io/fnctl | sh
 ### Write a Function
 
 Functions are small, bite sized bits of code that do one simple thing. Forget about monoliths when using functions, 
-just focus on the task that you want the function to perform. The following is a Go function that just returns "Hello ${NAME}!":
+just focus on the task that you want the function to perform. 
+
+The following is a Go function that just returns "Hello ${NAME}!":
 
 ```go
 package main
@@ -113,17 +116,23 @@ func main() {
 }
 ```
 
-Copy and paste that code into a file called `hello.go`, then run:
+Copy and paste the code above into a file called `hello.go`, then run:
 
 ```sh
+# create function.yaml file, replace $USERNAME with your Docker Hub username. 
 fnctl init $USERNAME/hello
+# build the function
 fnctl build
 # test it
-fnctl run $USERNAME/hello 
-TODO: finish this after fnctl changes merged
+fnctl run
+# push it to Docker Hub
+fnctl push
+# Create a route to this function on IronFunctions
+fnctl routes create myapp /hello
 ```
 
-Replace $USERNAME above with your Docker Hub username. 
+You can find a bunch of examples in various languages in the [examples](examples/) directory. You can also
+write your functions in AWS's [Lambda format](docs/lambda/README.md).
 
 ### Create an Application
 
@@ -282,7 +291,7 @@ You can get community support via:
 * [Stack Overflow](http://stackoverflow.com/questions/tagged/ironfunctions)
 * [Slack](https://get.iron.io/open-slack)
 
-You can get commercial support by contacting [Iron.io](https://iron.io)
+You can get commercial support by contacting [Iron.io](https://iron.io/contact)
 
 ## Want to contribute to IronFunctions?
 
