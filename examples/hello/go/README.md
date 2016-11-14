@@ -15,4 +15,4 @@ fnctl routes create myapp /hello YOUR_DOCKERHUB_USERNAME/hello:0.0.X
 fnctl routes create myapp /hello
 ```
 
-Then your function should be found at http://localhost:8080/r/myapp/hello
+Now surf to: http://localhost:8080/r/myapp/hello

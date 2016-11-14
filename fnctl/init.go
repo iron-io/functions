@@ -143,21 +143,24 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 		return nil
 	}
 
+	var rt string
+	var filename string
 	if a.runtime == nil || *a.runtime == "" {
-		rt, err := detectRuntime(pwd)
+		filename, rt, err = detectRuntime(pwd)
 		if err != nil {
 			return err
 		}
 		a.runtime = &rt
+		fmt.Printf("assuming %v runtime\n", rt)
 	}
 	if _, ok := acceptableFnRuntimes[*a.runtime]; !ok {
 		return fmt.Errorf("init does not support the %s runtime, you'll have to create your own Dockerfile for this function", *a.runtime)
 	}
 
 	if a.entrypoint == nil || *a.entrypoint == "" {
-		ep, err := detectEntrypoint(*a.runtime, pwd)
+		ep, err := detectEntrypoint(filename, *a.runtime, pwd)
 		if err != nil {
-			return fmt.Errorf("could not detect entrypoint for %v, please add it to your function.yaml file or create your own Dockerfile. %v", *a.runtime, err)
+			return fmt.Errorf("could not detect entrypoint for %v, use --entrypoint to add it explicitly. %v", *a.runtime, err)
 		}
 		a.entrypoint = &ep
 	}
@@ -165,9 +168,10 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 	return nil
 }
 
-func detectRuntime(path string) (string, error) {
-	var rt string
-	err := filepath.Walk(path, func(_ string, info os.FileInfo, _ error) error {
+// detectRuntime this looks at the files in the directory and if it finds a support file extension, it
+// returns the filename and runtime for that extension.
+func detectRuntime(path string) (filename string, runtime string, err error) {
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, _ error) error {
 		if info.IsDir() {
 			return nil
 		}
@@ -177,28 +181,29 @@ func detectRuntime(path string) (string, error) {
 			return nil
 		}
 		var ok bool
-		rt, ok = fileExtToRuntime[ext]
+		runtime, ok = fileExtToRuntime[ext]
 		if ok {
 			// first match, exiting - http://stackoverflow.com/a/36713726/105562
+			filename = info.Name()
 			return io.EOF
 		}
 		return nil
 	})
 	if err != nil {
 		if err == io.EOF {
-			return rt, nil
+			return filename, runtime, nil
 		}
-		return "", fmt.Errorf("file walk error: %s\n", err)
+		return "", "", fmt.Errorf("file walk error: %s\n", err)
 	}
-	return rt, nil
+	return "", "", fmt.Errorf("no supported files found to guess runtime, please set runtime explicitly with --runtime flag")
 }
 
-func detectEntrypoint(runtime, pwd string) (string, error) {
+func detectEntrypoint(filename, runtime, pwd string) (string, error) {
 	helper, err := langs.GetLangHelper(runtime)
 	if err != nil {
 		return "", err
 	}
-	return helper.Entrypoint()
+	return helper.Entrypoint(filename)
 }
 
 func scoreExtension(path string) (string, error) {

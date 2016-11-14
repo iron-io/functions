@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -250,7 +251,7 @@ var acceptableFnRuntimes = map[string]string{
 const tplDockerfile = `FROM {{ .BaseImage }}
 WORKDIR /function
 ADD . /function/
-ENTRYPOINT ["{{ .Entrypoint }}"]
+ENTRYPOINT [{{ .Entrypoint }}]
 `
 
 func writeTmpDockerfile(dir string, ff *funcfile) error {
@@ -273,10 +274,23 @@ func writeTmpDockerfile(dir string, ff *funcfile) error {
 		return err
 	}
 
+	// convert entrypoint string to slice
+	epvals := strings.Fields(*ff.Entrypoint)
+	var buffer bytes.Buffer
+	for i, s := range epvals {
+		if i > 0 {
+			buffer.WriteString(", ")
+		}
+		buffer.WriteString("\"")
+		buffer.WriteString(s)
+		buffer.WriteString("\"")
+	}
+	fmt.Println(buffer.String())
+
 	t := template.Must(template.New("Dockerfile").Parse(tplDockerfile))
 	err = t.Execute(fd, struct {
 		BaseImage, Entrypoint string
-	}{rt, *ff.Entrypoint})
+	}{rt, buffer.String()})
 	fd.Close()
 	return err
 }

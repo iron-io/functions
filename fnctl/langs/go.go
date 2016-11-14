@@ -10,7 +10,7 @@ import (
 type GoLangHelper struct {
 }
 
-func (lh *GoLangHelper) Entrypoint() (string, error) {
+func (lh *GoLangHelper) Entrypoint(filename string) (string, error) {
 	// uses a common binary name: func
 	// return fmt.Sprintf("./%v", filepath.Base(pwd)), nil
 	return "./func", nil
