@@ -119,7 +119,7 @@ func main() {
 Copy and paste the code above into a file called `hello.go`, then run:
 
 ```sh
-# create function.yaml file, replace $USERNAME with your Docker Hub username. 
+# create func.yaml file, replace $USERNAME with your Docker Hub username. 
 fnctl init $USERNAME/hello
 # build the function
 fnctl build
@@ -127,7 +127,9 @@ fnctl build
 fnctl run
 # push it to Docker Hub
 fnctl push
-# Create a route to this function on IronFunctions
+# create an app
+fnctl apps create myapp
+# create a route that maps /hello to your new function
 fnctl routes create myapp /hello
 ```
 

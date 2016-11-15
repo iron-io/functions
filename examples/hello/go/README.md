@@ -3,7 +3,7 @@
 This example will show you how to test and deploy Go (Golang) code to IronFunctions.
 
 ```sh
-# create your function.yaml file
+# create your func.yaml file
 fnctl init <YOUR_DOCKERHUB_USERNAME>/hello
 # build the function
 fnctl build
@@ -12,8 +12,6 @@ cat hello.payload.json | fnctl run
 # push it to Docker Hub
 fnctl push
 # Create a route to this function on IronFunctions
-fnctl routes create myapp /hello YOUR_DOCKERHUB_USERNAME/hello:0.0.X
-# todo: Image name could be optional if we read the function file for creating the route. Then command could be:
 fnctl routes create myapp /hello
 ```
 
