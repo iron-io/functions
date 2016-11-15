@@ -4,7 +4,7 @@ require 'http'
 require 'fileutils'
 require 'openssl'
 
-require_relative '../tests/utils.rb'
+require_relative 'utils.rb'
 
 swaggerUrl = "https://raw.githubusercontent.com/iron-io/functions/master/docs/swagger.yml"
 spec = YAML.load(open(swaggerUrl))
