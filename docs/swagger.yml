@@ -5,7 +5,7 @@
 swagger: '2.0'
 info:
   title: IronFunctions
-  description:
+  description: The open source serverless platform.
   version: "0.1.0"
 # the domain of the service
 host: "127.0.0.1:8080"
@@ -420,7 +420,6 @@ definitions:
     type: object
     required:
       - image
-      - priority
     properties:
       image:
         type: string
