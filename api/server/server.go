@@ -7,12 +7,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/ifaces"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
+	"github.com/iron-io/functions/api/server/routecache"
 	"github.com/iron-io/runner/common"
 )
 
@@ -27,6 +29,9 @@ type Server struct {
 	MQ              models.MessageQueue
 	AppListeners    []ifaces.AppListener
 	SpecialHandlers []ifaces.SpecialHandler
+
+	mu        sync.Mutex
+	hotroutes map[string]*routecache.Cache
 }
 
 func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner) *Server {
@@ -35,6 +40,7 @@ func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner) *Server 
 		Datastore: ds,
 		MQ:        mq,
 		Runner:    r,
+		hotroutes: make(map[string]*routecache.Cache),
 	}
 	return Api
 }
@@ -80,7 +86,7 @@ func (s *Server) UseSpecialHandlers(ginC *gin.Context) error {
 		}
 	}
 	// now call the normal runner call
-	handleRequest(ginC, nil)
+	s.handleRequest(ginC, nil)
 	return nil
 }
 
@@ -90,7 +96,37 @@ func (s *Server) handleRunnerRequest(c *gin.Context) {
 		ctx, _ := common.LoggerWithFields(c, logrus.Fields{"call_id": task.ID})
 		return s.MQ.Push(ctx, task)
 	}
-	handleRequest(c, enqueue)
+	s.handleRequest(c, enqueue)
+
+}
+
+func (s *Server) loadcache(appname string) []*models.Route {
+	s.mu.Lock()
+	cache, ok := s.hotroutes[appname]
+	if !ok {
+		s.mu.Unlock()
+		return nil
+	}
+	routes := cache.Routes()
+	s.mu.Unlock()
+	return routes
+}
+
+func (s *Server) refreshcache(appname string, route *models.Route) {
+	s.mu.Lock()
+	cache, ok := s.hotroutes[appname]
+	if !ok {
+		s.hotroutes[appname] = routecache.New()
+		cache = s.hotroutes[appname]
+	}
+	cache.Refresh(route)
+	s.mu.Unlock()
+}
+
+func (s *Server) resetcache(appname string) {
+	s.mu.Lock()
+	s.hotroutes[appname] = routecache.New()
+	s.mu.Unlock()
 }
 
 func (s *Server) handleTaskRequest(c *gin.Context) {
@@ -174,7 +210,9 @@ func (s *Server) bindHandlers() {
 			apps.POST("/routes", handleRouteCreate)
 			apps.GET("/routes/*route", handleRouteGet)
 			apps.PUT("/routes/*route", handleRouteUpdate)
-			apps.DELETE("/routes/*route", handleRouteDelete)
+			apps.DELETE("/routes/*route", func(c *gin.Context) {
+				handleRouteDelete(c, s.resetcache)
+			})
 		}
 	}
 

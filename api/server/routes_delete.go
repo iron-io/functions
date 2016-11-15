@@ -9,7 +9,7 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-func handleRouteDelete(c *gin.Context) {
+func handleRouteDelete(c *gin.Context, resetcache func(appname string)) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
@@ -22,6 +22,8 @@ func handleRouteDelete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesRemoving))
 		return
 	}
+
+	resetcache(appName)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Route deleted"})
 }

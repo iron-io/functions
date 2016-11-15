@@ -15,7 +15,6 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/runner/common"
-	"github.com/iron-io/runner/drivers"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -35,7 +34,7 @@ func ToEnvName(envtype, name string) string {
 	return fmt.Sprintf("%s_%s", envtype, name)
 }
 
-func handleRequest(c *gin.Context, enqueue models.Enqueue) {
+func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
 		c.Status(http.StatusNotFound)
 		return
@@ -77,12 +76,10 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsNotFound))
 		return
 	}
-	route := c.Param("route")
-	if route == "" {
-		route = c.Request.URL.Path
+	rawroute := c.Param("route")
+	if rawroute == "" {
+		rawroute = c.Request.URL.Path
 	}
-
-	log.WithFields(logrus.Fields{"app": appName, "path": route}).Debug("Finding route on datastore")
 
 	app, err := Api.Datastore.GetApp(appName)
 	if err != nil || app == nil {
@@ -91,7 +88,29 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	routes, err := Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName, Path: route})
+	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on cache")
+	var found bool
+	routes := s.loadcache(appName)
+	for _, r := range routes {
+		ok := processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue)
+		if ok {
+			found = true
+			break
+		}
+	}
+	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Done")
+	if found {
+		return
+	}
+
+	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on datastore")
+	routes, err = Api.Datastore.GetRoutesByApp(
+		appName,
+		&models.RouteFilter{
+			AppName: appName,
+			Path:    rawroute,
+		},
+	)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))
@@ -106,15 +125,26 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	found := routes[0]
-	log = log.WithFields(logrus.Fields{
-		"app": appName, "route": found.Path, "image": found.Image})
+	for _, r := range routes {
+		ok := processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue)
+		if ok {
+			found = true
+			s.refreshcache(appName, r)
+			break
+		}
+	}
+	if !found {
+		log.Error(models.ErrRunnerRouteNotFound)
+		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
+	}
+}
+
+func processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+	log = log.WithFields(logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
 
 	params, match := matchRoute(found.Path, route)
 	if !match {
-		log.WithError(err).Error(models.ErrRunnerRouteNotFound)
-		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
-		return
+		return false
 	}
 
 	var stdout bytes.Buffer // TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
@@ -156,7 +186,6 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		Stdin:   payload,
 	}
 
-	var result drivers.RunResult
 	switch found.Type {
 	case "async":
 		// Read payload
@@ -164,7 +193,7 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		if err != nil {
 			log.WithError(err).Error(models.ErrInvalidPayload)
 			c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidPayload))
-			return
+			return true
 		}
 
 		// Create Task
@@ -182,7 +211,8 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		log.Info("Added new task to queue")
 
 	default:
-		if result, err = Api.Runner.Run(c, cfg); err != nil {
+		result, err := Api.Runner.Run(c, cfg)
+		if err != nil {
 			break
 		}
 		for k, v := range found.Headers {
@@ -195,6 +225,8 @@ func handleRequest(c *gin.Context, enqueue models.Enqueue) {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 	}
+
+	return true
 }
 
 var fakeHandler = func(http.ResponseWriter, *http.Request, Params) {}

@@ -77,6 +77,7 @@ func main() {
 	}
 
 	svr := &supervisor.Supervisor{
+		MaxRestarts: supervisor.AlwaysRestart,
 		Log: func(msg interface{}) {
 			log.Debug("supervisor: ", msg)
 		},
