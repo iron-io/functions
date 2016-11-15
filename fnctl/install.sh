@@ -3,7 +3,7 @@ set -e
 
 # Install script to install fnctl 
 
-release='0.0.46'
+release='0.1.0'
 
 command_exists() {
   command -v "$@" > /dev/null 2>&1
