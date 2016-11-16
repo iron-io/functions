@@ -113,7 +113,9 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	// requests. This a problem we cannot help. Perhaps, part of the
 	// solution is to mention in the documentation that developers should
 	// organize their applications in a way they don't have too many unused
-	// routes.
+	// routes. This is a potential point of DoS: a sufficiently high number
+	// of non matched routes can overload the database and take the service
+	// down.
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on datastore")
 	routes, err = Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName})
 	if err != nil {
