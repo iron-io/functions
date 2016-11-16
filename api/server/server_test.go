@@ -91,7 +91,6 @@ func TestFullStack(t *testing.T) {
 	tasks := make(chan runner.TaskRequest)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	defer close(tasks)
 	go runner.StartWorkers(ctx, 1, testRunner(t), tasks)
 
 	s := New(ds, &mqs.Mock{}, testRunner(t), tasks)

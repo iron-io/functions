@@ -24,7 +24,6 @@ func testRunner(t *testing.T) *runner.Runner {
 func TestRouteRunnerGet(t *testing.T) {
 	buf := setLogBuffer()
 	tasks := mockTasksConduit()
-	defer close(tasks)
 
 	s := New(&datastore.Mock{
 		FakeApps: []*models.App{
@@ -66,7 +65,6 @@ func TestRouteRunnerGet(t *testing.T) {
 func TestRouteRunnerPost(t *testing.T) {
 	buf := setLogBuffer()
 	tasks := mockTasksConduit()
-	defer close(tasks)
 
 	s := New(&datastore.Mock{
 		FakeApps: []*models.App{
@@ -113,7 +111,6 @@ func TestRouteRunnerExecution(t *testing.T) {
 	tasks := make(chan runner.TaskRequest)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	defer close(tasks)
 
 	go runner.StartWorkers(ctx, 1, testRunner(t), tasks)
 

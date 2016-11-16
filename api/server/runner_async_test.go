@@ -31,7 +31,6 @@ func testRouterAsync(s *Server, enqueueFunc models.Enqueue) *gin.Engine {
 func TestRouteRunnerAsyncExecution(t *testing.T) {
 	t.Skip()
 	tasks := mockTasksConduit()
-	defer close(tasks)
 
 	// todo: I broke how this test works trying to clean up the code a bit. Is there a better way to do this test rather than having to override the default route behavior?
 	s := New(&datastore.Mock{
