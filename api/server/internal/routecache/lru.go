@@ -42,13 +42,9 @@ func (c *Cache) Routes() []*models.Route {
 	return c.values
 }
 
-// Refresh updates internal linkedlist either adding a new route to the top, or
-// moving it to the top when used. It will discard seldom used routes.
+// Refresh updates internal linkedlist either adding a new route to the front,
+// or moving it to the front when used. It will discard seldom used routes.
 func (c *Cache) Refresh(route *models.Route) {
-	if c.cache == nil {
-		c.cache = make(map[*models.Route]*list.Element)
-		c.ll = list.New()
-	}
 	if ee, ok := c.cache[route]; ok {
 		c.ll.MoveToFront(ee)
 		ee.Value.(*routecacheentry).route = route

@@ -14,7 +14,7 @@ import (
 	"github.com/iron-io/functions/api/ifaces"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
-	"github.com/iron-io/functions/api/server/routecache"
+	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
 )
 

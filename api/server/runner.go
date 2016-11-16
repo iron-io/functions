@@ -89,28 +89,33 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	}
 
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on cache")
-	var found bool
 	routes := s.loadcache(appName)
-	for _, r := range routes {
-		ok := processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue)
-		if ok {
-			found = true
-			break
-		}
-	}
-	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Done")
-	if found {
+	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
 		return
 	}
 
+	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding exact route on datastore")
+	routes, err = Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName, Path: rawroute})
+	if err != nil {
+		log.WithError(err).Error(models.ErrRoutesList)
+	}
+	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
+		return
+	}
+
+	// TODO(ccirello): The problem here is that for every cold/cache-missed
+	// request, we have to go through at least some subset of all routes for
+	// this app. This will not scale. Some solutions have been proposed to
+	// alleviate the issue, among them: count the number of slashes and use
+	// it as an index to rule out routes that are either too long or too
+	// short; register all apps routes into the gin's mux; for each matched
+	// route, serve it once, and plug it to gin's mux for subsequent
+	// requests. This a problem we cannot help. Perhaps, part of the
+	// solution is to mention in the documentation that developers should
+	// organize their applications in a way they don't have too many unused
+	// routes.
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on datastore")
-	routes, err = Api.Datastore.GetRoutesByApp(
-		appName,
-		&models.RouteFilter{
-			AppName: appName,
-			Path:    rawroute,
-		},
-	)
+	routes, err = Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName})
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))
@@ -125,18 +130,20 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	for _, r := range routes {
-		ok := processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue)
-		if ok {
-			found = true
-			s.refreshcache(appName, r)
-			break
-		}
-	}
-	if !found {
+	if !s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
 		log.Error(models.ErrRunnerRouteNotFound)
 		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
 	}
+}
+
+func (s *Server) executeRoutes(routes []*models.Route, c *gin.Context, log logrus.FieldLogger, appName string, app *models.App, rawroute, reqID string, payload io.Reader, enqueue models.Enqueue) (found bool) {
+	for _, r := range routes {
+		if ok := processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue); ok {
+			s.refreshcache(appName, r)
+			return true
+		}
+	}
+	return false
 }
 
 func processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
