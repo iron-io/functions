@@ -88,7 +88,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on cache")
+	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on LRU cache")
 	routes := s.loadcache(appName)
 	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
 		return
