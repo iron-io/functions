@@ -9,13 +9,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
-	"github.com/iron-io/runner/drivers"
 )
 
 func getTask(ctx context.Context, url string) (*models.Task, error) {
@@ -85,30 +83,14 @@ func deleteTask(url string, task *models.Task) error {
 	return nil
 }
 
-func runTask(ctx context.Context, task *models.Task) (drivers.RunResult, error) {
-	// Set up runner and process task
-	cfg := getCfg(task)
-	rnr, err := New(NewMetricLogger())
-	if err != nil {
-		return nil, err
-	}
-	return rnr.Run(ctx, cfg)
-}
-
 // RunAsyncRunner pulls tasks off a queue and processes them
-func RunAsyncRunner(ctx context.Context, tasksrv string, n int) {
+func RunAsyncRunner(ctx context.Context, tasksrv string, tasks chan TaskRequest) {
 	u, h := tasksrvURL(tasksrv)
 	if isHostOpen(h) {
 		return
 	}
 
-	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go startAsyncRunners(ctx, &wg, i, u, runTask)
-	}
-
-	wg.Wait()
+	startAsyncRunners(ctx, u, tasks)
 	<-ctx.Done()
 }
 
@@ -122,9 +104,8 @@ func isHostOpen(host string) bool {
 }
 
 // todo: not a big fan of this anonymous function for testing, should use an interface and make a Mock object for testing - TR
-func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url string, runTask func(ctx context.Context, task *models.Task) (drivers.RunResult, error)) {
-	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"async_runner": i})
-	defer wg.Done()
+func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) {
+	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"runner": "async"})
 	for {
 		select {
 		case <-ctx.Done():
@@ -148,8 +129,15 @@ func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url strin
 
 			ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
 			log.Debug("Running task:", task.ID)
+
+			tresp := make(chan TaskResponse)
+			treq := TaskRequest{Ctx: ctx, Config: getCfg(task), Response: tresp}
+			tasks <- treq
+			resp := <-treq.Response
+			err = resp.Err
+
 			// Process Task
-			if _, err := runTask(ctx, task); err != nil {
+			if err != nil {
 				log.WithError(err).Error("Cannot run task")
 				continue
 			}
@@ -160,7 +148,6 @@ func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url strin
 				log.WithError(err).Error("Cannot delete task")
 				continue
 			}
-
 			log.Info("Task complete")
 		}
 	}

@@ -4,14 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/runner/drivers"
 )
 
 type TaskRequest struct {
-	Ctx      *gin.Context
-	Config   *runner.Config
+	Ctx      context.Context
+	Config   *Config
 	Response chan TaskResponse
 }
 
@@ -20,7 +18,7 @@ type TaskResponse struct {
 	Err    error
 }
 
-func Worker(ctx context.Context, n int) {
+func StartWorkers(ctx context.Context, n int, rnr *Runner, tasks <-chan TaskRequest) {
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
 		wg.Add(1)
@@ -29,10 +27,9 @@ func Worker(ctx context.Context, n int) {
 			for {
 				select {
 				case <-ctx.Done():
-					break
+					return
 				case task := <-tasks:
-					result, err := Api.Runner.Run(task.Ctx, task.Config)
-
+					result, err := rnr.Run(task.Ctx, task.Config)
 					select {
 					case task.Response <- TaskResponse{result, err}:
 						close(task.Response)
@@ -43,6 +40,6 @@ func Worker(ctx context.Context, n int) {
 		}(ctx)
 	}
 
-	wg.Wait()
 	<-ctx.Done()
+	wg.Wait()
 }

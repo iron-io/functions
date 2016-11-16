@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -22,11 +23,14 @@ func testRunner(t *testing.T) *runner.Runner {
 
 func TestRouteRunnerGet(t *testing.T) {
 	buf := setLogBuffer()
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
 	s := New(&datastore.Mock{
 		FakeApps: []*models.App{
 			{Name: "myapp", Config: models.Config{}},
 		},
-	}, &mqs.Mock{}, testRunner(t))
+	}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
@@ -61,11 +65,14 @@ func TestRouteRunnerGet(t *testing.T) {
 
 func TestRouteRunnerPost(t *testing.T) {
 	buf := setLogBuffer()
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
 	s := New(&datastore.Mock{
 		FakeApps: []*models.App{
 			{Name: "myapp", Config: models.Config{}},
 		},
-	}, &mqs.Mock{}, testRunner(t))
+	}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
@@ -102,6 +109,14 @@ func TestRouteRunnerPost(t *testing.T) {
 
 func TestRouteRunnerExecution(t *testing.T) {
 	buf := setLogBuffer()
+
+	tasks := make(chan runner.TaskRequest)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer close(tasks)
+
+	go runner.StartWorkers(ctx, 1, testRunner(t), tasks)
+
 	s := New(&datastore.Mock{
 		FakeApps: []*models.App{
 			{Name: "myapp", Config: models.Config{}},
@@ -110,7 +125,7 @@ func TestRouteRunnerExecution(t *testing.T) {
 			{Path: "/myroute", AppName: "myapp", Image: "iron/hello", Headers: map[string][]string{"X-Function": {"Test"}}},
 			{Path: "/myerror", AppName: "myapp", Image: "iron/error", Headers: map[string][]string{"X-Function": {"Test"}}},
 		},
-	}, &mqs.Mock{}, testRunner(t))
+	}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
