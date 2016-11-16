@@ -14,7 +14,7 @@ import (
 const defaultMaxEntries = 100
 
 // Cache holds an internal linkedlist for hotness management. It is not safe
-// for concurrent use, must be guarded externally.
+// for concurrent use, must be guarded externally. Its zero value means nothing.
 type Cache struct {
 	maxentries int
 
