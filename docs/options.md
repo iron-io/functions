@@ -31,8 +31,12 @@ docker run -e VAR_NAME=VALUE ...
 <td>Sets the port to run on. Default: `8080`.</td>
 </tr>
 <tr>
-<td>NUM_ASYNC</td>
-<td>The number of async runners in the functions process (default 1).</td>
+<td>ASYNC</td>
+<td>Toggle for async runners in the functions process (default true).</td>
+</tr>
+<tr>
+<td>NUM_RUNNERS</td>
+<td>The number of runners in the functions process (default 30).</td>
 </tr>
 <tr>
 <td>LOG_LEVEL</td>
