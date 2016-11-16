@@ -53,7 +53,8 @@ then the benefits are different, but related.
   * Scaling is simply adding more IronFunctions nodes
 
 There is a lot more reading you can do on the topic, just search for ["what is serverless"](https://www.google.com/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8#q=what%20is%20serverless)
-and you'll find plenty of information. We have pretty thorough post on the Iron.io blog called [What is Serverless Computing and Why is it Important].
+and you'll find plenty of information. We have pretty thorough post on the Iron.io blog called 
+[What is Serverless Computing and Why is it Important](https://www.iron.io/what-is-serverless-computing/). 
 
 ## Join Our Community
 
@@ -67,7 +68,7 @@ This guide will get you up and running in a few minutes.
 
 ### Prequisites
 
-* Docker 1.10 or later installed and running
+* Docker 1.12 or later installed and running
 * Logged into Docker Hub (`docker login`)
 
 ### Run IronFunctions
@@ -134,8 +135,16 @@ fnctl apps create myapp
 fnctl routes create myapp /hello
 ```
 
-You can find a bunch of examples in various languages in the [examples](examples/) directory. You can also
-write your functions in AWS's [Lambda format](docs/lambda/README.md).
+Now you can call your function:
+
+```sh
+curl http://localhost:8080/r/myapp/hello
+```
+
+Or surf to it: http://localhost:8080/r/myapp/hello
+
+See below for more details. And you can find a bunch of examples in various languages in the [examples](examples/) directory. You can also
+write your functions in AWS's [Lambda format](docs/lambda/README.md). 
 
 ## Usage
 
