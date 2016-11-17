@@ -9,9 +9,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
@@ -105,7 +104,6 @@ func isHostOpen(host string) bool {
 	return available
 }
 
-// TODO(ccirello): speed up async consumer - without overloading docker
 func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, rnr *Runner) {
 	var wg sync.WaitGroup
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"runner": "async"})

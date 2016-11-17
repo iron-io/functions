@@ -40,7 +40,9 @@ func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan TaskRequest) {
 	var wg sync.WaitGroup
 	prioQ := &priotasksqueue{cond: &sync.Cond{L: &sync.Mutex{}}}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
 			select {
 			case <-ctx.Done():
@@ -56,27 +58,23 @@ func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan TaskRequest) {
 		}
 	}()
 
-	wg.Add(1)
-	go func(ctx context.Context) {
-		defer wg.Done()
-		for {
-			task := prioQ.shift()
-			if task == nil {
-				return
-			}
-
-			wg.Add(1)
-			go func(task TaskRequest) {
-				defer wg.Done()
-				result, err := rnr.Run(task.Ctx, task.Config)
-				select {
-				case task.Response <- TaskResponse{result, err}:
-					close(task.Response)
-				default:
-				}
-			}(*task)
+	for {
+		task := prioQ.shift()
+		if task == nil {
+			return
 		}
-	}(ctx)
+
+		wg.Add(1)
+		go func(task TaskRequest) {
+			defer wg.Done()
+			result, err := rnr.Run(task.Ctx, task.Config)
+			select {
+			case task.Response <- TaskResponse{result, err}:
+				close(task.Response)
+			default:
+			}
+		}(*task)
+	}
 
 	<-ctx.Done()
 	wg.Wait()
