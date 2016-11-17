@@ -103,7 +103,6 @@ func isHostOpen(host string) bool {
 	return available
 }
 
-// todo: not a big fan of this anonymous function for testing, should use an interface and make a Mock object for testing - TR
 func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) {
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"runner": "async"})
 	for {
