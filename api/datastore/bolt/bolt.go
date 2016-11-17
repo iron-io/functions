@@ -171,17 +171,27 @@ func (ds *BoltDatastore) RemoveApp(appName string) error {
 		return models.ErrDatastoreEmptyAppName
 	}
 
+	an := []byte(appName)
+
 	err := ds.db.Update(func(tx *bolt.Tx) error {
 		bIm := tx.Bucket(ds.appsBucket)
-		err := bIm.Delete([]byte(appName))
+
+		if v := bIm.Get(an); v == nil {
+			return models.ErrAppsNotFound
+		}
+
+		err := bIm.Delete(an)
 		if err != nil {
 			return err
 		}
+
 		bjParent := tx.Bucket(ds.routesBucket)
+
 		err = bjParent.DeleteBucket([]byte(appName))
 		if err != nil {
 			return err
 		}
+
 		return nil
 	})
 	return err
@@ -378,13 +388,19 @@ func (ds *BoltDatastore) RemoveRoute(appName, routePath string) error {
 		return models.ErrDatastoreEmptyRoutePath
 	}
 
+	rp := []byte(routePath)
+
 	err := ds.db.Update(func(tx *bolt.Tx) error {
 		b, err := ds.getRouteBucketForApp(tx, appName)
 		if err != nil {
 			return err
 		}
 
-		err = b.Delete([]byte(routePath))
+		if v := b.Get(rp); v == nil {
+			return models.ErrRoutesNotFound
+		}
+
+		err = b.Delete(rp)
 		if err != nil {
 			return err
 		}

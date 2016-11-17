@@ -152,13 +152,22 @@ func (ds *PostgresDatastore) RemoveApp(appName string) error {
 		return models.ErrDatastoreEmptyAppName
 	}
 
-	_, err := ds.db.Exec(`
+	res, err := ds.db.Exec(`
 	  DELETE FROM apps
 	  WHERE name = $1
 	`, appName)
 
 	if err != nil {
 		return err
+	}
+
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
+		return models.ErrAppsNotFound
 	}
 
 	return nil
@@ -352,7 +361,7 @@ func (ds *PostgresDatastore) RemoveRoute(appName, routePath string) error {
 	}
 
 	if n == 0 {
-		return models.ErrRoutesRemoving
+		return models.ErrRoutesNotFound
 	}
 
 	return nil

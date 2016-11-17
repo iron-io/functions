@@ -119,16 +119,22 @@ func TestBolt(t *testing.T) {
 	err = ds.RemoveApp(testApp.Name)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test RemoveApp: error: %s", err)
+		t.Fatalf("Test RemoveApp: unexpected error: %s", err)
 	}
 	app, err = ds.GetApp(testApp.Name)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test GetApp: error: %s", err)
+		t.Fatalf("Test GetApp: unexpected error: %s", err)
 	}
 	if app != nil {
 		t.Log(buf.String())
 		t.Fatalf("Test RemoveApp: failed to remove the app")
+	}
+
+	err = ds.RemoveApp(testRoute.AppName)
+	if err != models.ErrAppsNotFound {
+		t.Log(buf.String())
+		t.Fatalf("Test RemoveApp: expected error `%v`, but it was `%s`", models.ErrAppsNotFound, err)
 	}
 
 	// Test update inexistent app
@@ -238,7 +244,13 @@ func TestBolt(t *testing.T) {
 	err = ds.RemoveRoute(testRoute.AppName, testRoute.Path)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test RemoveApp: unexpected error: %v", err)
+		t.Fatalf("Test RemoveRoute: unexpected error: %v", err)
+	}
+
+	err = ds.RemoveRoute(testRoute.AppName, testRoute.Path)
+	if err != models.ErrRoutesNotFound {
+		t.Log(buf.String())
+		t.Fatalf("Test RemoveRoute: expected error `%v`, but it was `%s`", models.ErrRoutesNotFound, err)
 	}
 
 	_, err = ds.UpdateRoute(&models.Route{
@@ -258,6 +270,6 @@ func TestBolt(t *testing.T) {
 	}
 	if route != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test RemoveApp: failed to remove the route")
+		t.Fatalf("Test RemoveRoute: failed to remove the route")
 	}
 }

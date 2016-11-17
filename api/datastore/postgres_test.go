@@ -72,7 +72,7 @@ func TestPostgres(t *testing.T) {
 	_, err = ds.InsertApp(testApp)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test InsertApp: error when storing new app: %s", err)
+		t.Fatalf("Test InsertApp: unexpected error: %v", err)
 	}
 
 	_, err = ds.InsertApp(testApp)
@@ -96,24 +96,24 @@ func TestPostgres(t *testing.T) {
 	_, err = ds.GetApp("")
 	if err != models.ErrDatastoreEmptyAppName {
 		t.Log(buf.String())
-		t.Fatalf("Test GetApp: expected error to be %v, but it was %s", models.ErrDatastoreEmptyAppName, err)
+		t.Fatalf("Test GetApp: expected error to be `%v`, but it was `%v`", models.ErrDatastoreEmptyAppName, err)
 	}
 
 	app, err := ds.GetApp(testApp.Name)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test GetApp: error: %s", err)
+		t.Fatalf("Test GetApp: unexpected error: %v", err)
 	}
 	if app.Name != testApp.Name {
 		t.Log(buf.String())
-		t.Fatalf("Test GetApp: expected `app.Name` to be `%s` but it was `%s`", app.Name, testApp.Name)
+		t.Fatalf("Test GetApp: expected app name to be `%s`, but it was `%s`", app.Name, testApp.Name)
 	}
 
 	// Testing list apps
 	apps, err := ds.GetApps(&models.AppFilter{})
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test GetApps: unexpected error %v", err)
+		t.Fatalf("Test GetApps: unexpected error: %v", err)
 	}
 	if len(apps) == 0 {
 		t.Fatal("Test GetApps: expected result count to be greater than 0")
@@ -133,7 +133,7 @@ func TestPostgres(t *testing.T) {
 	err = ds.RemoveApp(testApp.Name)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test RemoveApp: error: %s", err)
+		t.Fatalf("Test RemoveApp: unexpected error: %v", err)
 	}
 	app, err = ds.GetApp(testApp.Name)
 	if err != models.ErrAppsNotFound {
@@ -143,6 +143,12 @@ func TestPostgres(t *testing.T) {
 	if app != nil {
 		t.Log(buf.String())
 		t.Fatalf("Test RemoveApp: failed to remove the app")
+	}
+
+	err = ds.RemoveApp(testApp.Name)
+	if err != models.ErrAppsNotFound {
+		t.Log(buf.String())
+		t.Fatalf("Test RemoveApp: expected error `%v`, but it was `%v`", models.ErrAppsNotFound, err)
 	}
 
 	// Test update inexistent app
@@ -170,7 +176,7 @@ func TestPostgres(t *testing.T) {
 	_, err = ds.InsertRoute(testRoute)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test InsertRoute: error when storing new route: %s", err)
+		t.Fatalf("Test InsertRoute: unexpected error: %v", err)
 	}
 
 	_, err = ds.InsertRoute(testRoute)
@@ -205,7 +211,7 @@ func TestPostgres(t *testing.T) {
 	}
 	if route.Path != testRoute.Path {
 		t.Log(buf.String())
-		t.Fatalf("Test GetRoute: expected `route.Path` to be `%s` but it was `%s`", route.Path, testRoute.Path)
+		t.Fatalf("Test GetRoute: expected route.Path to be `%v`, but it was `%v`", route.Path, testRoute.Path)
 	}
 
 	// Testing list routes
@@ -219,21 +225,21 @@ func TestPostgres(t *testing.T) {
 	}
 	if routes[0].Path != testRoute.Path {
 		t.Log(buf.String())
-		t.Fatalf("Test GetRoutes: expected `app.Name` to be `%s` but it was `%s`", testRoute.Path, routes[0].Path)
+		t.Fatalf("Test GetRoutes: expected app.Name to be `%v` but it was `%v`", testRoute.Path, routes[0].Path)
 	}
 
 	// Testing list routes
 	routes, err = ds.GetRoutes(&models.RouteFilter{Image: testRoute.Image})
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test GetRoutes: error: %s", err)
+		t.Fatalf("Test GetRoutes: unexpected error: %v", err)
 	}
 	if len(routes) == 0 {
 		t.Fatal("Test GetRoutes: expected result count to be greater than 0")
 	}
 	if routes[0].Path != testRoute.Path {
 		t.Log(buf.String())
-		t.Fatalf("Test GetRoutes: expected `app.Name` to be `%s` but it was `%s`", testRoute.Path, routes[0].Path)
+		t.Fatalf("Test GetRoutes: expected app.Name to be `%v` but it was `%v`", testRoute.Path, routes[0].Path)
 	}
 
 	// Testing app delete
@@ -252,7 +258,13 @@ func TestPostgres(t *testing.T) {
 	err = ds.RemoveRoute(testRoute.AppName, testRoute.Path)
 	if err != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test RemoveApp: unexpected error: %v", err)
+		t.Fatalf("Test RemoveRoute: unexpected error: %v", err)
+	}
+
+	err = ds.RemoveRoute(testRoute.AppName, testRoute.Path)
+	if err != models.ErrRoutesNotFound {
+		t.Log(buf.String())
+		t.Fatalf("Test RemoveRoute: expected error `%v`, but it was `%v`", models.ErrRoutesNotFound, err)
 	}
 
 	_, err = ds.UpdateRoute(&models.Route{
@@ -272,6 +284,6 @@ func TestPostgres(t *testing.T) {
 	}
 	if route != nil {
 		t.Log(buf.String())
-		t.Fatalf("Test RemoveApp: failed to remove the route")
+		t.Fatalf("Test RemoveRoute: failed to remove the route")
 	}
 }
