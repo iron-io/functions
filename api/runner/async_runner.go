@@ -140,7 +140,7 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, 
 			go func() {
 				defer wg.Done()
 				tresp := make(chan TaskResponse)
-				treq := TaskRequest{Prio: Low, Ctx: ctx, Config: getCfg(task), Response: tresp}
+				treq := TaskRequest{Ctx: ctx, Config: getCfg(task), Response: tresp}
 				tasks <- treq
 				resp := <-treq.Response
 				// Process Task
