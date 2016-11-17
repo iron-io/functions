@@ -35,10 +35,6 @@ docker run -e VAR_NAME=VALUE ...
 <td>Toggle for async runners in the functions process (default true).</td>
 </tr>
 <tr>
-<td>NUM_RUNNERS</td>
-<td>The number of runners in the functions process (default 30).</td>
-</tr>
-<tr>
 <td>LOG_LEVEL</td>
 <td>Set to `DEBUG` to enable debugging. Default: INFO.</td>
 </tr>

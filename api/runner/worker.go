@@ -18,27 +18,26 @@ type TaskResponse struct {
 	Err    error
 }
 
-func StartWorkers(ctx context.Context, n int, rnr *Runner, tasks <-chan TaskRequest) {
+func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan TaskRequest) {
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go func(ctx context.Context) {
-			defer wg.Done()
-			for {
+
+	wg.Add(1)
+	go func(ctx context.Context) {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case task := <-tasks:
+				result, err := rnr.Run(task.Ctx, task.Config)
 				select {
-				case <-ctx.Done():
-					return
-				case task := <-tasks:
-					result, err := rnr.Run(task.Ctx, task.Config)
-					select {
-					case task.Response <- TaskResponse{result, err}:
-						close(task.Response)
-					default:
-					}
+				case task.Response <- TaskResponse{result, err}:
+					close(task.Response)
+				default:
 				}
 			}
-		}(ctx)
-	}
+		}
+	}(ctx)
 
 	<-ctx.Done()
 	wg.Wait()

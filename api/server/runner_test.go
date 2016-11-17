@@ -112,7 +112,7 @@ func TestRouteRunnerExecution(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go runner.StartWorkers(ctx, 1, testRunner(t), tasks)
+	go runner.StartWorkers(ctx, testRunner(t), tasks)
 
 	s := New(&datastore.Mock{
 		FakeApps: []*models.App{

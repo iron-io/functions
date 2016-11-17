@@ -18,13 +18,12 @@ import (
 )
 
 const (
-	envLogLevel   = "log_level"
-	envMQ         = "mq_url"
-	envDB         = "db_url"
-	envPort       = "port" // be careful, Gin expects this variable to be "port"
-	envAPIURL     = "api_url"
-	envAsync      = "async"
-	envNumRunners = "num_runners"
+	envLogLevel = "log_level"
+	envMQ       = "mq_url"
+	envDB       = "db_url"
+	envPort     = "port" // be careful, Gin expects this variable to be "port"
+	envAPIURL   = "api_url"
+	envAsync    = "async"
 )
 
 func init() {
@@ -39,7 +38,6 @@ func init() {
 	viper.SetDefault(envPort, 8080)
 	viper.SetDefault(envAPIURL, fmt.Sprintf("http://127.0.0.1:%d", viper.GetInt(envPort)))
 	viper.SetDefault(envAsync, 1)
-	viper.SetDefault(envNumRunners, 30)
 	viper.AutomaticEnv() // picks up env vars automatically
 	logLevel, err := log.ParseLevel(viper.GetString("log_level"))
 	if err != nil {
@@ -86,9 +84,8 @@ func main() {
 
 	tasks := make(chan runner.TaskRequest)
 
-	numRunners := viper.GetInt(envNumRunners)
 	svr.AddFunc(func(ctx context.Context) {
-		runner.StartWorkers(ctx, numRunners, rnr, tasks)
+		runner.StartWorkers(ctx, rnr, tasks)
 	})
 
 	svr.AddFunc(func(ctx context.Context) {
