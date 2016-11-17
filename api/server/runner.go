@@ -181,10 +181,10 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	default:
 		tresp := make(chan runner.TaskResponse)
-		treq := runner.TaskRequest{Ctx: c, Config: cfg, Response: tresp}
+		treq := runner.TaskRequest{Prio: runner.High, Ctx: c, Config: cfg, Response: tresp}
 		s.tasks <- treq
-		resp := <-treq.Response
 
+		resp := <-treq.Response
 		result, err := resp.Result, resp.Err
 		if err != nil {
 			break
@@ -198,6 +198,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		} else {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
+
 	}
 }
 

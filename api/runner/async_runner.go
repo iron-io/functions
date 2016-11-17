@@ -131,24 +131,30 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) 
 			log.Debug("Running task:", task.ID)
 
 			tresp := make(chan TaskResponse)
-			treq := TaskRequest{Ctx: ctx, Config: getCfg(task), Response: tresp}
+			treq := TaskRequest{Prio: Low, Ctx: ctx, Config: getCfg(task), Response: tresp}
 			tasks <- treq
-			resp := <-treq.Response
-			err = resp.Err
 
-			// Process Task
-			if err != nil {
-				log.WithError(err).Error("Cannot run task")
-				continue
-			}
-			log.Debug("Processed task")
+			select {
+			case <-ctx.Done():
+				return
 
-			// Delete task from queue
-			if err := deleteTask(url, task); err != nil {
-				log.WithError(err).Error("Cannot delete task")
-				continue
+			case resp := <-treq.Response:
+				err = resp.Err
+
+				// Process Task
+				if err != nil {
+					log.WithError(err).Error("Cannot run task")
+					continue
+				}
+				log.Debug("Processed task")
+
+				// Delete task from queue
+				if err := deleteTask(url, task); err != nil {
+					log.WithError(err).Error("Cannot delete task")
+					continue
+				}
+				log.Info("Task complete")
 			}
-			log.Info("Task complete")
 		}
 	}
 }
