@@ -110,6 +110,7 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, 
 	for {
 		select {
 		case <-ctx.Done():
+			wg.Wait()
 			return
 
 		default:
@@ -139,13 +140,9 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				tresp := make(chan TaskResponse)
-				treq := TaskRequest{Ctx: ctx, Config: getCfg(task), Response: tresp}
-				tasks <- treq
-				resp := <-treq.Response
 				// Process Task
-				if resp.Err != nil {
-					log.WithError(resp.Err).Error("Cannot run task")
+				if _, err := RunTask(tasks, ctx, getCfg(task)); err != nil {
+					log.WithError(err).Error("Cannot run task")
 				}
 			}()
 
@@ -160,7 +157,6 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, 
 
 		}
 	}
-	wg.Wait()
 }
 
 func tasksrvURL(tasksrv string) (parsedURL, host string) {

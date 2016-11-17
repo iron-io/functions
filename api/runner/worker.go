@@ -42,3 +42,11 @@ func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan TaskRequest) {
 	}
 
 }
+
+func RunTask(tasks chan TaskRequest, ctx context.Context, cfg *Config) (drivers.RunResult, error) {
+	tresp := make(chan TaskResponse)
+	treq := TaskRequest{Ctx: ctx, Config: cfg, Response: tresp}
+	tasks <- treq
+	resp := <-treq.Response
+	return resp.Result, resp.Err
+}

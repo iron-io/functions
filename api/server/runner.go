@@ -180,12 +180,8 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		log.Info("Added new task to queue")
 
 	default:
-		tresp := make(chan runner.TaskResponse)
-		treq := runner.TaskRequest{Ctx: c, Config: cfg, Response: tresp}
-		s.tasks <- treq
 
-		resp := <-treq.Response
-		result, err := resp.Result, resp.Err
+		result, err := runner.RunTask(s.tasks, ctx, cfg)
 		if err != nil {
 			break
 		}
