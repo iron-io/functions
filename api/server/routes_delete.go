@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 )
 
@@ -15,11 +14,11 @@ func handleRouteDelete(c *gin.Context) {
 
 	appName := c.Param("app")
 	routePath := c.Param("route")
-	err := Api.Datastore.RemoveRoute(appName, routePath)
 
+	err := Api.Datastore.RemoveRoute(appName, routePath)
 	if err != nil {
-		log.WithError(err).Debug(models.ErrRoutesRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesRemoving))
+		log.Error(err)
+		c.JSON(http.StatusInternalServerError, simpleError(err))
 		return
 	}
 

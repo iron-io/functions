@@ -72,18 +72,21 @@ func TestAppCreate(t *testing.T) {
 
 func TestAppDelete(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	router := testRouter(s)
 
 	for i, test := range []struct {
+		ds            models.Datastore
 		path          string
 		body          string
 		expectedCode  int
 		expectedError error
 	}{
-		{"/v1/apps", "", http.StatusNotFound, nil},
-		{"/v1/apps/myapp", "", http.StatusOK, nil},
+		{&datastore.Mock{}, "/v1/apps", "", http.StatusNotFound, nil},
+		{&datastore.Mock{}, "/v1/apps/myapp", "", http.StatusInternalServerError, models.ErrAppsNotFound},
+		{&datastore.Mock{FakeApps: []*models.App{{Name: "myapp"}}}, "/v1/apps/myapp", "", http.StatusOK, nil},
 	} {
+		s := New(test.ds, &mqs.Mock{}, testRunner(t))
+		router := testRouter(s)
+
 		_, rec := routerRequest(t, router, "DELETE", test.path, nil)
 
 		if rec.Code != test.expectedCode {

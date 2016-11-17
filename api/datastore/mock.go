@@ -38,8 +38,13 @@ func (m *Mock) UpdateApp(app *models.App) (*models.App, error) {
 }
 
 func (m *Mock) RemoveApp(appName string) error {
-	// TODO: improve this mock method
-	return nil
+	for _, a := range m.FakeApps {
+		if a.Name == appName {
+			// TODO: implement real app remove
+			return nil
+		}
+	}
+	return models.ErrAppsNotFound
 }
 
 func (m *Mock) GetRoute(appName, routePath string) (*models.Route, error) {
@@ -85,8 +90,13 @@ func (m *Mock) UpdateRoute(route *models.Route) (*models.Route, error) {
 }
 
 func (m *Mock) RemoveRoute(appName, routePath string) error {
-	// TODO: improve this mock method
-	return nil
+	for _, r := range m.FakeRoutes {
+		if r.AppName == appName && r.Path == routePath {
+			// TODO: implement real route remove
+			return nil
+		}
+	}
+	return models.ErrRoutesNotFound
 }
 
 func (m *Mock) Put(key, value []byte) error {

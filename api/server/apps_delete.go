@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 )
 
@@ -14,11 +13,11 @@ func handleAppDelete(c *gin.Context) {
 	log := common.Logger(ctx)
 
 	appName := c.Param("app")
-	err := Api.Datastore.RemoveApp(appName)
 
+	err := Api.Datastore.RemoveApp(appName)
 	if err != nil {
-		log.WithError(err).Debug(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsRemoving))
+		log.Error(err)
+		c.JSON(http.StatusInternalServerError, simpleError(err))
 		return
 	}
 

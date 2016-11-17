@@ -13,7 +13,6 @@ import (
 var (
 	ErrRoutesCreate        = errors.New("Could not create route")
 	ErrRoutesUpdate        = errors.New("Could not update route")
-	ErrRoutesRemoving      = errors.New("Could not remove route from datastore")
 	ErrRoutesGet           = errors.New("Could not get route from datastore")
 	ErrRoutesList          = errors.New("Could not list routes from datastore")
 	ErrRoutesAlreadyExists = errors.New("Route already exists")

@@ -125,6 +125,30 @@ paths:
           description: Unexpected error
           schema:
             $ref: '#/definitions/Error'
+    delete:
+      summary: "Delete an app"
+      description: "Remove an empty app (no routes) from the API"
+      tags:
+        - Apps
+      parameters:
+        - name: app
+          in: path 
+          description: name of the app.
+          required: true
+          type: string
+      responses:
+        200:
+          description: App details and stats.
+          schema:
+            $ref: '#/definitions/AppWrapper'
+        404:
+          description: App does not exist.
+          schema:
+            $ref: '#/definitions/Error'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
 
   /apps/{app}/routes:
     post:
@@ -233,6 +257,14 @@ paths:
       responses:
         200:
           description: Route successfully deleted. Deletion succeeds even on routes that do not exist.
+        404:
+          description: Route does not exist.
+          schema:
+            $ref: '#/definitions/Error'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
 
   /tasks:
     get:
