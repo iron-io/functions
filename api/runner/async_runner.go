@@ -113,7 +113,8 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, 
 			return
 
 		default:
-			if !rnr.hasAvailableMemory() {
+			if !rnr.hasAsyncAvailableMemory() {
+				log.Debug("memory full")
 				time.Sleep(1 * time.Second)
 				continue
 			}

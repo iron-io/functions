@@ -115,10 +115,11 @@ func (r *Runner) queueHandler() {
 	}
 }
 
-func (r *Runner) hasAvailableMemory() bool {
+func (r *Runner) hasAsyncAvailableMemory() bool {
 	r.usedMemMutex.RLock()
 	defer r.usedMemMutex.RUnlock()
-	return r.usedMem >= r.availableMem
+	// reserve at least half of the memory for sync
+	return (r.availableMem/2)-r.usedMem > 0
 }
 
 func (r *Runner) checkRequiredMem(req uint64) bool {
