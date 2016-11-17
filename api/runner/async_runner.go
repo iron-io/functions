@@ -114,7 +114,6 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, 
 
 		default:
 			if !rnr.hasAvailableMemory() {
-				// TODO(ccirello): get rid of this time.Sleep through sync.Cond
 				time.Sleep(1 * time.Second)
 				continue
 			}
