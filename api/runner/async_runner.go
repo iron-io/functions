@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"time"
 
+	"sync"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
@@ -103,7 +105,9 @@ func isHostOpen(host string) bool {
 	return available
 }
 
+// TODO(ccirello): speed up async consumer - without overloading docker
 func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) {
+	var wg sync.WaitGroup
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"runner": "async"})
 	for {
 		select {
@@ -129,33 +133,31 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) 
 			ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
 			log.Debug("Running task:", task.ID)
 
-			tresp := make(chan TaskResponse)
-			treq := TaskRequest{Prio: Low, Ctx: ctx, Config: getCfg(task), Response: tresp}
-			tasks <- treq
-
-			select {
-			case <-ctx.Done():
-				return
-
-			case resp := <-treq.Response:
-				err = resp.Err
-
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				tresp := make(chan TaskResponse)
+				treq := TaskRequest{Prio: Low, Ctx: ctx, Config: getCfg(task), Response: tresp}
+				tasks <- treq
+				resp := <-treq.Response
 				// Process Task
-				if err != nil {
-					log.WithError(err).Error("Cannot run task")
-					continue
+				if resp.Err != nil {
+					log.WithError(resp.Err).Error("Cannot run task")
 				}
-				log.Debug("Processed task")
+			}()
 
-				// Delete task from queue
-				if err := deleteTask(url, task); err != nil {
-					log.WithError(err).Error("Cannot delete task")
-					continue
-				}
-				log.Info("Task complete")
+			log.Debug("Processed task")
+
+			// Delete task from queue
+			if err := deleteTask(url, task); err != nil {
+				log.WithError(err).Error("Cannot delete task")
+				continue
 			}
+			log.Info("Task complete")
+
 		}
 	}
+	wg.Wait()
 }
 
 func tasksrvURL(tasksrv string) (parsedURL, host string) {
