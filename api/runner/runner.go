@@ -40,7 +40,7 @@ type Runner struct {
 	ml           Logger
 	availableMem int64
 	usedMem      int64
-	usedMemCond  *sync.Cond
+	usedMemMutex sync.RWMutex
 }
 
 var (
@@ -66,7 +66,6 @@ func New(metricLogger Logger) (*Runner, error) {
 		ml:           metricLogger,
 		availableMem: getAvailableMemory(),
 		usedMem:      0,
-		usedMemCond:  sync.NewCond(&sync.Mutex{}),
 	}
 
 	go r.queueHandler()
@@ -116,47 +115,38 @@ func (r *Runner) queueHandler() {
 	}
 }
 
-func (r *Runner) waitAvailableMemoryAsync() {
-	r.usedMemCond.L.Lock()
-	// Reserve at least half of the memory for sync workers
-	if r.usedMem >= (r.availableMem / 2) {
-		r.usedMemCond.Wait()
-	}
-	r.usedMemCond.L.Unlock()
+func (r *Runner) hasAvailableMemory() bool {
+	r.usedMemMutex.RLock()
+	defer r.usedMemMutex.RUnlock()
+	return r.usedMem >= r.availableMem
 }
 
 func (r *Runner) checkRequiredMem(req uint64) bool {
-	r.usedMemCond.L.Lock()
-	defer r.usedMemCond.L.Unlock()
+	r.usedMemMutex.RLock()
+	defer r.usedMemMutex.RUnlock()
 	return (r.availableMem-r.usedMem)/int64(req)*1024*1024 > 0
 }
 
 func (r *Runner) addUsedMem(used int64) {
-	r.usedMemCond.L.Lock()
+	r.usedMemMutex.Lock()
 	r.usedMem = r.usedMem + used*1024*1024
 	if r.usedMem < 0 {
 		r.usedMem = 0
 	}
-	free := r.usedMem <= r.availableMem
-	r.usedMemCond.L.Unlock()
-	if free {
-		r.usedMemCond.Signal()
-	}
+	r.usedMemMutex.Unlock()
 }
 
 func (r *Runner) checkMemAndUse(req uint64) bool {
-	r.usedMemCond.L.Lock()
+	r.usedMemMutex.Lock()
+	defer r.usedMemMutex.Unlock()
 
 	used := int64(req) * 1024 * 1024
 
 	if (r.availableMem-r.usedMem)/used < 0 {
-		r.usedMemCond.L.Unlock()
 		return false
 	}
-	r.usedMem += used
 
-	r.usedMemCond.L.Unlock()
-	r.usedMemCond.Signal()
+	r.usedMem += used
 
 	return true
 }
