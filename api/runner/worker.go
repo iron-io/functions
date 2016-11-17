@@ -29,12 +29,16 @@ func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan TaskRequest) {
 			case <-ctx.Done():
 				return
 			case task := <-tasks:
-				result, err := rnr.Run(task.Ctx, task.Config)
-				select {
-				case task.Response <- TaskResponse{result, err}:
-					close(task.Response)
-				default:
-				}
+				wg.Add(1)
+				go func(task TaskRequest) {
+					defer wg.Done()
+					result, err := rnr.Run(task.Ctx, task.Config)
+					select {
+					case task.Response <- TaskResponse{result, err}:
+						close(task.Response)
+					default:
+					}
+				}(task)
 			}
 		}
 	}(ctx)
