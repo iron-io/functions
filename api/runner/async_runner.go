@@ -86,13 +86,13 @@ func deleteTask(url string, task *models.Task) error {
 }
 
 // RunAsyncRunner pulls tasks off a queue and processes them
-func RunAsyncRunner(ctx context.Context, tasksrv string, tasks chan TaskRequest) {
+func RunAsyncRunner(ctx context.Context, tasksrv string, tasks chan TaskRequest, rnr *Runner) {
 	u, h := tasksrvURL(tasksrv)
 	if isHostOpen(h) {
 		return
 	}
 
-	startAsyncRunners(ctx, u, tasks)
+	startAsyncRunners(ctx, u, tasks, rnr)
 	<-ctx.Done()
 }
 
@@ -106,7 +106,7 @@ func isHostOpen(host string) bool {
 }
 
 // TODO(ccirello): speed up async consumer - without overloading docker
-func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) {
+func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest, rnr *Runner) {
 	var wg sync.WaitGroup
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"runner": "async"})
 	for {
@@ -115,6 +115,10 @@ func startAsyncRunners(ctx context.Context, url string, tasks chan TaskRequest) 
 			return
 
 		default:
+			if !rnr.hasAvailableMemory() {
+				time.Sleep(1 * time.Second)
+				continue
+			}
 			task, err := getTask(ctx, url)
 			if err != nil {
 				if err, ok := err.(net.Error); ok && err.Timeout() {

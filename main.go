@@ -93,7 +93,7 @@ func main() {
 
 	apiURL := viper.GetString(envAPIURL)
 	svr.AddFunc(func(ctx context.Context) {
-		runner.RunAsyncRunner(ctx, apiURL, tasks)
+		runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
 	})
 
 	svr.Serve(ctx)

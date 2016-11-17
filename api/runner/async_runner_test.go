@@ -216,7 +216,7 @@ func TestAsyncRunnersGracefulShutdown(t *testing.T) {
 		}
 	}()
 
-	startAsyncRunners(ctx, ts.URL+"/tasks", tasks)
+	startAsyncRunners(ctx, ts.URL+"/tasks", tasks, testRunner(t))
 
 	if err := ctx.Err(); err != context.DeadlineExceeded {
 		t.Log(buf.String())
