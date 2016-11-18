@@ -146,7 +146,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 func (s *Server) executeRoutes(routes []*models.Route, c *gin.Context, log logrus.FieldLogger, appName string, app *models.App, rawroute, reqID string, payload io.Reader, enqueue models.Enqueue) (found bool) {
 	for _, r := range routes {
-		if ok := processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue); ok {
+		if ok := s.processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue); ok {
 			s.refreshcache(appName, r)
 			return true
 		}
@@ -154,7 +154,7 @@ func (s *Server) executeRoutes(routes []*models.Route, c *gin.Context, log logru
 	return false
 }
 
-func processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+func (s *Server) processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
 	log = log.WithFields(logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
 
 	params, match := matchRoute(found.Path, route)
@@ -226,7 +226,7 @@ func processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found 
 		log.Info("Added new task to queue")
 
 	default:
-		result, err := Api.Runner.Run(c, cfg)
+		result, err := runner.RunTask(s.tasks, c, cfg)
 		if err != nil {
 			break
 		}
@@ -239,6 +239,7 @@ func processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found 
 		} else {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
+
 	}
 
 	return true

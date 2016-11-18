@@ -30,17 +30,20 @@ type Server struct {
 	AppListeners    []ifaces.AppListener
 	SpecialHandlers []ifaces.SpecialHandler
 
+	tasks chan runner.TaskRequest
+
 	mu        sync.Mutex
 	hotroutes map[string]*routecache.Cache
 }
 
-func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner) *Server {
+func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
 	Api = &Server{
+		Runner:    r,
 		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
-		Runner:    r,
 		hotroutes: make(map[string]*routecache.Cache),
+		tasks:     tasks,
 	}
 	return Api
 }
@@ -97,7 +100,6 @@ func (s *Server) handleRunnerRequest(c *gin.Context) {
 		return s.MQ.Push(ctx, task)
 	}
 	s.handleRequest(c, enqueue)
-
 }
 
 func (s *Server) loadcache(appname string) []*models.Route {

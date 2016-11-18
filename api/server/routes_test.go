@@ -13,6 +13,8 @@ import (
 
 func TestRouteCreate(t *testing.T) {
 	buf := setLogBuffer()
+	tasks := mockTasksConduit()
+	defer close(tasks)
 
 	for i, test := range []struct {
 		mock          *datastore.Mock
@@ -25,7 +27,8 @@ func TestRouteCreate(t *testing.T) {
 		{&datastore.Mock{}, "/v1/apps/a/routes", ``, http.StatusBadRequest, models.ErrInvalidJSON},
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ }`, http.StatusBadRequest, models.ErrRoutesMissingNew},
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "path": "/myroute" }`, http.StatusBadRequest, models.ErrRoutesMissingNew},
-		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { } }`, http.StatusInternalServerError, models.ErrRoutesValidationMissingImage},
+		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { } }`, http.StatusInternalServerError, models.ErrRoutesValidationMissingPath},
+		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "path": "/myroute" } }`, http.StatusBadRequest, models.ErrRoutesValidationMissingImage},
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello" } }`, http.StatusInternalServerError, models.ErrRoutesValidationMissingPath},
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "myroute" } }`, http.StatusInternalServerError, models.ErrRoutesValidationInvalidPath},
 		{&datastore.Mock{}, "/v1/apps/$/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
@@ -33,7 +36,7 @@ func TestRouteCreate(t *testing.T) {
 		// success
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusCreated, nil},
 	} {
-		s := New(test.mock, &mqs.Mock{}, testRunner(t))
+		s := New(test.mock, &mqs.Mock{}, testRunner(t), tasks)
 		router := testRouter(s)
 
 		body := bytes.NewBuffer([]byte(test.body))
@@ -50,8 +53,8 @@ func TestRouteCreate(t *testing.T) {
 
 			if !strings.Contains(resp.Error.Message, test.expectedError.Error()) {
 				t.Log(buf.String())
-				t.Errorf("Test %d: Expected error message to have `%s`",
-					i, test.expectedError.Error())
+				t.Errorf("Test %d: Expected error message to have `%s`, but it was `%s`",
+					i, test.expectedError.Error(), resp.Error.Message)
 			}
 		}
 	}
@@ -59,7 +62,10 @@ func TestRouteCreate(t *testing.T) {
 
 func TestRouteDelete(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
+	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
@@ -93,7 +99,10 @@ func TestRouteDelete(t *testing.T) {
 
 func TestRouteList(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
+	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
@@ -126,7 +135,10 @@ func TestRouteList(t *testing.T) {
 
 func TestRouteGet(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
+	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
@@ -159,7 +171,10 @@ func TestRouteGet(t *testing.T) {
 
 func TestRouteUpdate(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
+	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t), tasks)
 	router := testRouter(s)
 
 	for i, test := range []struct {
@@ -171,7 +186,6 @@ func TestRouteUpdate(t *testing.T) {
 		// errors
 		{"/v1/apps/a/routes/myroute/do", ``, http.StatusBadRequest, models.ErrInvalidJSON},
 		{"/v1/apps/a/routes/myroute/do", `{}`, http.StatusBadRequest, models.ErrRoutesMissingNew},
-		{"/v1/apps/a/routes/myroute/do", `{ "route": {} }`, http.StatusInternalServerError, models.ErrRoutesValidationMissingImage},
 
 		// success
 		{"/v1/apps/a/routes/myroute/do", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusOK, nil},
