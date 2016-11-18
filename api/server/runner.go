@@ -76,12 +76,10 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsNotFound))
 		return
 	}
-	route := c.Param("route")
-	if route == "" {
-		route = c.Request.URL.Path
+	path := c.Param("route")
+	if path == "" {
+		path = c.Request.URL.Path
 	}
-
-	log.WithFields(logrus.Fields{"app": appName, "path": route}).Debug("Finding route on datastore")
 
 	app, err := Api.Datastore.GetApp(appName)
 	if err != nil || app == nil {
@@ -90,14 +88,50 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	routes, err := Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName, Path: route})
+	// Theory of operation
+	// The dynamic route matching happens in three phases: 1) Static LRU
+	// cache hit, 2) LRU cache hit, 3) load app's routes. and try matching
+	// incoming route with each one of them. As soon as a route is matched
+	// it is bumped up in the LRU.
+
+	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding exact route on LRU cache")
+	route, ok := s.cacheget(appName, path)
+	if ok {
+		found := s.serve(c, log, appName, route, app, path, reqID, payload, enqueue)
+		if found {
+			s.refreshcache(appName, route, 0)
+			return
+		}
+	}
+
+	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on LRU cache")
+	routes := s.cachedroutes(appName)
+	if s.matchserve(routes, c, log, appName, app, path, reqID, payload, enqueue) {
+		return
+	}
+
+	// TODO(ccirello): The problem here is that for every cold/cache-missed
+	// request, we have to go through at least some subset of all routes for
+	// this app. This will not scale. Some solutions have been proposed to
+	// alleviate the issue, among them: count the number of slashes and use
+	// it as an index to rule out routes that are either too long or too
+	// short; register all apps routes into the gin's mux; for each matched
+	// route, serve it once, and plug it to gin's mux for subsequent
+	// requests. This a problem we cannot help. Perhaps, part of the
+	// solution is to mention in the documentation that developers should
+	// organize their applications in a way they don't have too many unused
+	// routes. This is a potential point of DoS: a sufficiently high number
+	// of non matched routes can overload the database and take the service
+	// down.
+	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on datastore")
+	routes, err = s.loadroutes(appName)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))
 		return
 	}
 
-	log.WithField("routes", routes).Debug("Got routes from datastore")
+	log.WithField("routes", len(routes)).Debug("Got routes from datastore")
 
 	if len(routes) == 0 {
 		log.WithError(err).Error(models.ErrRunnerRouteNotFound)
@@ -105,15 +139,36 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	found := routes[0]
-	log = log.WithFields(logrus.Fields{
-		"app": appName, "route": found.Path, "image": found.Image})
-
-	params, match := matchRoute(found.Path, route)
-	if !match {
-		log.WithError(err).Error(models.ErrRunnerRouteNotFound)
+	if !s.matchserve(routes, c, log, appName, app, path, reqID, payload, enqueue) {
+		log.Error(models.ErrRunnerRouteNotFound)
 		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
-		return
+	}
+
+}
+
+func (s *Server) loadroutes(appName string) ([]*models.Route, error) {
+	resp, err := s.singleflight.Do(appName, func() (interface{}, error) {
+		return Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName})
+	})
+	return resp.([]*models.Route), err
+}
+
+func (s *Server) matchserve(routes []*models.Route, c *gin.Context, log logrus.FieldLogger, appName string, app *models.App, path, reqID string, payload io.Reader, enqueue models.Enqueue) (found bool) {
+	for _, r := range routes {
+		if ok := s.serve(c, log, appName, r, app, path, reqID, payload, enqueue); ok {
+			s.refreshcache(appName, r, len(routes))
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+	log = log.WithFields(logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
+
+	params, match := match(found.Path, route)
+	if !match {
+		return false
 	}
 
 	var stdout bytes.Buffer // TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
@@ -162,7 +217,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		if err != nil {
 			log.WithError(err).Error(models.ErrInvalidPayload)
 			c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidPayload))
-			return
+			return true
 		}
 
 		// Create Task
@@ -180,8 +235,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		log.Info("Added new task to queue")
 
 	default:
-
-		result, err := runner.RunTask(s.tasks, ctx, cfg)
+		result, err := runner.RunTask(s.tasks, c, cfg)
 		if err != nil {
 			break
 		}
@@ -196,11 +250,13 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		}
 
 	}
+
+	return true
 }
 
 var fakeHandler = func(http.ResponseWriter, *http.Request, Params) {}
 
-func matchRoute(baseRoute, route string) (Params, bool) {
+func match(baseRoute, route string) (Params, bool) {
 	tree := &node{}
 	tree.addRoute(baseRoute, fakeHandler)
 	handler, p, _ := tree.getValue(route)

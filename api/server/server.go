@@ -5,14 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"path"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/ifaces"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
+	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
 )
 
@@ -23,12 +26,17 @@ var Api *Server
 type Server struct {
 	Runner          *runner.Runner
 	Router          *gin.Engine
-	Datastore       models.Datastore
 	MQ              models.MessageQueue
 	AppListeners    []ifaces.AppListener
 	SpecialHandlers []ifaces.SpecialHandler
 
 	tasks chan runner.TaskRequest
+
+	mu        sync.Mutex // protects hotroutes
+	hotroutes map[string]*routecache.Cache
+
+	singleflight singleflight // singleflight assists Datastore
+	Datastore    models.Datastore
 }
 
 func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
@@ -37,9 +45,36 @@ func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks ch
 		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
+		hotroutes: make(map[string]*routecache.Cache),
 		tasks:     tasks,
 	}
+	Api.primeCache()
 	return Api
+}
+
+func (s *Server) primeCache() {
+	logrus.Info("priming cache with known routes")
+	apps, err := s.Datastore.GetApps(nil)
+	if err != nil {
+		logrus.WithError(err).Error("cannot prime cache - could not load application list")
+		return
+	}
+	for _, app := range apps {
+		routes, err := s.loadroutes(app.Name)
+		if err != nil {
+			logrus.WithError(err).WithField("appName", app.Name).Error("cannot prime cache - could not load routes")
+			continue
+		}
+		lenr := len(routes)
+		if lenr > cacheParetoThreshold {
+			lenr = cacheParetoThreshold
+		}
+		for i := 0; i < lenr; i++ {
+			route := routes[i]
+			s.refreshcache(app.Name, route, len(routes))
+		}
+	}
+	logrus.Info("cached prime")
 }
 
 // AddAppListener adds a listener that will be notified on App changes.
@@ -94,6 +129,62 @@ func (s *Server) handleRunnerRequest(c *gin.Context) {
 		return s.MQ.Push(ctx, task)
 	}
 	s.handleRequest(c, enqueue)
+}
+
+// cacheParetoThreshold is both the mark from which the LRU starts caching only
+// the most likely hot routes, and also as a stopping mark for the cache priming
+// during start.
+const cacheParetoThreshold = 1024
+
+func (s *Server) cacheget(appname, path string) (*models.Route, bool) {
+	s.mu.Lock()
+	cache, ok := s.hotroutes[appname]
+	if !ok {
+		s.mu.Unlock()
+		return nil, false
+	}
+	route, ok := cache.Get(path)
+	s.mu.Unlock()
+	return route, ok
+}
+
+func (s *Server) cachedroutes(appname string) []*models.Route {
+	s.mu.Lock()
+	cache, ok := s.hotroutes[appname]
+	if !ok {
+		s.mu.Unlock()
+		return nil
+	}
+	routes := cache.Routes()
+	s.mu.Unlock()
+	return routes
+}
+
+func (s *Server) refreshcache(appname string, route *models.Route, entries int) {
+	s.mu.Lock()
+	cache, ok := s.hotroutes[appname]
+	if !ok {
+		// The idea here is to prevent both extremes: cache being too small that is ineffective,
+		// or too large that it takes too much memory. Up to 1k routes, the cache will try to hold
+		// all routes in the memory, thus taking up to 48K per application. After this threshold,
+		// it will keep 1024 routes + 20% of the total entries - in a hybrid incarnation of Pareto rule
+		// 1024+20% of the remaining routes will likelly be responsible for 80% of the workload.
+		if entries > cacheParetoThreshold {
+			entries = int(math.Ceil(float64(entries-1024)*0.2)) + 1024
+		}
+		s.hotroutes[appname] = routecache.New(entries)
+		cache = s.hotroutes[appname]
+	}
+	cache.Refresh(route)
+	s.mu.Unlock()
+}
+
+func (s *Server) resetcache(appname string, delta int) {
+	s.mu.Lock()
+	if hr, ok := s.hotroutes[appname]; ok {
+		s.hotroutes[appname] = routecache.New(hr.MaxEntries + delta)
+	}
+	s.mu.Unlock()
 }
 
 func (s *Server) handleTaskRequest(c *gin.Context) {
@@ -174,10 +265,10 @@ func (s *Server) bindHandlers() {
 		apps := v1.Group("/apps/:app")
 		{
 			apps.GET("/routes", handleRouteList)
-			apps.POST("/routes", handleRouteCreate)
+			apps.POST("/routes", s.handleRouteCreate)
 			apps.GET("/routes/*route", handleRouteGet)
 			apps.PUT("/routes/*route", handleRouteUpdate)
-			apps.DELETE("/routes/*route", handleRouteDelete)
+			apps.DELETE("/routes/*route", s.handleRouteDelete)
 		}
 	}
 
