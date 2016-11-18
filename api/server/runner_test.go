@@ -170,7 +170,7 @@ func TestMatchRoute(t *testing.T) {
 		{"/myroute/:mybigparam", `/myroute/1`, []Param{{"mybigparam", "1"}}},
 		{"/:param/*test", `/1/2`, []Param{{"param", "1"}, {"test", "/2"}}},
 	} {
-		if params, match := matchRoute(test.baseRoute, test.route); match {
+		if params, match := match(test.baseRoute, test.route); match {
 			if test.expectedParams != nil {
 				for j, param := range test.expectedParams {
 					if params[j].Key != param.Key || params[j].Value != param.Value {

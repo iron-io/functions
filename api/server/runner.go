@@ -76,9 +76,9 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsNotFound))
 		return
 	}
-	rawroute := c.Param("route")
-	if rawroute == "" {
-		rawroute = c.Request.URL.Path
+	path := c.Param("route")
+	if path == "" {
+		path = c.Request.URL.Path
 	}
 
 	app, err := Api.Datastore.GetApp(appName)
@@ -91,21 +91,22 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	// Theory of operation
 	// The dynamic route matching happens in three phases: 1) Static LRU
 	// cache hit, 2) LRU cache hit, 3) load app's routes. and try matching
-	// incoming route with each one of them.
+	// incoming route with each one of them. As soon as a route is matched
+	// it is bumped up in the LRU.
 
-	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding exact route on LRU cache")
-	route, ok := s.cacheget(appName, rawroute)
+	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding exact route on LRU cache")
+	route, ok := s.cacheget(appName, path)
 	if ok {
-		found := s.processRoute(c, log, appName, route, app, rawroute, reqID, payload, enqueue)
+		found := s.serve(c, log, appName, route, app, path, reqID, payload, enqueue)
 		if found {
 			s.refreshcache(appName, route, 0)
 			return
 		}
 	}
 
-	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on LRU cache")
+	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on LRU cache")
 	routes := s.cachedroutes(appName)
-	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
+	if s.matchserve(routes, c, log, appName, app, path, reqID, payload, enqueue) {
 		return
 	}
 
@@ -122,7 +123,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	// routes. This is a potential point of DoS: a sufficiently high number
 	// of non matched routes can overload the database and take the service
 	// down.
-	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on datastore")
+	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on datastore")
 	routes, err = s.loadroutes(appName)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
@@ -138,7 +139,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		return
 	}
 
-	if !s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
+	if !s.matchserve(routes, c, log, appName, app, path, reqID, payload, enqueue) {
 		log.Error(models.ErrRunnerRouteNotFound)
 		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
 	}
@@ -152,9 +153,9 @@ func (s *Server) loadroutes(appName string) ([]*models.Route, error) {
 	return resp.([]*models.Route), err
 }
 
-func (s *Server) executeRoutes(routes []*models.Route, c *gin.Context, log logrus.FieldLogger, appName string, app *models.App, rawroute, reqID string, payload io.Reader, enqueue models.Enqueue) (found bool) {
+func (s *Server) matchserve(routes []*models.Route, c *gin.Context, log logrus.FieldLogger, appName string, app *models.App, path, reqID string, payload io.Reader, enqueue models.Enqueue) (found bool) {
 	for _, r := range routes {
-		if ok := s.processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue); ok {
+		if ok := s.serve(c, log, appName, r, app, path, reqID, payload, enqueue); ok {
 			s.refreshcache(appName, r, len(routes))
 			return true
 		}
@@ -162,10 +163,10 @@ func (s *Server) executeRoutes(routes []*models.Route, c *gin.Context, log logru
 	return false
 }
 
-func (s *Server) processRoute(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
 	log = log.WithFields(logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
 
-	params, match := matchRoute(found.Path, route)
+	params, match := match(found.Path, route)
 	if !match {
 		return false
 	}
@@ -255,7 +256,7 @@ func (s *Server) processRoute(c *gin.Context, log logrus.FieldLogger, appName st
 
 var fakeHandler = func(http.ResponseWriter, *http.Request, Params) {}
 
-func matchRoute(baseRoute, route string) (Params, bool) {
+func match(baseRoute, route string) (Params, bool) {
 	tree := &node{}
 	tree.addRoute(baseRoute, fakeHandler)
 	handler, p, _ := tree.getValue(route)
