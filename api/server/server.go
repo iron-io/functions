@@ -48,7 +48,33 @@ func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks ch
 		hotroutes: make(map[string]*routecache.Cache),
 		tasks:     tasks,
 	}
+	Api.primeCache()
 	return Api
+}
+
+func (s *Server) primeCache() {
+	logrus.Info("priming cache with known routes")
+	apps, err := s.Datastore.GetApps(nil)
+	if err != nil {
+		logrus.WithError(err).Error("cannot prime cache - could not load application list")
+		return
+	}
+	for _, app := range apps {
+		routes, err := s.loadroutes(app.Name)
+		if err != nil {
+			logrus.WithError(err).WithField("appName", app.Name).Error("cannot prime cache - could not load routes")
+			continue
+		}
+		lenr := len(routes)
+		if lenr > cacheParetoThreshold {
+			lenr = cacheParetoThreshold
+		}
+		for i := 0; i < lenr; i++ {
+			route := routes[i]
+			s.refreshcache(app.Name, route, len(routes))
+		}
+	}
+	logrus.Info("cached prime")
 }
 
 // AddAppListener adds a listener that will be notified on App changes.
@@ -105,6 +131,11 @@ func (s *Server) handleRunnerRequest(c *gin.Context) {
 	s.handleRequest(c, enqueue)
 }
 
+// cacheParetoThreshold is both the mark from which the LRU starts caching only
+// the most likely hot routes, and also as a stopping mark for the cache priming
+// during start.
+const cacheParetoThreshold = 1024
+
 func (s *Server) cacheget(appname, path string) (*models.Route, bool) {
 	s.mu.Lock()
 	cache, ok := s.hotroutes[appname]
@@ -117,7 +148,7 @@ func (s *Server) cacheget(appname, path string) (*models.Route, bool) {
 	return route, ok
 }
 
-func (s *Server) loadcache(appname string) []*models.Route {
+func (s *Server) cachedroutes(appname string) []*models.Route {
 	s.mu.Lock()
 	cache, ok := s.hotroutes[appname]
 	if !ok {
@@ -138,7 +169,7 @@ func (s *Server) refreshcache(appname string, route *models.Route, entries int) 
 		// all routes in the memory, thus taking up to 48K per application. After this threshold,
 		// it will keep 1024 routes + 20% of the total entries - in a hybrid incarnation of Pareto rule
 		// 1024+20% of the remaining routes will likelly be responsible for 80% of the workload.
-		if entries > 1024 {
+		if entries > cacheParetoThreshold {
 			entries = int(math.Ceil(float64(entries-1024)*0.2)) + 1024
 		}
 		s.hotroutes[appname] = routecache.New(entries)

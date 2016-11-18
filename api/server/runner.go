@@ -104,7 +104,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	}
 
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on LRU cache")
-	routes := s.loadcache(appName)
+	routes := s.cachedroutes(appName)
 	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
 		return
 	}
@@ -123,14 +123,14 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	// of non matched routes can overload the database and take the service
 	// down.
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on datastore")
-	routes, err = s.loadRoutes(appName)
+	routes, err = s.loadroutes(appName)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))
 		return
 	}
 
-	log.WithField("routes", routes).Debug("Got routes from datastore")
+	log.WithField("routes", len(routes)).Debug("Got routes from datastore")
 
 	if len(routes) == 0 {
 		log.WithError(err).Error(models.ErrRunnerRouteNotFound)
@@ -142,9 +142,10 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		log.Error(models.ErrRunnerRouteNotFound)
 		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
 	}
+
 }
 
-func (s *Server) loadRoutes(appName string) ([]*models.Route, error) {
+func (s *Server) loadroutes(appName string) ([]*models.Route, error) {
 	resp, err := s.singleflight.Do(appName, func() (interface{}, error) {
 		return Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName})
 	})
