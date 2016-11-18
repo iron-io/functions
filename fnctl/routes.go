@@ -241,7 +241,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 		return fmt.Errorf("error creating route: %v", err)
 	}
 	if wrapper.Route.Path == "" || wrapper.Route.Image == "" {
-		return fmt.Errorf("could not create this route (%s at %s), check if route path is correct %#v", route, appName, wrapper)
+		return fmt.Errorf("could not create this route (%s at %s), check if route path is correct", route, appName)
 	}
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
