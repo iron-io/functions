@@ -11,12 +11,10 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-const defaultMaxEntries = 100
-
 // Cache holds an internal linkedlist for hotness management. It is not safe
 // for concurrent use, must be guarded externally.
 type Cache struct {
-	maxentries int
+	MaxEntries int
 
 	ll     *list.List
 	cache  map[string]*list.Element
@@ -28,9 +26,9 @@ type routecacheentry struct {
 }
 
 // New returns a route cache.
-func New() *Cache {
+func New(maxentries int) *Cache {
 	return &Cache{
-		maxentries: defaultMaxEntries,
+		MaxEntries: maxentries,
 		ll:         list.New(),
 		cache:      make(map[string]*list.Element),
 	}
@@ -50,9 +48,7 @@ func (c *Cache) Routes() []*models.Route {
 // or moving it to the front when used. It will discard seldom used routes.
 func (c *Cache) Refresh(route *models.Route) {
 	if c.cache == nil {
-		c.maxentries = defaultMaxEntries
-		c.ll = list.New()
-		c.cache = make(map[string]*list.Element)
+		return
 	}
 
 	if ee, ok := c.cache[route.Path]; ok {
@@ -64,7 +60,7 @@ func (c *Cache) Refresh(route *models.Route) {
 
 	ele := c.ll.PushFront(&routecacheentry{route})
 	c.cache[route.Path] = ele
-	if c.maxentries != 0 && c.ll.Len() > c.maxentries {
+	if c.MaxEntries != 0 && c.ll.Len() > c.MaxEntries {
 		c.removeOldest()
 	}
 

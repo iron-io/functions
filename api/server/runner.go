@@ -90,31 +90,21 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	// Theory of operation
 	// The dynamic route matching happens in three phases: 1) Static LRU
-	// cache hit, 2) LRU cache hit, 3) Static Route Hit, ie, it assumes that
-	// the incoming request is using a static route; 4) load app's routes.
-	// and try matching each one of them.
+	// cache hit, 2) LRU cache hit, 3) load app's routes. and try matching
+	// incoming route with each one of them.
 
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding exact route on LRU cache")
 	route, ok := s.cacheget(appName, rawroute)
 	if ok {
 		found := s.processRoute(c, log, appName, route, app, rawroute, reqID, payload, enqueue)
 		if found {
-			s.refreshcache(appName, route)
+			s.refreshcache(appName, route, 0)
 			return
 		}
 	}
 
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on LRU cache")
 	routes := s.loadcache(appName)
-	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
-		return
-	}
-
-	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding exact route on datastore")
-	routes, err = Api.Datastore.GetRoutesByApp(appName, &models.RouteFilter{AppName: appName, Path: rawroute})
-	if err != nil {
-		log.WithError(err).Error(models.ErrRoutesList)
-	}
 	if s.executeRoutes(routes, c, log, appName, app, rawroute, reqID, payload, enqueue) {
 		return
 	}
@@ -157,7 +147,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 func (s *Server) executeRoutes(routes []*models.Route, c *gin.Context, log logrus.FieldLogger, appName string, app *models.App, rawroute, reqID string, payload io.Reader, enqueue models.Enqueue) (found bool) {
 	for _, r := range routes {
 		if ok := s.processRoute(c, log, appName, r, app, rawroute, reqID, payload, enqueue); ok {
-			s.refreshcache(appName, r)
+			s.refreshcache(appName, r, len(routes))
 			return true
 		}
 	}

@@ -23,7 +23,7 @@ func (s *Server) handleRouteDelete(c *gin.Context) {
 		return
 	}
 
-	s.resetcache(appName)
+	s.resetcache(appName, -1)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Route deleted"})
 }

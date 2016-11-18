@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"path"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
+	"github.com/labstack/gommon/log"
 )
 
 // Would be nice to not have this is a global, but hard to pass things around to the
@@ -126,20 +128,32 @@ func (s *Server) loadcache(appname string) []*models.Route {
 	return routes
 }
 
-func (s *Server) refreshcache(appname string, route *models.Route) {
+func (s *Server) refreshcache(appname string, route *models.Route, entries int) {
 	s.mu.Lock()
 	cache, ok := s.hotroutes[appname]
 	if !ok {
-		s.hotroutes[appname] = routecache.New()
+		// The idea here is to prevent both extremes: cache being too small that is ineffective,
+		// or too large that it takes too much memory. Up to 1k routes, the cache will try to hold
+		// all routes in the memory, thus taking up to 48K per application. After this threshold,
+		// it will keep 1024 routes + 20% of the total entries - in a hybrid incarnation of Pareto rule
+		// 1024+20% of the remaining routes will likelly be responsible for 80% of the workload.
+		if entries > 1024 {
+			log.Info("CACHE LRU SIZE ORIGINAL", appname, entries)
+			entries = int(math.Ceil(float64(entries-1024)*0.2)) + 1024
+		}
+		log.Info("CACHE LRU SIZE FINAL", appname, entries)
+		s.hotroutes[appname] = routecache.New(entries)
 		cache = s.hotroutes[appname]
 	}
 	cache.Refresh(route)
 	s.mu.Unlock()
 }
 
-func (s *Server) resetcache(appname string) {
+func (s *Server) resetcache(appname string, delta int) {
 	s.mu.Lock()
-	s.hotroutes[appname] = routecache.New()
+	if hr, ok := s.hotroutes[appname]; ok {
+		s.hotroutes[appname] = routecache.New(hr.MaxEntries + delta)
+	}
 	s.mu.Unlock()
 }
 
@@ -221,7 +235,7 @@ func (s *Server) bindHandlers() {
 		apps := v1.Group("/apps/:app")
 		{
 			apps.GET("/routes", handleRouteList)
-			apps.POST("/routes", handleRouteCreate)
+			apps.POST("/routes", s.handleRouteCreate)
 			apps.GET("/routes/*route", handleRouteGet)
 			apps.PUT("/routes/*route", handleRouteUpdate)
 			apps.DELETE("/routes/*route", s.handleRouteDelete)
