@@ -27,15 +27,17 @@ var Api *Server
 type Server struct {
 	Runner          *runner.Runner
 	Router          *gin.Engine
-	Datastore       models.Datastore
 	MQ              models.MessageQueue
 	AppListeners    []ifaces.AppListener
 	SpecialHandlers []ifaces.SpecialHandler
 
 	tasks chan runner.TaskRequest
 
-	mu        sync.Mutex
+	mu        sync.Mutex // protects hotroutes
 	hotroutes map[string]*routecache.Cache
+
+	singleflight singleflight // singleflight assists Datastore
+	Datastore    models.Datastore
 }
 
 func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
