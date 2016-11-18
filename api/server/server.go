@@ -17,7 +17,6 @@ import (
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
-	"github.com/labstack/gommon/log"
 )
 
 // Would be nice to not have this is a global, but hard to pass things around to the
@@ -140,10 +139,8 @@ func (s *Server) refreshcache(appname string, route *models.Route, entries int) 
 		// it will keep 1024 routes + 20% of the total entries - in a hybrid incarnation of Pareto rule
 		// 1024+20% of the remaining routes will likelly be responsible for 80% of the workload.
 		if entries > 1024 {
-			log.Info("CACHE LRU SIZE ORIGINAL", appname, entries)
 			entries = int(math.Ceil(float64(entries-1024)*0.2)) + 1024
 		}
-		log.Info("CACHE LRU SIZE FINAL", appname, entries)
 		s.hotroutes[appname] = routecache.New(entries)
 		cache = s.hotroutes[appname]
 	}
