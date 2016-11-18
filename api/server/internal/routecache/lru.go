@@ -19,7 +19,7 @@ type Cache struct {
 	maxentries int
 
 	ll     *list.List
-	cache  map[*models.Route]*list.Element
+	cache  map[string]*list.Element
 	values []*models.Route
 }
 
@@ -32,7 +32,7 @@ func New() *Cache {
 	return &Cache{
 		maxentries: defaultMaxEntries,
 		ll:         list.New(),
-		cache:      make(map[*models.Route]*list.Element),
+		cache:      make(map[string]*list.Element),
 	}
 }
 
@@ -52,10 +52,10 @@ func (c *Cache) Refresh(route *models.Route) {
 	if c.cache == nil {
 		c.maxentries = defaultMaxEntries
 		c.ll = list.New()
-		c.cache = make(map[*models.Route]*list.Element)
+		c.cache = make(map[string]*list.Element)
 	}
 
-	if ee, ok := c.cache[route]; ok {
+	if ee, ok := c.cache[route.Path]; ok {
 		c.ll.MoveToFront(ee)
 		ee.Value.(*routecacheentry).route = route
 		c.updatevalues()
@@ -63,12 +63,24 @@ func (c *Cache) Refresh(route *models.Route) {
 	}
 
 	ele := c.ll.PushFront(&routecacheentry{route})
-	c.cache[route] = ele
+	c.cache[route.Path] = ele
 	if c.maxentries != 0 && c.ll.Len() > c.maxentries {
 		c.removeOldest()
 	}
 
 	c.updatevalues()
+}
+
+// Get looks up a path's route from the cache.
+func (c *Cache) Get(path string) (route *models.Route, ok bool) {
+	if c.cache == nil {
+		return
+	}
+	if ele, hit := c.cache[path]; hit {
+		c.ll.MoveToFront(ele)
+		return ele.Value.(*routecacheentry).route, true
+	}
+	return
 }
 
 func (c *Cache) updatevalues() {
@@ -92,5 +104,5 @@ func (c *Cache) removeOldest() {
 func (c *Cache) removeElement(e *list.Element) {
 	c.ll.Remove(e)
 	kv := e.Value.(*routecacheentry)
-	delete(c.cache, kv.route)
+	delete(c.cache, kv.route.Path)
 }

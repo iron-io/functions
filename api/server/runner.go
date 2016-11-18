@@ -89,10 +89,20 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	}
 
 	// Theory of operation
-	// The dynamic route matching happens in three phases: 1) LRU cache hit,
-	// 2) Static Route Hit, ie, it assumes that the incoming request is
-	// using a static route; 3) load app's routes and try matching each
-	// one of them.
+	// The dynamic route matching happens in three phases: 1) Static LRU
+	// cache hit, 2) LRU cache hit, 3) Static Route Hit, ie, it assumes that
+	// the incoming request is using a static route; 4) load app's routes.
+	// and try matching each one of them.
+
+	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding exact route on LRU cache")
+	route, ok := s.cacheget(appName, rawroute)
+	if ok {
+		found := s.processRoute(c, log, appName, route, app, rawroute, reqID, payload, enqueue)
+		if found {
+			s.refreshcache(appName, route)
+			return
+		}
+	}
 
 	log.WithFields(logrus.Fields{"app": appName, "path": rawroute}).Debug("Finding route on LRU cache")
 	routes := s.loadcache(appName)

@@ -102,6 +102,18 @@ func (s *Server) handleRunnerRequest(c *gin.Context) {
 	s.handleRequest(c, enqueue)
 }
 
+func (s *Server) cacheget(appname, path string) (*models.Route, bool) {
+	s.mu.Lock()
+	cache, ok := s.hotroutes[appname]
+	if !ok {
+		s.mu.Unlock()
+		return nil, false
+	}
+	route, ok := cache.Get(path)
+	s.mu.Unlock()
+	return route, ok
+}
+
 func (s *Server) loadcache(appname string) []*models.Route {
 	s.mu.Lock()
 	cache, ok := s.hotroutes[appname]
@@ -212,9 +224,7 @@ func (s *Server) bindHandlers() {
 			apps.POST("/routes", handleRouteCreate)
 			apps.GET("/routes/*route", handleRouteGet)
 			apps.PUT("/routes/*route", handleRouteUpdate)
-			apps.DELETE("/routes/*route", func(c *gin.Context) {
-				handleRouteDelete(c, s.resetcache)
-			})
+			apps.DELETE("/routes/*route", s.handleRouteDelete)
 		}
 	}
 
