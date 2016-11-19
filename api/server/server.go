@@ -21,6 +21,7 @@ import (
 var Api *Server
 
 type Server struct {
+	ctx             context.Context
 	Runner          *runner.Runner
 	Router          *gin.Engine
 	Datastore       models.Datastore
@@ -31,14 +32,22 @@ type Server struct {
 	tasks chan runner.TaskRequest
 }
 
-func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
 	Api = &Server{
+		ctx:       ctx,
 		Runner:    r,
 		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
 		tasks:     tasks,
 	}
+
+	Api.Router.Use(func(c *gin.Context) {
+		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
+		c.Set("ctx", ctx)
+		c.Next()
+	})
+
 	return Api
 }
 
@@ -138,23 +147,16 @@ func extractFields(c *gin.Context) logrus.Fields {
 	return fields
 }
 
-func (s *Server) Run(ctx context.Context) {
-	s.Router.Use(func(c *gin.Context) {
-		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
-		c.Set("ctx", ctx)
-		c.Next()
-	})
-
+func (s *Server) Run() {
 	s.bindHandlers()
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
 	go s.Router.Run()
-	<-ctx.Done()
+	<-s.ctx.Done()
 }
 
 func (s *Server) bindHandlers() {
-
 	engine := s.Router
 
 	engine.GET("/", handlePing)
