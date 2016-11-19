@@ -193,7 +193,7 @@ imports:
   subpackages:
   - lambda
 - name: github.com/iron-io/runner
-  version: 272e153e728eb4e0c1c92d908c463424dec78a73
+  version: 4101fd406ada3497c832d6877653262e23a84f1f
   repo: https://github.com/iron-io/runner.git
   vcs: git
   subpackages:
