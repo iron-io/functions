@@ -21,7 +21,6 @@ import (
 var Api *Server
 
 type Server struct {
-	ctx             context.Context
 	Runner          *runner.Runner
 	Router          *gin.Engine
 	Datastore       models.Datastore
@@ -35,7 +34,6 @@ type Server struct {
 
 func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest, enqueue models.Enqueue) *Server {
 	Api = &Server{
-		ctx:       ctx,
 		Runner:    r,
 		Router:    gin.New(),
 		Datastore: ds,
@@ -155,7 +153,6 @@ func (s *Server) Run() {
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
 	go s.Router.Run()
-	<-s.ctx.Done()
 }
 
 func (s *Server) bindHandlers() {

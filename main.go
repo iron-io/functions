@@ -90,6 +90,7 @@ func main() {
 	svr.AddFunc(func(ctx context.Context) {
 		srv := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
 		srv.Run()
+		<-ctx.Done()
 	})
 
 	apiURL := viper.GetString(envAPIURL)
