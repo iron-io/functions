@@ -29,6 +29,7 @@ type Server struct {
 	MQ              models.MessageQueue
 	AppListeners    []ifaces.AppListener
 	SpecialHandlers []ifaces.SpecialHandler
+	Enqueue         models.Enqueue
 
 	tasks chan runner.TaskRequest
 
@@ -39,7 +40,7 @@ type Server struct {
 	Datastore    models.Datastore
 }
 
-func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest, enqueue models.Enqueue) *Server {
 	Api = &Server{
 		Runner:    r,
 		Router:    gin.New(),
@@ -47,8 +48,16 @@ func New(ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks ch
 		MQ:        mq,
 		hotroutes: make(map[string]*routecache.Cache),
 		tasks:     tasks,
+		Enqueue:   enqueue,
 	}
+
+	Api.Router.Use(func(c *gin.Context) {
+		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
+		c.Set("ctx", ctx)
+		c.Next()
+	})
 	Api.primeCache()
+
 	return Api
 }
 
@@ -129,13 +138,13 @@ func (s *Server) UseSpecialHandlers(ginC *gin.Context) error {
 	return nil
 }
 
+func DefaultEnqueue(ctx context.Context, mq models.MessageQueue, task *models.Task) (*models.Task, error) {
+	ctx, _ = common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
+	return mq.Push(ctx, task)
+}
+
 func (s *Server) handleRunnerRequest(c *gin.Context) {
-	enqueue := func(task *models.Task) (*models.Task, error) {
-		c.JSON(http.StatusAccepted, map[string]string{"call_id": task.ID})
-		ctx, _ := common.LoggerWithFields(c, logrus.Fields{"call_id": task.ID})
-		return s.MQ.Push(ctx, task)
-	}
-	s.handleRequest(c, enqueue)
+	s.handleRequest(c, s.Enqueue)
 }
 
 // cacheParetoThreshold is both the mark from which the LRU starts caching only
@@ -215,23 +224,15 @@ func extractFields(c *gin.Context) logrus.Fields {
 	return fields
 }
 
-func (s *Server) Run(ctx context.Context) {
-	s.Router.Use(func(c *gin.Context) {
-		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
-		c.Set("ctx", ctx)
-		c.Next()
-	})
-
+func (s *Server) Run() {
 	s.bindHandlers()
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
 	go s.Router.Run()
-	<-ctx.Done()
 }
 
 func (s *Server) bindHandlers() {
-
 	engine := s.Router
 
 	engine.GET("/", handlePing)
