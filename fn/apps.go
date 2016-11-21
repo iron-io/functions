@@ -84,7 +84,7 @@ func apps() cli.Command {
 }
 
 func (a *appsCmd) list(c *cli.Context) error {
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -110,7 +110,7 @@ func (a *appsCmd) create(c *cli.Context) error {
 		return errors.New("error: app creating takes one argument, an app name")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -132,7 +132,7 @@ func (a *appsCmd) configList(c *cli.Context) error {
 		return errors.New("error: app description takes one argument, an app name")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -172,7 +172,7 @@ func (a *appsCmd) configSet(c *cli.Context) error {
 		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -206,7 +206,7 @@ func (a *appsCmd) configUnset(c *cli.Context) error {
 		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 

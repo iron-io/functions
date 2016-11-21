@@ -131,7 +131,7 @@ func (a *routesCmd) list(c *cli.Context) error {
 		return errors.New("error: routes listing takes one argument, an app name")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -167,7 +167,7 @@ func (a *routesCmd) call(c *cli.Context) error {
 		return errors.New("error: routes listing takes three arguments: an app name and a route")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -222,7 +222,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 		return errors.New("error: routes creation takes three arguments: an app name, a route path and an image")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -269,7 +269,7 @@ func (a *routesCmd) delete(c *cli.Context) error {
 		return errors.New("error: routes listing takes three arguments: an app name and a path")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -294,7 +294,7 @@ func (a *routesCmd) configList(c *cli.Context) error {
 		return errors.New("error: route configuration description takes two arguments: an app name and a route")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -339,7 +339,7 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 		return errors.New("error: route configuration setting takes four arguments: an app name, a route, a key and a value")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -366,11 +366,7 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 	config[key] = value
 	wrapper.Route.Config = config
 
-	if _, err := a.AppsAppRoutesRouteDelete(appName, route); err != nil {
-		return fmt.Errorf("error deleting to force update route: %v", err)
-	}
-
-	if _, _, err := a.AppsAppRoutesPost(appName, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
@@ -383,7 +379,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 		return errors.New("error: route configuration setting takes four arguments: an app name, a route and a key")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -413,11 +409,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 	delete(config, key)
 	wrapper.Route.Config = config
 
-	if _, err := a.AppsAppRoutesRouteDelete(appName, route); err != nil {
-		return fmt.Errorf("error deleting to force update route: %v", err)
-	}
-
-	if _, _, err := a.AppsAppRoutesPost(appName, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
