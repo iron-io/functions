@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
 )
 
@@ -56,9 +55,7 @@ func (s *Server) handleAppCreate(c *gin.Context) {
 		return
 	}
 
-	s.mu.Lock()
-	s.hotroutes[wapp.App.Name] = routecache.New(1)
-	s.mu.Unlock()
+	s.resetcache(wapp.App.Name, 1)
 
 	c.JSON(http.StatusCreated, appResponse{"App successfully created", wapp.App})
 }
