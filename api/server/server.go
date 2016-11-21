@@ -28,11 +28,12 @@ type Server struct {
 	MQ              models.MessageQueue
 	AppListeners    []ifaces.AppListener
 	SpecialHandlers []ifaces.SpecialHandler
+	Enqueue         models.Enqueue
 
 	tasks chan runner.TaskRequest
 }
 
-func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest) *Server {
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan runner.TaskRequest, enqueue models.Enqueue) *Server {
 	Api = &Server{
 		ctx:       ctx,
 		Runner:    r,
@@ -40,6 +41,7 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *ru
 		Datastore: ds,
 		MQ:        mq,
 		tasks:     tasks,
+		Enqueue:   enqueue,
 	}
 
 	Api.Router.Use(func(c *gin.Context) {
@@ -96,13 +98,13 @@ func (s *Server) UseSpecialHandlers(ginC *gin.Context) error {
 	return nil
 }
 
+func DefaultEnqueue(ctx context.Context, mq models.MessageQueue, task *models.Task) (*models.Task, error) {
+	ctx, _ = common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
+	return mq.Push(ctx, task)
+}
+
 func (s *Server) handleRunnerRequest(c *gin.Context) {
-	enqueue := func(task *models.Task) (*models.Task, error) {
-		c.JSON(http.StatusAccepted, map[string]string{"call_id": task.ID})
-		ctx, _ := common.LoggerWithFields(c, logrus.Fields{"call_id": task.ID})
-		return s.MQ.Push(ctx, task)
-	}
-	s.handleRequest(c, enqueue)
+	s.handleRequest(c, s.Enqueue)
 }
 
 func (s *Server) handleTaskRequest(c *gin.Context) {
