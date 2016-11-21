@@ -23,8 +23,8 @@ func handleAppDelete(c *gin.Context) {
 	}
 
 	if len(routes) > 0 {
-		log.WithError(err).Debug(models.ErrAppsPendingRoutes)
-		c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsPendingRoutes))
+		log.WithError(err).Debug(models.ErrDeleteAppsWithRoutes)
+		c.JSON(http.StatusBadRequest, simpleError(models.ErrDeleteAppsWithRoutes))
 		return
 	}
 
