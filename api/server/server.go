@@ -164,9 +164,12 @@ func (s *Server) refreshcache(appname string, route *models.Route) {
 
 func (s *Server) resetcache(appname string, delta int) {
 	s.mu.Lock()
-	if hr, ok := s.hotroutes[appname]; ok {
-		s.hotroutes[appname] = routecache.New(hr.MaxEntries + delta)
+	hr, ok := s.hotroutes[appname]
+	if !ok {
+		s.hotroutes[appname] = routecache.New(0)
+		hr = s.hotroutes[appname]
 	}
+	s.hotroutes[appname] = routecache.New(hr.MaxEntries + delta)
 	s.mu.Unlock()
 }
 
