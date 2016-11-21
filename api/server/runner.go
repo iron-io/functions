@@ -200,7 +200,7 @@ func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, f
 		task.EnvVars = cfg.Env
 		task.Payload = string(pl)
 		// Push to queue
-		enqueue(ctx, s.MQ, task)
+		enqueue(c, s.MQ, task)
 		log.Info("Added new task to queue")
 		c.JSON(http.StatusAccepted, map[string]string{"call_id": task.ID})
 
