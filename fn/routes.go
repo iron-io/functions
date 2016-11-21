@@ -275,9 +275,14 @@ func (a *routesCmd) delete(c *cli.Context) error {
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
-	_, err := a.AppsAppRoutesRouteDelete(appName, route)
+
+	resp, err := a.AppsAppRoutesRouteDelete(appName, route)
 	if err != nil {
 		return fmt.Errorf("error deleting route: %v", err)
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("route not found: %s", route)
 	}
 
 	fmt.Println(route, "deleted")
@@ -298,6 +303,10 @@ func (a *routesCmd) configList(c *cli.Context) error {
 	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
 		return fmt.Errorf("error loading route information: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	config := wrapper.Route.Config
@@ -341,7 +350,11 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 
 	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error loading route: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	config := wrapper.Route.Config
@@ -380,7 +393,11 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 
 	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error loading app: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	config := wrapper.Route.Config
