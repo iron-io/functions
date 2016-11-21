@@ -21,14 +21,15 @@ func apps() cli.Command {
 
 	return cli.Command{
 		Name:      "apps",
-		Usage:     "list apps",
+		Usage:     "operate applications",
 		ArgsUsage: "fn apps",
-		Action:    a.list,
 		Subcommands: []cli.Command{
 			{
-				Name:   "create",
-				Usage:  "create a new app",
-				Action: a.create,
+				Name:      "create",
+				Aliases:   []string{"c"},
+				Usage:     "create a new app",
+				ArgsUsage: "`app`",
+				Action:    a.create,
 				Flags: []cli.Flag{
 					cli.StringSliceFlag{
 						Name:  "config",
@@ -37,31 +38,45 @@ func apps() cli.Command {
 				},
 			},
 			{
-				Name:   "config",
-				Usage:  "operate an application configuration set",
-				Action: a.configList,
-				Flags: []cli.Flag{
-					cli.BoolFlag{
-						Name:  "shell",
-						Usage: "output in shell format",
-					},
-					cli.BoolFlag{
-						Name:  "json",
-						Usage: "output in JSON format",
-					},
-				},
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "list all apps",
+				Action:  a.list,
+			},
+			{
+				Name:  "config",
+				Usage: "operate an application configuration set",
 				Subcommands: []cli.Command{
 					{
-						Name:        "set",
-						Description: "store a configuration key for this application",
-						Usage:       "<app> <key> <value>",
-						Action:      a.configSet,
+						Name:      "view",
+						Aliases:   []string{"v"},
+						Usage:     "view all configuration keys for this app",
+						ArgsUsage: "`app`",
+						Action:    a.configList,
+						Flags: []cli.Flag{
+							cli.BoolFlag{
+								Name:  "shell,s",
+								Usage: "output in shell format",
+							},
+							cli.BoolFlag{
+								Name:  "json,j",
+								Usage: "output in JSON format",
+							},
+						},
 					},
 					{
-						Name:        "unset",
-						Description: "remove a configuration key for this application",
-						Usage:       "<app> <key> <value>",
-						Action:      a.configUnset,
+						Name:      "set",
+						Aliases:   []string{"s"},
+						Usage:     "store a configuration key for this application",
+						ArgsUsage: "`app` <key> <value>",
+						Action:    a.configSet,
+					},
+					{
+						Name:      "unset",
+						Aliases:   []string{"u"},
+						Usage:     "remove a configuration key for this application",
+						ArgsUsage: "`app` <key>",
+						Action:    a.configUnset,
 					},
 				},
 			},

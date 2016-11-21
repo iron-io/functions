@@ -26,71 +26,87 @@ func routes() cli.Command {
 
 	return cli.Command{
 		Name:      "routes",
-		Usage:     "list routes",
+		Usage:     "operate routes",
 		ArgsUsage: "fn routes",
-		Action:    r.list,
 		Subcommands: []cli.Command{
 			{
 				Name:      "call",
 				Usage:     "call a route",
-				ArgsUsage: "appName /path",
+				ArgsUsage: "`app` /path",
 				Action:    r.call,
 				Flags:     runflags(),
 			},
 			{
+				Name:      "list",
+				Aliases:   []string{"l"},
+				Usage:     "list routes for `app`",
+				ArgsUsage: "`app`",
+				Action:    r.list,
+			},
+			{
 				Name:      "create",
-				Usage:     "create a route",
-				ArgsUsage: "appName /path image/name",
+				Aliases:   []string{"c"},
+				Usage:     "create a route in an `app`",
+				ArgsUsage: "`app` /path image/name",
 				Action:    r.create,
 				Flags: []cli.Flag{
 					cli.Int64Flag{
-						Name:  "memory",
+						Name:  "memory,m",
 						Usage: "memory in MiB",
 						Value: 128,
 					},
 					cli.StringFlag{
-						Name:  "type",
+						Name:  "type,t",
 						Usage: "route type - sync or async",
 						Value: "sync",
 					},
 					cli.StringSliceFlag{
-						Name:  "config",
+						Name:  "config,c",
 						Usage: "route configuration",
 					},
 				},
 			},
 			{
 				Name:      "delete",
-				Usage:     "delete a route",
-				ArgsUsage: "appName /path",
+				Aliases:   []string{"d"},
+				Usage:     "delete a route from `app`",
+				ArgsUsage: "`app` /path",
 				Action:    r.delete,
 			},
 			{
-				Name:   "config",
-				Usage:  "operate a route configuration set",
-				Action: r.configList,
-				Flags: []cli.Flag{
-					cli.BoolFlag{
-						Name:  "shell",
-						Usage: "output in shell format",
-					},
-					cli.BoolFlag{
-						Name:  "json",
-						Usage: "output in JSON format",
-					},
-				},
+				Name:  "config",
+				Usage: "operate a route configuration set",
 				Subcommands: []cli.Command{
 					{
-						Name:        "set",
-						Description: "store a configuration key for this route",
-						Usage:       "<app> <key> <value>",
-						Action:      r.configSet,
+						Name:      "view",
+						Aliases:   []string{"v"},
+						Usage:     "view all configuration keys for this route",
+						ArgsUsage: "`app` /path",
+						Action:    r.configList,
+						Flags: []cli.Flag{
+							cli.BoolFlag{
+								Name:  "shell,s",
+								Usage: "output in shell format",
+							},
+							cli.BoolFlag{
+								Name:  "json,j",
+								Usage: "output in JSON format",
+							},
+						},
 					},
 					{
-						Name:        "unset",
-						Description: "remove a configuration key for this route",
-						Usage:       "<app> <key> <value>",
-						Action:      r.configUnset,
+						Name:      "set",
+						Aliases:   []string{"s"},
+						Usage:     "store a configuration key for this route",
+						ArgsUsage: "`app` /path <key> <value>",
+						Action:    r.configSet,
+					},
+					{
+						Name:      "unset",
+						Aliases:   []string{"u"},
+						Usage:     "remove a configuration key for this route",
+						ArgsUsage: "`app` /path <key>",
+						Action:    r.configUnset,
 					},
 				},
 			},
@@ -104,7 +120,7 @@ func call() cli.Command {
 	return cli.Command{
 		Name:      "call",
 		Usage:     "call a remote function",
-		ArgsUsage: "appName /path",
+		ArgsUsage: "`app` /path",
 		Flags:     runflags(),
 		Action:    r.call,
 	}
@@ -259,9 +275,14 @@ func (a *routesCmd) delete(c *cli.Context) error {
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
-	_, err := a.AppsAppRoutesRouteDelete(appName, route)
+
+	resp, err := a.AppsAppRoutesRouteDelete(appName, route)
 	if err != nil {
 		return fmt.Errorf("error deleting route: %v", err)
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("route not found: %s", route)
 	}
 
 	fmt.Println(route, "deleted")
@@ -282,6 +303,10 @@ func (a *routesCmd) configList(c *cli.Context) error {
 	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
 		return fmt.Errorf("error loading route information: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	config := wrapper.Route.Config
@@ -325,7 +350,11 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 
 	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error loading route: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	config := wrapper.Route.Config
@@ -337,11 +366,7 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 	config[key] = value
 	wrapper.Route.Config = config
 
-	if _, err := a.AppsAppRoutesRouteDelete(appName, route); err != nil {
-		return fmt.Errorf("error deleting to force update route: %v", err)
-	}
-
-	if _, _, err := a.AppsAppRoutesPost(appName, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
@@ -364,7 +389,11 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 
 	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error loading app: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	config := wrapper.Route.Config
@@ -380,11 +409,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 	delete(config, key)
 	wrapper.Route.Config = config
 
-	if _, err := a.AppsAppRoutesRouteDelete(appName, route); err != nil {
-		return fmt.Errorf("error deleting to force update route: %v", err)
-	}
-
-	if _, _, err := a.AppsAppRoutesPost(appName, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
