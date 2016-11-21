@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 type DotNetLangHelper struct {
@@ -25,13 +24,7 @@ func (lh *DotNetLangHelper) PreBuild() error {
 		return err
 	}
 	// todo: this won't work if the function is more complex since the import paths won't match up, need to fix
-	pbcmd := fmt.Sprintf("docker run --rm -v %s:/dotnet -w /dotnet microsoft/dotnet /bin/bash -c 'dotnet restore; dotnet publish --configuration release --output .'", wd)
-	fmt.Println("Running prebuild command:", pbcmd)
-	parts := strings.Fields(pbcmd)
-	head := parts[0]
-	parts = parts[1:len(parts)]
-	cmd := exec.Command(head, parts...)
-	fmt.Println(head, parts)
+	cmd := exec.Command("docker", "run", "--rm", "-v", wd+":/dotnet", "-w", "/dotnet", "microsoft/dotnet", "dotnet restore")
 	// cmd.Dir = dir
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
