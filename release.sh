@@ -30,4 +30,4 @@ docker push $user/$service:$version
 docker push $user/$service:$tag
 
 cd fn
-bash release.sh $version
+./release.sh $version
