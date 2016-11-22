@@ -15,7 +15,7 @@ func (s *Server) handleRouteDelete(c *gin.Context) {
 
 	appName := c.Param("app")
 	routePath := c.Param("route")
-	err := Api.Datastore.RemoveRoute(appName, routePath)
+	err := Api.Datastore.RemoveRoute(ctx, appName, routePath)
 
 	if err != nil {
 		log.WithError(err).Debug(models.ErrRoutesRemoving)

@@ -14,7 +14,7 @@ func handleAppDelete(c *gin.Context) {
 	log := common.Logger(ctx)
 
 	appName := c.Param("app")
-	err := Api.Datastore.RemoveApp(appName)
+	err := Api.Datastore.RemoveApp(ctx, appName)
 
 	if err != nil {
 		log.WithError(err).Debug(models.ErrAppsRemoving)
