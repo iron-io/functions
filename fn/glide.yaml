@@ -7,8 +7,6 @@ import:
   subpackages:
   - bump
   - storage
-- package: github.com/iron-io/functions_go
-  version: 7f5bf75abece5380e916b594e17a552be365276d
 - package: github.com/iron-io/iron_go3
   subpackages:
   - config
@@ -20,3 +18,5 @@ import:
   subpackages:
   - ssh/terminal
 - package: gopkg.in/yaml.v2
+- package: github.com/iron-io/functions_go
+  version: fd8bdc8fa9d6d2767fa97dc4b8dfcbff3f6081a7

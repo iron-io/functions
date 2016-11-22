@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"text/tabwriter"
 
@@ -20,14 +21,15 @@ func apps() cli.Command {
 
 	return cli.Command{
 		Name:      "apps",
-		Usage:     "list apps",
+		Usage:     "operate applications",
 		ArgsUsage: "fn apps",
-		Action:    a.list,
 		Subcommands: []cli.Command{
 			{
-				Name:   "create",
-				Usage:  "create a new app",
-				Action: a.create,
+				Name:      "create",
+				Aliases:   []string{"c"},
+				Usage:     "create a new app",
+				ArgsUsage: "`app`",
+				Action:    a.create,
 				Flags: []cli.Flag{
 					cli.StringSliceFlag{
 						Name:  "config",
@@ -36,40 +38,59 @@ func apps() cli.Command {
 				},
 			},
 			{
-				Name:   "config",
-				Usage:  "operate an application configuration set",
-				Action: a.configList,
-				Flags: []cli.Flag{
-					cli.BoolFlag{
-						Name:  "shell",
-						Usage: "output in shell format",
-					},
-					cli.BoolFlag{
-						Name:  "json",
-						Usage: "output in JSON format",
-					},
-				},
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "list all apps",
+				Action:  a.list,
+			},
+			{
+				Name:  "config",
+				Usage: "operate an application configuration set",
 				Subcommands: []cli.Command{
 					{
-						Name:        "set",
-						Description: "store a configuration key for this application",
-						Usage:       "<app> <key> <value>",
-						Action:      a.configSet,
+						Name:      "view",
+						Aliases:   []string{"v"},
+						Usage:     "view all configuration keys for this app",
+						ArgsUsage: "`app`",
+						Action:    a.configList,
+						Flags: []cli.Flag{
+							cli.BoolFlag{
+								Name:  "shell,s",
+								Usage: "output in shell format",
+							},
+							cli.BoolFlag{
+								Name:  "json,j",
+								Usage: "output in JSON format",
+							},
+						},
 					},
 					{
-						Name:        "unset",
-						Description: "remove a configuration key for this application",
-						Usage:       "<app> <key> <value>",
-						Action:      a.configUnset,
+						Name:      "set",
+						Aliases:   []string{"s"},
+						Usage:     "store a configuration key for this application",
+						ArgsUsage: "`app` <key> <value>",
+						Action:    a.configSet,
+					},
+					{
+						Name:      "unset",
+						Aliases:   []string{"u"},
+						Usage:     "remove a configuration key for this application",
+						ArgsUsage: "`app` <key>",
+						Action:    a.configUnset,
 					},
 				},
+			},
+			{
+				Name:   "delete",
+				Usage:  "delete an app",
+				Action: a.delete,
 			},
 		},
 	}
 }
 
 func (a *appsCmd) list(c *cli.Context) error {
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -95,7 +116,7 @@ func (a *appsCmd) create(c *cli.Context) error {
 		return errors.New("error: app creating takes one argument, an app name")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -117,7 +138,7 @@ func (a *appsCmd) configList(c *cli.Context) error {
 		return errors.New("error: app description takes one argument, an app name")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -157,7 +178,7 @@ func (a *appsCmd) configSet(c *cli.Context) error {
 		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -191,7 +212,7 @@ func (a *appsCmd) configUnset(c *cli.Context) error {
 		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
 	}
 
-	if err := resetBasePath(&a.Configuration); err != nil {
+	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
@@ -232,5 +253,28 @@ func (a *appsCmd) storeApp(appName string, config map[string]string) error {
 	if _, _, err := a.AppsPost(body); err != nil {
 		return fmt.Errorf("error updating app configuration: %v", err)
 	}
+	return nil
+}
+
+func (a *appsCmd) delete(c *cli.Context) error {
+	appName := c.Args().First()
+	if appName == "" {
+		return errors.New("error: deleting an app takes one argument, an app name")
+	}
+
+	if err := resetBasePath(a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
+
+	resp, err := a.AppsAppDelete(appName)
+	if err != nil {
+		return fmt.Errorf("error deleting app: %v", err)
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		return errors.New("could not delete this application - pending routes")
+	}
+
+	fmt.Println(appName, "deleted")
 	return nil
 }
