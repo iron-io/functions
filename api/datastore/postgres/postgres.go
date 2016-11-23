@@ -214,7 +214,6 @@ func (ds *PostgresDatastore) GetApps(ctx context.Context, filter *models.AppFilt
 	res := []*models.App{}
 
 	filterQuery := buildFilterAppQuery(filter)
-	fmt.Println(fmt.Sprintf("SELECT DISTINCT * FROM apps %s", filterQuery))
 	rows, err := ds.db.Query(fmt.Sprintf("SELECT DISTINCT * FROM apps %s", filterQuery))
 
 	if err != nil {
