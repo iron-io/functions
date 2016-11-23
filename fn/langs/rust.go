@@ -9,7 +9,7 @@ import (
 type RustLangHelper struct{}
 
 func (lh *RustLangHelper) Entrypoint() string {
-	return "func"
+	return "/function/target/release/func"
 }
 
 func (lh *RustLangHelper) HasPreBuild() bool {
@@ -27,7 +27,7 @@ func (lh *RustLangHelper) PreBuild() error {
 		"docker", "run",
 		"--rm", "-v",
 		wd+":/app", "-w", "/app", "corey/rust-alpine",
-		"cargo build --release",
+		"/bin/sh", "-c", "cargo build --release",
 	)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
@@ -38,5 +38,5 @@ func (lh *RustLangHelper) PreBuild() error {
 }
 
 func (lh *RustLangHelper) AfterBuild() error {
-	return nil
+	return os.RemoveAll("target")
 }

@@ -3,4 +3,8 @@ name = "hello"
 version = "0.1.0"
 authors = ["Seif Lotfy <seif@iron.io>"]
 
+[[bin]]
+name = "func"
+path = "func.rs"
+
 [dependencies]
