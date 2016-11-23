@@ -8,7 +8,7 @@ First create an epty rust project as follows:
 cargo init --name func --bin
 ```
 
-Makse sure the project name is ***func*** and is of type ***bin***. Now just edit your code, once done you can create an iron function.
+Make sure the project name is ***func*** and is of type ***bin***. Now just edit your code, once done you can create an iron function.
 
 ## Creating an IronFunction
 Simply run
