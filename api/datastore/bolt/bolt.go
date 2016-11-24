@@ -527,6 +527,9 @@ func applyAppFilter(app *models.App, filter *models.AppFilter) bool {
 }
 
 func applyRouteFilter(route *models.Route, filter *models.RouteFilter) bool {
+	if filter == nil {
+		return true
+	}
 	return (filter.Path == "" || route.Path == filter.Path) &&
 		(filter.AppName == "" || route.AppName == filter.AppName) &&
 		(filter.Image == "" || route.Image == filter.Image)
