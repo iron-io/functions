@@ -518,7 +518,7 @@ func (ds *BoltDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 }
 
 func applyAppFilter(app *models.App, filter *models.AppFilter) bool {
-	if filter.Name != "" {
+	if filter != nil && filter.Name != "" {
 		nameLike, err := regexp.MatchString(strings.Replace(filter.Name, "%", ".*", -1), app.Name)
 		return err == nil && nameLike
 	}
