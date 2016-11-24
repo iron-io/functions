@@ -201,7 +201,9 @@ func (ds *BoltDatastore) GetApps(ctx context.Context, filter *models.AppFilter) 
 			if err != nil {
 				return err
 			}
-			res = append(res, app)
+			if applyAppFilter(app, filter) {
+				res = append(res, app)
+			}
 			return nil
 		})
 		if err2 != nil {
