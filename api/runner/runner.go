@@ -27,6 +27,7 @@ type Config struct {
 	Image   string
 	Timeout time.Duration
 	AppName string
+	Path    string
 	Memory  uint64
 	Env     map[string]string
 	Stdin   io.Reader
@@ -161,7 +162,7 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 		cfg.Memory = 128
 	}
 
-	cfg.Stderr = r.flog.Writer(ctx)
+	cfg.Stderr = r.flog.Writer(ctx, cfg.AppName, cfg.Path, cfg.Image, cfg.ID)
 
 	ctask := &containerTask{
 		ctx:    ctx,
