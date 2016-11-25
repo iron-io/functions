@@ -141,7 +141,6 @@ func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, f
 	}
 
 	var stdout bytes.Buffer // TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
-	stderr := runner.NewFuncLogger(appName, route, found.Image, reqID)
 
 	envVars := map[string]string{
 		"METHOD":      c.Request.Method,
@@ -173,7 +172,6 @@ func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, f
 		ID:      reqID,
 		AppName: appName,
 		Stdout:  &stdout,
-		Stderr:  stderr,
 		Env:     envVars,
 		Memory:  found.Memory,
 		Stdin:   payload,
