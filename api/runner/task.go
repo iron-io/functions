@@ -7,6 +7,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/runner/drivers"
+	"golang.org/x/net/context"
 )
 
 type containerTask struct {
