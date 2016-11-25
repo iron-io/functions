@@ -163,6 +163,9 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 	}
 
 	cfg.Stderr = r.flog.Writer(ctx, cfg.AppName, cfg.Path, cfg.Image, cfg.ID)
+	if cfg.Stdout == nil {
+		cfg.Stdout = cfg.Stderr
+	}
 
 	ctask := &containerTask{
 		ctx:    ctx,

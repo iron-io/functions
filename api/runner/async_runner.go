@@ -51,7 +51,6 @@ func getCfg(task *models.Task) *Config {
 		Timeout: time.Duration(*task.Timeout) * time.Second,
 		ID:      task.ID,
 		AppName: task.AppName,
-		Stdout:  ioutil.Discard,
 		Env:     task.EnvVars,
 	}
 	return cfg
