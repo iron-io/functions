@@ -85,11 +85,11 @@ func (r *Route) Validate() error {
 		res = append(res, ErrRoutesValidationInvalidType)
 	}
 
-	if r.Format != FormatDefault && r.Format != FormatHTTP && r.Format != FormatJSON {
+	if r.Format != FormatDefault && r.Format != FormatHTTP {
 		res = append(res, ErrRoutesValidationInvalidFormat)
 	}
 
-	if r.MaxConcurrency == 0 && (r.Format == FormatHTTP || r.Format == FormatJSON) {
+	if r.MaxConcurrency == 0 && r.Format == FormatHTTP {
 		r.MaxConcurrency = 1
 	}
 

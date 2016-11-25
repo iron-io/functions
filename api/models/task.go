@@ -26,8 +26,6 @@ const (
 	FormatDefault = ""
 	// FormatHTTP ...
 	FormatHTTP = "http"
-	// FormatJSON ...
-	FormatJSON = "json"
 )
 
 /*Task task
