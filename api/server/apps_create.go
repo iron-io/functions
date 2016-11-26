@@ -55,7 +55,7 @@ func (s *Server) handleAppCreate(c *gin.Context) {
 		return
 	}
 
-	s.resetcache(wapp.App.Name, 1)
+	s.Cacher.ResetCache(ctx, wapp.App.Name, 1)
 
 	c.JSON(http.StatusCreated, appResponse{"App successfully created", wapp.App})
 }
