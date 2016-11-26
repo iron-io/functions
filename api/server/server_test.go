@@ -16,6 +16,7 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
+	"github.com/iron-io/functions/api/server/routecache"
 	"github.com/iron-io/runner/common"
 )
 
@@ -23,7 +24,8 @@ var tmpBolt = "/tmp/func_test_bolt.db"
 
 func testRouter(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan runner.TaskRequest) *gin.Engine {
 	ctx := context.Background()
-	s := New(ctx, ds, mq, rnr, tasks, DefaultEnqueue)
+	cacher, _ := routecache.NewDefaultCacher(ds)
+	s := New(ctx, ds, mq, rnr, cacher, tasks, DefaultEnqueue)
 	r := s.Router
 	r.Use(gin.Logger())
 

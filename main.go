@@ -14,6 +14,7 @@ import (
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/server"
+	"github.com/iron-io/functions/api/server/routecache"
 	"github.com/spf13/viper"
 )
 
@@ -75,6 +76,11 @@ func main() {
 		log.WithError(err).Fatalln("Failed to create a runner")
 	}
 
+	cacher, err := routecache.NewDefaultCacher(ds)
+	if err != nil {
+		log.WithError(err).Fatalln("Failed to create a route cacher")
+	}
+
 	svr := &supervisor.Supervisor{
 		MaxRestarts: supervisor.AlwaysRestart,
 		Log: func(msg interface{}) {
@@ -89,7 +95,7 @@ func main() {
 	})
 
 	svr.AddFunc(func(ctx context.Context) {
-		srv := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
+		srv := server.New(ctx, ds, mq, rnr, cacher, tasks, server.DefaultEnqueue)
 		srv.Run()
 		<-ctx.Done()
 	})
