@@ -13,12 +13,14 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
+	"github.com/iron-io/functions/api/server/routecache"
 	"github.com/iron-io/runner/common"
 )
 
 func testRouterAsync(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan runner.TaskRequest, enqueue models.Enqueue) *gin.Engine {
 	ctx := context.Background()
-	s := New(ctx, ds, mq, rnr, tasks, enqueue)
+	cacher, _ := routecache.NewDefaultCacher(ds)
+	s := New(ctx, ds, mq, rnr, cacher, tasks, enqueue)
 	r := s.Router
 	r.Use(gin.Logger())
 
