@@ -6,12 +6,6 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-type AppListener interface {
-	AppCreateListener
-	AppUpdateListener
-	AppDeleteListener
-}
-
 type AppCreateListener interface {
 	// BeforeAppCreate called right before creating App in the database
 	BeforeAppCreate(ctx context.Context, app *models.App) error
