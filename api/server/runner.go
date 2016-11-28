@@ -90,7 +90,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on LRU cache")
 	route, ok := s.Cacher.CacheGet(ctx, appName, path)
-	if ok && s.serve(c, log, appName, route, app, path, reqID, payload, enqueue) {
+	if ok && s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
 		s.Cacher.RefreshCache(ctx, appName, route)
 		return
 	}
@@ -113,7 +113,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	route = routes[0]
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
-	if s.serve(c, log, appName, route, app, path, reqID, payload, enqueue) {
+	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
 		s.Cacher.RefreshCache(ctx, appName, route)
 		return
 	}
