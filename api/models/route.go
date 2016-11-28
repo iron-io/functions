@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultRouteTimeout = 60
+	defaultRouteTimeout = 30 // seconds
 )
 
 var (
