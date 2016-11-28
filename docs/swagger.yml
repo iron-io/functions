@@ -346,6 +346,10 @@ definitions:
             description: Route configuration - overrides application configuration
             additionalProperties:
               type: string
+          timeout:
+            type: integer
+            default: 60
+            description: Timeout for executions of this route. Value in Seconds
 
   App:
     type: object
