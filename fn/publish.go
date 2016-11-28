@@ -92,6 +92,7 @@ func (p *publishcmd) route(path string, ff *funcfile) error {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
+	// TODO: This is just a nasty hack and should be cleaned up all the way
 	pathsSplit := strings.Split(ff.FullName(), "/")
 
 	if ff.App == nil {
