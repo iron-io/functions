@@ -28,7 +28,7 @@ type AppUpdateListener interface {
 
 type AppDeleteListener interface {
 	// BeforeAppDelete called right before deleting App in the database
-	BeforeAppDelete(ctx context.Context, app *models.App) error
+	BeforeAppDelete(ctx context.Context, appName string) error
 	// AfterAppDelete called after deleting App in the database
-	AfterAppDelete(ctx context.Context, app *models.App) error
+	AfterAppDelete(ctx context.Context, appName string) error
 }

@@ -51,9 +51,9 @@ func (s *Server) FireAfterAppUpdate(ctx context.Context, app *models.App) error 
 	return nil
 }
 
-func (s *Server) FireBeforeAppDelete(ctx context.Context, app *models.App) error {
+func (s *Server) FireBeforeAppDelete(ctx context.Context, appName string) error {
 	for _, l := range s.AppListeners {
-		err := l.BeforeAppDelete(ctx, app)
+		err := l.BeforeAppDelete(ctx, appName)
 		if err != nil {
 			return err
 		}
@@ -61,9 +61,9 @@ func (s *Server) FireBeforeAppDelete(ctx context.Context, app *models.App) error
 	return nil
 }
 
-func (s *Server) FireAfterAppDelete(ctx context.Context, app *models.App) error {
+func (s *Server) FireAfterAppDelete(ctx context.Context, appName string) error {
 	for _, l := range s.AppListeners {
-		err := l.AfterAppDelete(ctx, app)
+		err := l.AfterAppDelete(ctx, appName)
 		if err != nil {
 			return err
 		}
