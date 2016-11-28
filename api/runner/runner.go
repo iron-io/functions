@@ -25,7 +25,8 @@ import (
 type Runner struct {
 	driver       drivers.Driver
 	taskQueue    chan *containerTask
-	ml           Logger
+	mlog         MetricLogger
+	flog         FuncLogger
 	availableMem int64
 	usedMem      int64
 	usedMemMutex sync.RWMutex
@@ -38,7 +39,7 @@ var (
 	WaitMemoryTimeout = 10 * time.Second
 )
 
-func New(metricLogger Logger) (*Runner, error) {
+func New(flog FuncLogger, mlog MetricLogger) (*Runner, error) {
 	// TODO: Is this really required for the container drivers? Can we remove it?
 	env := common.NewEnvironment(func(e *common.Environment) {})
 
@@ -51,7 +52,8 @@ func New(metricLogger Logger) (*Runner, error) {
 	r := &Runner{
 		driver:       driver,
 		taskQueue:    make(chan *containerTask, 100),
-		ml:           metricLogger,
+		flog:         flog,
+		mlog:         mlog,
 		availableMem: getAvailableMemory(),
 		usedMem:      0,
 	}
@@ -88,12 +90,12 @@ func (r *Runner) queueHandler() {
 		}
 
 		metricBaseName := fmt.Sprintf("run.%s.", task.cfg.AppName)
-		r.ml.LogTime(task.ctx, metricBaseName+"wait_time", waitTime)
-		r.ml.LogTime(task.ctx, "run.wait_time", waitTime)
+		r.mlog.LogTime(task.ctx, metricBaseName+"wait_time", waitTime)
+		r.mlog.LogTime(task.ctx, "run.wait_time", waitTime)
 
 		if timedOut {
 			// Send to a signal to this task saying it cannot run
-			r.ml.LogCount(task.ctx, metricBaseName+"timeout", 1)
+			r.mlog.LogCount(task.ctx, metricBaseName+"timeout", 1)
 			task.canRun <- false
 			continue
 		}
@@ -147,6 +149,11 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 		cfg.Memory = 128
 	}
 
+	cfg.Stderr = r.flog.Writer(ctx, cfg.AppName, cfg.Path, cfg.Image, cfg.ID)
+	if cfg.Stdout == nil {
+		cfg.Stdout = cfg.Stderr
+	}
+
 	ctask := &containerTask{
 		ctx:    ctx,
 		cfg:    cfg,
@@ -154,7 +161,7 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 	}
 
 	metricBaseName := fmt.Sprintf("run.%s.", cfg.AppName)
-	r.ml.LogCount(ctx, metricBaseName+"requests", 1)
+	r.mlog.LogCount(ctx, metricBaseName+"requests", 1)
 
 	// Check if has enough available memory
 	// If available, use it
@@ -164,7 +171,7 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 		case r.taskQueue <- ctask:
 		default:
 			// If queue is full, return error
-			r.ml.LogCount(ctx, "queue.full", 1)
+			r.mlog.LogCount(ctx, "queue.full", 1)
 			return nil, ErrFullQueue
 		}
 
@@ -174,7 +181,7 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 			return nil, ErrTimeOutNoMemory
 		}
 	} else {
-		r.ml.LogTime(ctx, metricBaseName+"waittime", 0)
+		r.mlog.LogTime(ctx, metricBaseName+"waittime", 0)
 	}
 	defer r.addUsedMem(-1 * int64(cfg.Memory))
 
@@ -192,14 +199,14 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 	}
 
 	if result.Status() == "success" {
-		r.ml.LogCount(ctx, metricBaseName+"succeeded", 1)
+		r.mlog.LogCount(ctx, metricBaseName+"succeeded", 1)
 	} else {
-		r.ml.LogCount(ctx, metricBaseName+"error", 1)
+		r.mlog.LogCount(ctx, metricBaseName+"error", 1)
 	}
 
 	metricElapsed := time.Since(metricStart)
-	r.ml.LogTime(ctx, metricBaseName+"time", metricElapsed)
-	r.ml.LogTime(ctx, "run.exec_time", metricElapsed)
+	r.mlog.LogTime(ctx, metricBaseName+"time", metricElapsed)
+	r.mlog.LogTime(ctx, "run.exec_time", metricElapsed)
 
 	return result, nil
 }

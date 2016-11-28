@@ -42,19 +42,16 @@ func getTask(ctx context.Context, url string) (*models.Task, error) {
 }
 
 func getCfg(t *models.Task) *task.Config {
-	// TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
-	stderr := NewFuncLogger(t.AppName, t.Path, *t.Image, t.ID) // TODO: missing path here, how do i get that?
 	if t.Timeout == nil {
 		timeout := int32(30)
 		t.Timeout = &timeout
 	}
+
 	cfg := &task.Config{
 		Image:   *t.Image,
 		Timeout: time.Duration(*t.Timeout) * time.Second,
 		ID:      t.ID,
 		AppName: t.AppName,
-		Stdout:  stderr,
-		Stderr:  stderr,
 		Env:     t.EnvVars,
 	}
 	return cfg

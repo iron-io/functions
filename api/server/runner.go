@@ -91,7 +91,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on LRU cache")
 	route, ok := s.cacheget(appName, path)
-	if ok && s.serve(c, log, appName, route, app, path, reqID, payload, enqueue) {
+	if ok && s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
 		s.refreshcache(appName, route)
 		return
 	}
@@ -114,7 +114,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	route = routes[0]
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
-	if s.serve(c, log, appName, route, app, path, reqID, payload, enqueue) {
+	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
 		s.refreshcache(appName, route)
 		return
 	}
@@ -133,8 +133,9 @@ func (s *Server) loadroutes(ctx context.Context, filter models.RouteFilter) ([]*
 	return resp.([]*models.Route), err
 }
 
-func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
-	log = log.WithFields(logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
+// TODO: Should remove *gin.Context from these functions, should use only context.Context
+func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
 
 	params, match := matchRoute(found.Path, route)
 	if !match {
@@ -142,7 +143,6 @@ func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, f
 	}
 
 	var stdout bytes.Buffer // TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
-	stderr := runner.NewFuncLogger(appName, route, found.Image, reqID)
 
 	envVars := map[string]string{
 		"METHOD":      c.Request.Method,
@@ -177,7 +177,6 @@ func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, f
 		Image:          found.Image,
 		MaxConcurrency: found.MaxConcurrency,
 		Memory:         found.Memory,
-		Stderr:         stderr,
 		Stdin:          payload,
 		Stdout:         &stdout,
 		Timeout:        30 * time.Second,
@@ -209,7 +208,7 @@ func (s *Server) serve(c *gin.Context, log logrus.FieldLogger, appName string, f
 		c.JSON(http.StatusAccepted, map[string]string{"call_id": task.ID})
 
 	default:
-		result, err := runner.RunTask(s.tasks, c, cfg)
+		result, err := runner.RunTask(s.tasks, ctx, cfg)
 		if err != nil {
 			break
 		}
