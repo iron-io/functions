@@ -94,31 +94,6 @@ func (s *Server) primeCache(ctx context.Context) {
 	logrus.Info("cached prime")
 }
 
-// AddAppListener adds a listener that will be notified on App changes.
-func (s *Server) AddAppListener(listener ifaces.AppListener) {
-	s.AppListeners = append(s.AppListeners, listener)
-}
-
-func (s *Server) FireBeforeAppUpdate(ctx context.Context, app *models.App) error {
-	for _, l := range s.AppListeners {
-		err := l.BeforeAppUpdate(ctx, app)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Server) FireAfterAppUpdate(ctx context.Context, app *models.App) error {
-	for _, l := range s.AppListeners {
-		err := l.AfterAppUpdate(ctx, app)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *Server) AddSpecialHandler(handler ifaces.SpecialHandler) {
 	s.SpecialHandlers = append(s.SpecialHandlers, handler)
 }
