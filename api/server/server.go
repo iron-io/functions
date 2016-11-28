@@ -25,12 +25,14 @@ import (
 var Api *Server
 
 type Server struct {
-	Runner          *runner.Runner
-	Router          *gin.Engine
-	MQ              models.MessageQueue
-	AppListeners    []ifaces.AppListener
-	SpecialHandlers []ifaces.SpecialHandler
-	Enqueue         models.Enqueue
+	Runner             *runner.Runner
+	Router             *gin.Engine
+	MQ                 models.MessageQueue
+	AppCreateListeners []ifaces.AppCreateListener
+	AppUpdateListeners []ifaces.AppUpdateListener
+	AppDeleteListeners []ifaces.AppDeleteListener
+	SpecialHandlers    []ifaces.SpecialHandler
+	Enqueue            models.Enqueue
 
 	tasks chan task.Request
 
