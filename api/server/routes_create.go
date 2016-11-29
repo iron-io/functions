@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner/task"
@@ -63,14 +64,30 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 			return
 		}
 
-		app, err = Api.Datastore.InsertApp(ctx, newapp)
+		err = Api.FireBeforeAppCreate(ctx, newapp)
+		if err != nil {
+			log.WithError(err).Errorln(models.ErrAppsCreate)
+			c.JSON(http.StatusInternalServerError, simpleError(err))
+			return
+		}
+
+		_, err = Api.Datastore.InsertApp(ctx, newapp)
 		if err != nil {
 			log.WithError(err).Error(models.ErrAppsCreate)
 			c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
 			return
 		}
+
+		err = Api.FireAfterAppCreate(ctx, newapp)
+		if err != nil {
+			log.WithError(err).Errorln(models.ErrAppsCreate)
+			c.JSON(http.StatusInternalServerError, simpleError(err))
+			return
+		}
+
 	}
 
+	fmt.Println(wroute.Route)
 	_, err = Api.Datastore.InsertRoute(ctx, wroute.Route)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesCreate)
