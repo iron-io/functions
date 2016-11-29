@@ -25,12 +25,12 @@ ENVIRONMENT VARIABLES:
 		build(),
 		bump(),
 		call(),
+		deploy(),
+		initFn(),
 		lambda(),
-		publish(),
 		push(),
 		routes(),
 		run(),
-		initFn(),
 	}
 	app.Run(os.Args)
 }

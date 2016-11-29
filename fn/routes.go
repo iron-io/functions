@@ -251,7 +251,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 		timeout time.Duration
 	)
 	if image == "" {
-		ff, err := findFuncfile()
+		ff, err := loadFuncfile()
 		if err != nil {
 			if _, ok := err.(*notFoundError); ok {
 				return errors.New("error: image name is missing or no function file found")
