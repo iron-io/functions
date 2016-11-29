@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner/task"
@@ -87,7 +86,6 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 
 	}
 
-	fmt.Println(wroute.Route)
 	_, err = Api.Datastore.InsertRoute(ctx, wroute.Route)
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesCreate)
