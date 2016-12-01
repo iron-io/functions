@@ -24,20 +24,20 @@ var (
 )
 
 type funcfile struct {
-	Name       string  `yaml:"name,omitempty",json:"name,omitempty"`
-	Version    string  `yaml:"version,omitempty",json:"version,omitempty"`
-	Entrypoint *string `yaml:"entrypoint,omitempty",json:"entrypoint,omitempty"`
-	Path       *string `yaml:"path,omitempty",json:"route,omitempty"`
-
-	Format         *string        `yaml:"format,omitempty",json:"format,omitempty"`
-	MaxConcurrency *int           `yaml:"max_concurrency,omitempty",json:"max_concurrency,omitempty"`
-	Memory         *int64         `yaml:"memory,omitempty",json:"memory,omitempty"`
-	Runtime        *string        `yaml:"runtime,omitempty",json:"runtime,omitempty"`
-	Timeout        *time.Duration `yaml:"timeout,omitempty",json:"timeout,omitempty"`
-	Type           *string        `yaml:"type,omitempty",json:"type,omitempty"`
-
-	Config map[string]string `yaml:"config,omitempty",json:"config,omitempty"`
-	Build  []string          `yaml:"build,omitempty",json:"build,omitempty"`
+	App            *string             `yaml:"app,omitempty",json:"app,omitempty"`
+	Name           string              `yaml:"name,omitempty",json:"name,omitempty"`
+	Version        string              `yaml:"version,omitempty",json:"version,omitempty"`
+	Runtime        *string             `yaml:"runtime,omitempty",json:"runtime,omitempty"`
+	Entrypoint     *string             `yaml:"entrypoint,omitempty",json:"entrypoint,omitempty"`
+	Route          *string             `yaml:"route,omitempty",json:"route,omitempty"`
+	Type           *string             `yaml:"type,omitempty",json:"type,omitempty"`
+	Memory         *int64              `yaml:"memory,omitempty",json:"memory,omitempty"`
+	Format         *string             `yaml:"format,omitempty",json:"format,omitempty"`
+	Timeout        *time.Duration      `yaml:"timeout,omitempty",json:"timeout,omitempty"`
+	MaxConcurrency *int                `yaml:"int,omitempty",json:"int,omitempty"`
+	Headers        map[string][]string `yaml:"headers,omitempty",json:"headers,omitempty"`
+	Config         map[string]string   `yaml:"config,omitempty",json:"config,omitempty"`
+	Build          []string            `yaml:"build,omitempty",json:"build,omitempty"`
 }
 
 func (ff *funcfile) FullName() string {

@@ -6,7 +6,7 @@ swagger: '2.0'
 info:
   title: IronFunctions
   description: The open source serverless platform.
-  version: "0.1.20"
+  version: "0.1.23"
 # the domain of the service
 host: "127.0.0.1:8080"
 # array of all schemes that your API supports
@@ -20,6 +20,16 @@ consumes:
 produces:
   - application/json
 paths:
+  /version:
+    get:
+      summary: "Get daemon version."
+      tags:
+        - Version
+      responses:
+        200:
+          description: Daemon version.
+          schema:
+            $ref: '#/definitions/Version'
   /apps:
     get:
       summary: "Get all app names."
@@ -309,10 +319,6 @@ definitions:
     allOf:
       - type: object
         properties:
-          app_name:
-            type: string
-            description: "App this route belongs to."
-            readOnly: true
           path:
             type: string
             description: URL path that will be matched to this route
@@ -320,8 +326,12 @@ definitions:
             description: Name of Docker image to use in this route. You should include the image tag, which should be a version number, to be more accurate. Can be overridden on a per route basis with route.image.
             type: string
           headers:
-            type: string
+            type: object
             description: Map of http headers that will be sent with the response
+            additionalProperties:
+              type: array
+              items:
+                type: string
           memory:
             type: integer
             format: int64
@@ -363,6 +373,13 @@ definitions:
         description: Application configuration
         additionalProperties:
           type: string
+
+  Version:
+    type: object
+    properties:
+      version:
+        type: string
+        readOnly: true
 
   RoutesWrapper:
     type: object
