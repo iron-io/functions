@@ -149,15 +149,28 @@ func (p *deploycmd) route(path string, ff *funcfile) error {
 	if ff.Type == nil {
 		ff.Type = new(string)
 	}
+	if ff.Format == nil {
+		ff.Format = new(string)
+	}
+	if ff.MaxConcurrency == nil {
+		ff.MaxConcurrency = new(int)
+	}
+	if ff.Timeout == nil {
+		dur := time.Duration(0)
+		ff.Timeout = &dur
+	}
 
 	body := functions.RouteWrapper{
 		Route: functions.Route{
-			Path:    *ff.Path,
-			Image:   ff.FullName(),
-			AppName: p.appName,
-			Memory:  *ff.Memory,
-			Type_:   *ff.Type,
-			Config:  expandEnvConfig(ff.Config),
+			Path:           *ff.Path,
+			Image:          ff.FullName(),
+			Memory:         *ff.Memory,
+			Type_:          *ff.Type,
+			Config:         expandEnvConfig(ff.Config),
+			Headers:        ff.Headers,
+			Format:         *ff.Format,
+			MaxConcurrency: int32(*ff.MaxConcurrency),
+			Timeout:        int32(ff.Timeout.Seconds()),
 		},
 	}
 

@@ -24,12 +24,11 @@ var (
 )
 
 type funcfile struct {
-	App            *string             `yaml:"app,omitempty",json:"app,omitempty"`
 	Name           string              `yaml:"name,omitempty",json:"name,omitempty"`
 	Version        string              `yaml:"version,omitempty",json:"version,omitempty"`
 	Runtime        *string             `yaml:"runtime,omitempty",json:"runtime,omitempty"`
 	Entrypoint     *string             `yaml:"entrypoint,omitempty",json:"entrypoint,omitempty"`
-	Route          *string             `yaml:"route,omitempty",json:"route,omitempty"`
+	Path           *string             `yaml:"path,omitempty",json:"path,omitempty"`
 	Type           *string             `yaml:"type,omitempty",json:"type,omitempty"`
 	Memory         *int64              `yaml:"memory,omitempty",json:"memory,omitempty"`
 	Format         *string             `yaml:"format,omitempty",json:"format,omitempty"`
