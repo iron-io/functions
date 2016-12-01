@@ -311,7 +311,6 @@ func (a *routesCmd) create(c *cli.Context) error {
 
 	body := functions.RouteWrapper{
 		Route: functions.Route{
-			AppName:        appName,
 			Path:           route,
 			Image:          image,
 			Memory:         c.Int64("memory"),
@@ -395,7 +394,7 @@ func (a *routesCmd) configList(c *cli.Context) error {
 			fmt.Print("export ", k, "=", v, "\n")
 		}
 	} else {
-		fmt.Println(wrapper.Route.AppName, wrapper.Route.Path, "configuration:")
+		fmt.Println(appName, wrapper.Route.Path, "configuration:")
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
 		for k, v := range config {
 			fmt.Fprint(w, k, ":\t", v, "\n")
@@ -441,7 +440,7 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
-	fmt.Println(wrapper.Route.AppName, wrapper.Route.Path, "updated", key, "with", value)
+	fmt.Println(appName, wrapper.Route.Path, "updated", key, "with", value)
 	return nil
 }
 
@@ -484,7 +483,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
-	fmt.Println(wrapper.Route.AppName, wrapper.Route.Path, "removed", key)
+	fmt.Println(appName, wrapper.Route.Path, "removed", key)
 	return nil
 }
 

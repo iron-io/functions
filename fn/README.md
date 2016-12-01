@@ -82,6 +82,10 @@ $ fn routes delete otherapp hello              # delete route
 
 $ fn routes headers set otherapp hello header-name value         # add HTTP header to response
 otherapp /hello headers updated header-name with value
+
+$ fn version                                   # shows version both of client and server
+Client version: 0.1.0
+Server version: 0.1.21
 ```
 
 ## Application level configuration
