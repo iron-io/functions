@@ -47,7 +47,7 @@ func (r *runCmd) run(c *cli.Context) error {
 		image = ff.FullName()
 	}
 
-	return runff(image, c.StringSlice("e"), getStdin(), os.Stdout, os.Stderr)
+	return runff(image, c.StringSlice("e"), stdin(), os.Stdout, os.Stderr)
 }
 
 func runff(image string, restrictedEnv []string, stdin io.Reader, stdout, stderr io.Writer) error {

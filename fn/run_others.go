@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func getStdin() io.Reader {
+func stdin() io.Reader {
 	var stdin io.Reader = os.Stdin
 	stat, err := os.Stdin.Stat()
 	if err != nil || (stat.Mode()&os.ModeCharDevice) != 0 {

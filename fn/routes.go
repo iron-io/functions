@@ -15,7 +15,6 @@ import (
 
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type routesCmd struct {
@@ -225,11 +224,7 @@ func (a *routesCmd) call(c *cli.Context) error {
 
 	u, err := url.Parse("../")
 	u.Path = path.Join(u.Path, "r", appName, route)
-
-	var content io.Reader
-	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		content = os.Stdin
-	}
+	content := stdin()
 
 	return callfn(baseURL.ResolveReference(u).String(), content, os.Stdout, c.StringSlice("e"))
 }
