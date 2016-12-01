@@ -48,9 +48,8 @@ this function calls.
 setup. These configuration options shall override application configuration
 during functions execution.
 
-`build` (optional) is an array of shell calls which are used to helping building
-the image. These calls are executed before `fn` calls `docker build` and
-`docker push`.
+`build` (optional) is an array of local shell calls which are used to help
+building the function.
 
 ## Hot containers
 
