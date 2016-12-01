@@ -215,13 +215,13 @@ func (a *routesCmd) call(c *cli.Context) error {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
+	appName := c.Args().Get(0)
+	route := c.Args().Get(1)
+
 	baseURL, err := url.Parse(a.Configuration.BasePath)
 	if err != nil {
 		return fmt.Errorf("error parsing base path: %v", err)
 	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
 
 	u, err := url.Parse("../")
 	u.Path = path.Join(u.Path, "r", appName, route)
@@ -231,20 +231,25 @@ func (a *routesCmd) call(c *cli.Context) error {
 		content = os.Stdin
 	}
 
-	req, err := http.NewRequest("POST", baseURL.ResolveReference(u).String(), content)
+	return callfn(baseURL.ResolveReference(u).String(), content, os.Stdout, c.StringSlice("e"))
+}
+
+func callfn(u string, content io.Reader, output io.Writer, env []string) error {
+	req, err := http.NewRequest("POST", u, content)
 	if err != nil {
 		return fmt.Errorf("error running route: %v", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 
-	envAsHeader(req, c.StringSlice("e"))
+	envAsHeader(req, env)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("error running route: %v", err)
 	}
 
-	io.Copy(os.Stdout, resp.Body)
+	io.Copy(output, resp.Body)
 	return nil
 }
 
