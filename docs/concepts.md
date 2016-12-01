@@ -53,8 +53,6 @@ routes:
     function: myOtherRoute/
     tag:
       some-tag: "tagged"
-    config:
-      overwrite_config: "new-config"
 ```
 
 In this case when you run `fn deploy`, the fn tool will create/update all routes with the configured **function** and **path** and tag all of them with `app = name-of-the-app`
