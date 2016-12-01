@@ -47,10 +47,10 @@ func (r *runCmd) run(c *cli.Context) error {
 		image = ff.FullName()
 	}
 
-	return runff(image, c.StringSlice("e"), stdin(), os.Stdout, os.Stderr)
+	return runff(image, stdin(), os.Stdout, os.Stderr, c.StringSlice("e"))
 }
 
-func runff(image string, restrictedEnv []string, stdin io.Reader, stdout, stderr io.Writer) error {
+func runff(image string, stdin io.Reader, stdout, stderr io.Writer, restrictedEnv []string) error {
 	sh := []string{"docker", "run", "--rm", "-i"}
 
 	var env []string
