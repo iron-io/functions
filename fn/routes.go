@@ -267,8 +267,8 @@ func envAsHeader(req *http.Request, selectedEnv []string) {
 }
 
 func (a *routesCmd) create(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: routes creation takes three arguments: an app name, a route path and an image")
+	if c.Args().Get(0) == "" {
+		return errors.New("error: routes creation takes at least one argument: an app name")
 	}
 
 	if err := resetBasePath(a.Configuration); err != nil {
@@ -302,6 +302,16 @@ func (a *routesCmd) create(c *cli.Context) error {
 		if ff.Timeout != nil {
 			timeout = *ff.Timeout
 		}
+		if ff.Path != nil {
+			route = *ff.Path
+		}
+	}
+
+	if route == "" {
+		return errors.New("error: route path is missing")
+	}
+	if image == "" {
+		return errors.New("error: function image name is missing")
 	}
 
 	if f := c.String("format"); f != "" {
