@@ -16,7 +16,7 @@ memory          number                   (max amount of memory used by the funct
 headers         object{key => array}     (returned HTTP headers)
 type            string (sync/async)      (how the function will be running)
 format          string (http/-)          (how the function will receive the payload)
-max_concurrency number                   (max concurrent containers can we run)   
+max_concurrency number                   (max concurrent containers can run per node)   
 timeout         number                   (max amount of second can this function be kept alive)
 config          object{key => value}     (configuration that will be passed to the function container)
 ```
