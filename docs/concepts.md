@@ -44,6 +44,9 @@ You can easily deploy multiple functions inside the same `App` creating a `app.y
 ### App.yaml Structure
 
 ```
+config:
+  db: "mongodb://localhost:27017"
+
 routes:
   /name-of-the-app/myRoute: {path to the function directory}
   /name-of-the-app/myOtherRoute:
