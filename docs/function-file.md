@@ -57,9 +57,9 @@ Hot containers support also adds two extra options to this configuration file.
 
 `format` (optional) is one of the streaming formats covered at [function-format.md](function-format.md).
 
-`max_concurrency` (optional) is the maximum of hot containers to be started for
-a certain function. It defaults to one per function. If you understand you need
-more processing power, make sure to raise this number. Keep in mind that if
-there is not available memory to execute the configured workload, it will fail
-to start new hot containers.
+`max_concurrency` (optional) is the maximum of hot containers per node to be 
+started for a certain function. It defaults to one per function. If you 
+understand you need more processing power, make sure to raise this number. 
+Keep in mind that if there is not available memory to execute the configured 
+workload, it will fail to start new hot containers.
 
