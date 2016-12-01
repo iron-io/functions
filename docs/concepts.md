@@ -4,21 +4,21 @@
 
 **Function** is the unit responsible for handling a specific part of your service. Is usually formed by a small code that receives a payload, does its work and can return the result.
 
-You can [configure a function](#Link-to-the-function-file-doc) adding a file called `func.yml` in its source directory and setup how that function needs to run.
+You can [configure a function](#Link-to-the-function-file-doc) adding a file called `func.yaml` in its source directory and setup how that function needs to run.
 
 A function will run a task inside a container when triggered by a [route](#Route).
 
 ### Function Structure
 
 ```
-image          string                   (username/function_name)
-memory         number                   (max amount of memory used by the function)
-headers        object{key => array}     (returned HTTP headers)
-type           string (sync/async)      (how the function will be running)
-format         string (http/-)          (how the function will receive the payload)
-maxconcurrency number                   (max concurrent containers can we run)   
-timeout        number                   (max amount of second can this function be kept alive)
-config         object{key => value}     (configuration that will be passed to the function container)
+name            string                   (username/function_name)
+memory          number                   (max amount of memory used by the function)
+headers         object{key => array}     (returned HTTP headers)
+type            string (sync/async)      (how the function will be running)
+format          string (http/-)          (how the function will receive the payload)
+max_concurrency number                   (max concurrent containers can we run)   
+timeout         number                   (max amount of second can this function be kept alive)
+config          object{key => value}     (configuration that will be passed to the function container)
 ```
 
 ## Routes
@@ -39,16 +39,17 @@ function       Function{}               (function that will be triggered)
 
 **App** is a collection of functions grouped by a tag name, in this case, by the tag `app`.
 
-You can easily deploy multiple functions inside the same `App` creating a `app.yml` file in the parent directory of your functions directory.
+You can easily deploy multiple functions inside the same `App` creating a `app.yaml` file in the parent directory of your functions directory.
 
-### App.yml Structure
+### App.yaml Structure
 
 ```
-name: name-of-the-app 
-
-functions:
-  - "/name-of-the-app/myRoute:{path to the function directory}"
-  - "/name-of-the-app/myOtherRoute:myOtherRoute/"
+routes:
+  /name-of-the-app/myRoute: {path to the function directory}
+  /name-of-the-app/myOtherRoute:
+    function: myOtherRoute/
+    tag:
+      private: true
 ```
 
 In this case when you run `fn deploy`, the fn tool will create/update all routes with the configured **function** and **path** and tag all of them with `app = name-of-the-app`
