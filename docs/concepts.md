@@ -45,11 +45,11 @@ You can easily deploy multiple functions inside the same `App` creating a `app.y
 
 ```
 config:
-  db: "mongodb://localhost:27017"
+  my_config: "some-config-value"
 
 routes:
-  /name-of-the-app/myRoute: {path to the function directory}
-  /name-of-the-app/myOtherRoute:
+  /v1/myRoute: {path to the function directory}
+  /v1/myOtherRoute:
     function: myOtherRoute/
     tag:
       some-tag: "tagged"
