@@ -39,7 +39,7 @@ var (
 	WaitMemoryTimeout = 10 * time.Second
 )
 
-func New(flog FuncLogger, mlog MetricLogger) (*Runner, error) {
+func New(ctx context.Context, flog FuncLogger, mlog MetricLogger) (*Runner, error) {
 	// TODO: Is this really required for the container drivers? Can we remove it?
 	env := common.NewEnvironment(func(e *common.Environment) {})
 
@@ -58,7 +58,7 @@ func New(flog FuncLogger, mlog MetricLogger) (*Runner, error) {
 		usedMem:      0,
 	}
 
-	go r.queueHandler()
+	go r.queueHandler(ctx)
 
 	return r, nil
 }
@@ -67,7 +67,7 @@ func New(flog FuncLogger, mlog MetricLogger) (*Runner, error) {
 // If there's memory then send signal to the task to proceed.
 // If there's not available memory to run the task it waits
 // If the task waits for more than X seconds it timeouts
-func (r *Runner) queueHandler() {
+func (r *Runner) queueHandler(ctx context.Context) {
 	var task *containerTask
 	var waitStart time.Time
 	var waitTime time.Duration
@@ -77,6 +77,8 @@ func (r *Runner) queueHandler() {
 		case task = <-r.taskQueue:
 			waitStart = time.Now()
 			timedOut = false
+		case <-ctx.Done():
+			return
 		}
 
 		// Loop waiting for available memory
