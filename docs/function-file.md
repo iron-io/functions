@@ -27,7 +27,8 @@ build:
 route updated to use it.
 
 `path` (optional) allows you to overwrite the calculated route from the path
-position. You may use it to override the calculated route.
+position. You may use it to override the calculated route. If you plan to use
+`fn test --remote=""`, this is mandatory.
 
 `version` represents current version of the function. When deploying, it is
 appended to the image as a tag.
@@ -57,9 +58,35 @@ Hot containers support also adds two extra options to this configuration file.
 
 `format` (optional) is one of the streaming formats covered at [function-format.md](function-format.md).
 
-`max_concurrency` (optional) is the maximum of hot containers per node to be 
-started for a certain function. It defaults to one per function. If you 
-understand you need more processing power, make sure to raise this number. 
-Keep in mind that if there is not available memory to execute the configured 
+`max_concurrency` (optional) is the maximum of hot containers per node to be
+started for a certain function. It defaults to one per function. If you
+understand you need more processing power, make sure to raise this number.
+Keep in mind that if there is not available memory to execute the configured
 workload, it will fail to start new hot containers.
 
+## Testing functions
+
+`tests` (optional) is an array of tests that can be used to valid functions both
+locally and remotely. It has the following structure
+
+```yaml
+tests:
+- name: envvar
+  in: "inserted stdin"
+  out: "expected stdout"
+  err: "expected stderr"
+  env:
+    envvar: trololo
+```
+
+`in` (optional) is a string that is going to be sent to the file's declared
+function.
+
+`out` (optional) is the expected output for this function test. It is present
+both in local and remote executions.
+
+`err` (optional) similar to `out`, however it read from `stderr`. It is only
+available for local machine tests.
+
+`env` (optional) is a map of environment variables that are injected during
+tests.
