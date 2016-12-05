@@ -205,10 +205,6 @@ func scanApp(scanner rowScanner, app *models.App) error {
 		&configStr,
 	)
 
-	if configStr == "" {
-		return models.ErrAppsNotFound
-	}
-
 	json.Unmarshal([]byte(configStr), &app.Config)
 
 	return err
@@ -482,16 +478,18 @@ func (ds *PostgresDatastore) GetRoutesByApp(ctx context.Context, appName string,
 func buildFilterAppQuery(filter *models.AppFilter) string {
 	filterQuery := ""
 
-	filterQueries := []string{}
-	if filter.Name != "" {
-		filterQueries = append(filterQueries, fmt.Sprintf("name LIKE '%s'", filter.Name))
-	}
+	if filter != nil {
+		filterQueries := []string{}
+		if filter.Name != "" {
+			filterQueries = append(filterQueries, fmt.Sprintf("name LIKE '%s'", filter.Name))
+		}
 
-	for i, field := range filterQueries {
-		if i == 0 {
-			filterQuery = fmt.Sprintf("WHERE %s ", field)
-		} else {
-			filterQuery = fmt.Sprintf("%s AND %s", filterQuery, field)
+		for i, field := range filterQueries {
+			if i == 0 {
+				filterQuery = fmt.Sprintf("WHERE %s ", field)
+			} else {
+				filterQuery = fmt.Sprintf("%s AND %s", filterQuery, field)
+			}
 		}
 	}
 
@@ -534,7 +532,7 @@ func (ds *PostgresDatastore) Put(ctx context.Context, key, value []byte) error {
 		VALUES ($1, $2)
 		ON CONFLICT (key) DO UPDATE SET
 			value = $1;
-		`, value)
+		`, string(key), string(value))
 
 	if err != nil {
 		return err
@@ -546,7 +544,7 @@ func (ds *PostgresDatastore) Put(ctx context.Context, key, value []byte) error {
 func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	row := ds.db.QueryRow("SELECT value FROM extras WHERE key=$1", key)
 
-	var value []byte
+	var value string
 	err := row.Scan(&value)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -554,5 +552,5 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 		return nil, err
 	}
 
-	return value, nil
+	return []byte(value), nil
 }
