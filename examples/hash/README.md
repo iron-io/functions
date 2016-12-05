@@ -18,11 +18,21 @@ fn init <username>/<funcname>
 
 This will create the ```func.yaml``` file required by functions, which can be built by running:
 
-## Deploying
+## Push to docker
+```bash
+fn push
+```
+
+This will create a docker image and push the image to docker.
+
+## Publishing to IronFunctions
 
 ```bash
-fn deploy <app_name>
+fn routes create <app_name>
 ```
+
+This creates a full path in the form of `http://<host>:<port>/r/<app_name>/<function>`
+
 
 ## Testing
 
@@ -34,4 +44,10 @@ fn run
 
 ```bash
 fn call <app_name> <funcname>
+```
+
+or
+
+```bash
+curl http://<host>:<port>/r/<app_name>/<function>
 ```
