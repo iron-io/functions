@@ -68,43 +68,51 @@ func New(ctx context.Context, flog FuncLogger, mlog MetricLogger) (*Runner, erro
 // If there's not available memory to run the task it waits
 // If the task waits for more than X seconds it timeouts
 func (r *Runner) queueHandler(ctx context.Context) {
-	var task *containerTask
-	var waitStart time.Time
-	var waitTime time.Duration
-	var timedOut bool
+consumeQueue:
 	for {
 		select {
-		case task = <-r.taskQueue:
-			waitStart = time.Now()
-			timedOut = false
+		case task := <-r.taskQueue:
+			r.handleTask(task)
 		case <-ctx.Done():
-			return
+			break consumeQueue
 		}
-
-		// Loop waiting for available memory
-		for !r.checkRequiredMem(task.cfg.Memory) {
-			waitTime = time.Since(waitStart)
-			if waitTime > WaitMemoryTimeout {
-				timedOut = true
-				break
-			}
-			time.Sleep(time.Microsecond)
-		}
-
-		metricBaseName := fmt.Sprintf("run.%s.", task.cfg.AppName)
-		r.mlog.LogTime(task.ctx, metricBaseName+"wait_time", waitTime)
-		r.mlog.LogTime(task.ctx, "run.wait_time", waitTime)
-
-		if timedOut {
-			// Send to a signal to this task saying it cannot run
-			r.mlog.LogCount(task.ctx, metricBaseName+"timeout", 1)
-			task.canRun <- false
-			continue
-		}
-
-		// Send a signal to this task saying it can run
-		task.canRun <- true
 	}
+
+	// consume remainders
+	for len(r.taskQueue) > 0 {
+		r.handleTask(<-r.taskQueue)
+	}
+}
+
+func (r *Runner) handleTask(task *containerTask) {
+	waitStart := time.Now()
+
+	var waitTime time.Duration
+	var timedOut bool
+
+	// Loop waiting for available memory
+	for !r.checkRequiredMem(task.cfg.Memory) {
+		waitTime = time.Since(waitStart)
+		if waitTime > WaitMemoryTimeout {
+			timedOut = true
+			break
+		}
+		time.Sleep(time.Microsecond)
+	}
+
+	metricBaseName := fmt.Sprintf("run.%s.", task.cfg.AppName)
+	r.mlog.LogTime(task.ctx, metricBaseName+"wait_time", waitTime)
+	r.mlog.LogTime(task.ctx, "run.wait_time", waitTime)
+
+	if timedOut {
+		// Send to a signal to this task saying it cannot run
+		r.mlog.LogCount(task.ctx, metricBaseName+"timeout", 1)
+		task.canRun <- false
+		return
+	}
+
+	// Send a signal to this task saying it can run
+	task.canRun <- true
 }
 
 func (r *Runner) hasAsyncAvailableMemory() bool {
