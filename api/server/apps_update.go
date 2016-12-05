@@ -29,8 +29,8 @@ func handleAppUpdate(c *gin.Context) {
 	}
 
 	if wapp.App.Name != "" {
-		log.Debug(models.ErrAppsUpdate)
-		c.JSON(http.StatusForbidden, simpleError(models.ErrAppsUpdate))
+		log.Debug(models.ErrAppsNameImmutable)
+		c.JSON(http.StatusForbidden, simpleError(models.ErrAppsNameImmutable))
 		return
 	}
 
