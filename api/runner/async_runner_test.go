@@ -203,12 +203,14 @@ func TestAsyncRunnersGracefulShutdown(t *testing.T) {
 	ts := getTestServer([]*models.Task{&mockTask})
 	defer ts.Close()
 
-	tasks := make(chan task.Request)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+
+	rnr := testRunner(t)
+
 	defer cancel()
-	defer close(tasks)
+	defer close(rnr.Tasks)
 	go func() {
-		for t := range tasks {
+		for t := range rnr.Tasks {
 			t.Response <- task.Response{
 				Result: nil,
 				Err:    nil,
@@ -217,7 +219,7 @@ func TestAsyncRunnersGracefulShutdown(t *testing.T) {
 		}
 	}()
 
-	startAsyncRunners(ctx, ts.URL+"/tasks", tasks, testRunner(t))
+	startAsyncRunners(ctx, ts.URL+"/tasks", rnr)
 
 	if err := ctx.Err(); err != context.DeadlineExceeded {
 		t.Log(buf.String())

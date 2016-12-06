@@ -16,15 +16,19 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
-	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 )
 
 var tmpBolt = "/tmp/func_test_bolt.db"
 
-func testRouter(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request) *gin.Engine {
+func testRouter(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner) *gin.Engine {
 	ctx := context.Background()
-	s := New(ctx, ds, mq, rnr, tasks, DefaultEnqueue)
+	s := New(ctx, Components{
+		Datastore:    ds,
+		MessageQueue: mq,
+		Runner:       rnr,
+		EnqueueFunc:  DefaultEnqueue,
+	})
 	r := s.Router
 	r.Use(gin.Logger())
 
@@ -91,12 +95,13 @@ func TestFullStack(t *testing.T) {
 	ds, closeBolt := prepareBolt(t)
 	defer closeBolt()
 
-	tasks := make(chan task.Request)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go runner.StartWorkers(ctx, testRunner(t), tasks)
 
-	router := testRouter(ds, &mqs.Mock{}, testRunner(t), tasks)
+	rnr := testRunner(t)
+	go runner.StartWorkers(ctx, rnr)
+
+	router := testRouter(ds, &mqs.Mock{}, rnr)
 
 	for _, test := range []struct {
 		name         string

@@ -11,7 +11,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/runner/protocol"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/drivers"
 )
 
 // Hot containers - theory of operation
@@ -66,20 +65,10 @@ const (
 	htcntrScaleDownTimeout = 30 * time.Second
 )
 
-// RunTask helps sending a task.Request into the common concurrency stream.
-// Refer to StartWorkers() to understand what this is about.
-func RunTask(tasks chan task.Request, ctx context.Context, cfg *task.Config) (drivers.RunResult, error) {
-	tresp := make(chan task.Response)
-	treq := task.Request{Ctx: ctx, Config: cfg, Response: tresp}
-	tasks <- treq
-	resp := <-treq.Response
-	return resp.Result, resp.Err
-}
-
 // StartWorkers operates the common concurrency stream, ie, it will process all
 // IronFunctions tasks, either sync or async. In the process, it also dispatches
 // the workload to either regular or hot containers.
-func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan task.Request) {
+func StartWorkers(ctx context.Context, rnr *Runner) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	var hcmgr htcntrmgr
@@ -88,7 +77,7 @@ func StartWorkers(ctx context.Context, rnr *Runner, tasks <-chan task.Request) {
 		select {
 		case <-ctx.Done():
 			return
-		case task := <-tasks:
+		case task := <-rnr.Tasks:
 			p := hcmgr.getPipe(ctx, rnr, task.Config)
 			if p == nil {
 				wg.Add(1)

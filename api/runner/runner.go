@@ -29,6 +29,7 @@ type Runner struct {
 	flog         FuncLogger
 	availableMem int64
 	usedMem      int64
+	Tasks        chan task.Request
 	usedMemMutex sync.RWMutex
 }
 
@@ -54,6 +55,7 @@ func New(flog FuncLogger, mlog MetricLogger) (*Runner, error) {
 		taskQueue:    make(chan *containerTask, 100),
 		flog:         flog,
 		mlog:         mlog,
+		Tasks:        make(chan task.Request),
 		availableMem: getAvailableMemory(),
 		usedMem:      0,
 	}
@@ -61,6 +63,16 @@ func New(flog FuncLogger, mlog MetricLogger) (*Runner, error) {
 	go r.queueHandler()
 
 	return r, nil
+}
+
+// RunTask helps sending a task.Request into the common concurrency stream.
+// Refer to StartWorkers() to understand what this is about.
+func (r *Runner) RunTask(ctx context.Context, cfg *task.Config) (drivers.RunResult, error) {
+	tresp := make(chan task.Response)
+	treq := task.Request{Ctx: ctx, Config: cfg, Response: tresp}
+	r.Tasks <- treq
+	resp := <-treq.Response
+	return resp.Result, resp.Err
 }
 
 // This routine checks for available memory;

@@ -13,8 +13,6 @@ import (
 
 func TestRouteCreate(t *testing.T) {
 	buf := setLogBuffer()
-	tasks := mockTasksConduit()
-	defer close(tasks)
 
 	for i, test := range []struct {
 		mock          *datastore.Mock
@@ -36,7 +34,7 @@ func TestRouteCreate(t *testing.T) {
 		// success
 		{&datastore.Mock{}, "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusCreated, nil},
 	} {
-		router := testRouter(test.mock, &mqs.Mock{}, testRunner(t), tasks)
+		router := testRouter(test.mock, &mqs.Mock{}, testRunner(t))
 
 		body := bytes.NewBuffer([]byte(test.body))
 		_, rec := routerRequest(t, router, "POST", test.path, body)
@@ -61,8 +59,6 @@ func TestRouteCreate(t *testing.T) {
 
 func TestRouteDelete(t *testing.T) {
 	buf := setLogBuffer()
-	tasks := mockTasksConduit()
-	defer close(tasks)
 
 	for i, test := range []struct {
 		ds            models.Datastore
@@ -79,7 +75,7 @@ func TestRouteDelete(t *testing.T) {
 			},
 		}, "/v1/apps/a/routes/myroute", "", http.StatusOK, nil},
 	} {
-		router := testRouter(test.ds, &mqs.Mock{}, testRunner(t), tasks)
+		router := testRouter(test.ds, &mqs.Mock{}, testRunner(t))
 		_, rec := routerRequest(t, router, "DELETE", test.path, nil)
 
 		if rec.Code != test.expectedCode {
@@ -102,10 +98,8 @@ func TestRouteDelete(t *testing.T) {
 
 func TestRouteList(t *testing.T) {
 	buf := setLogBuffer()
-	tasks := mockTasksConduit()
-	defer close(tasks)
 
-	router := testRouter(&datastore.Mock{}, &mqs.Mock{}, testRunner(t), tasks)
+	router := testRouter(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
 
 	for i, test := range []struct {
 		path          string
@@ -137,10 +131,8 @@ func TestRouteList(t *testing.T) {
 
 func TestRouteGet(t *testing.T) {
 	buf := setLogBuffer()
-	tasks := mockTasksConduit()
-	defer close(tasks)
 
-	router := testRouter(&datastore.Mock{}, &mqs.Mock{}, testRunner(t), tasks)
+	router := testRouter(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
 
 	for i, test := range []struct {
 		path          string
@@ -172,8 +164,6 @@ func TestRouteGet(t *testing.T) {
 
 func TestRouteUpdate(t *testing.T) {
 	buf := setLogBuffer()
-	tasks := mockTasksConduit()
-	defer close(tasks)
 
 	for i, test := range []struct {
 		ds            models.Datastore
@@ -196,7 +186,7 @@ func TestRouteUpdate(t *testing.T) {
 			},
 		}, "/v1/apps/a/routes/myroute/do", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusOK, nil},
 	} {
-		router := testRouter(test.ds, &mqs.Mock{}, testRunner(t), tasks)
+		router := testRouter(test.ds, &mqs.Mock{}, testRunner(t))
 
 		body := bytes.NewBuffer([]byte(test.body))
 
