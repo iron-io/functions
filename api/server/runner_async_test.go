@@ -13,13 +13,17 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
-	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 )
 
-func testRouterAsync(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *gin.Engine {
+func testRouterAsync(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, enqueue models.Enqueue) *gin.Engine {
 	ctx := context.Background()
-	s := New(ctx, ds, mq, rnr, tasks, enqueue)
+	s := New(ctx, Components{
+		Datastore:    ds,
+		MessageQueue: mq,
+		Runner:       rnr,
+		EnqueueFunc:  enqueue,
+	})
 	r := s.Router
 	r.Use(gin.Logger())
 
@@ -34,7 +38,6 @@ func testRouterAsync(ds models.Datastore, mq models.MessageQueue, rnr *runner.Ru
 
 func TestRouteRunnerAsyncExecution(t *testing.T) {
 	t.Skip()
-	tasks := mockTasksConduit()
 	ds := &datastore.Mock{
 		Apps: []*models.App{
 			{Name: "myapp", Config: map[string]string{"app": "true"}},
@@ -76,7 +79,7 @@ func TestRouteRunnerAsyncExecution(t *testing.T) {
 
 		wg.Add(1)
 		fmt.Println("About to start router")
-		router := testRouterAsync(ds, mq, testRunner(t), tasks, func(_ context.Context, _ models.MessageQueue, task *models.Task) (*models.Task, error) {
+		router := testRouterAsync(ds, mq, testRunner(t), func(_ context.Context, _ models.MessageQueue, task *models.Task) (*models.Task, error) {
 			if test.body != task.Payload {
 				t.Errorf("Test %d: Expected task Payload to be the same as the test body", i)
 			}

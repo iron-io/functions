@@ -13,7 +13,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 	uuid "github.com/satori/go.uuid"
@@ -208,7 +207,7 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 		c.JSON(http.StatusAccepted, map[string]string{"call_id": task.ID})
 
 	default:
-		result, err := runner.RunTask(s.tasks, ctx, cfg)
+		result, err := Api.Runner.RunTask(ctx, cfg)
 		if err != nil {
 			break
 		}

@@ -13,7 +13,6 @@ import (
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
-	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/functions/api/server"
 	"github.com/spf13/viper"
 )
@@ -85,23 +84,26 @@ func main() {
 		},
 	}
 
-	tasks := make(chan task.Request)
-
 	svr.AddFunc(func(ctx context.Context) {
-		runner.StartWorkers(ctx, rnr, tasks)
+		runner.StartWorkers(ctx, rnr)
 	})
 
+	// API Server initialization
 	svr.AddFunc(func(ctx context.Context) {
-		srv := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
+		srv := server.New(ctx, server.Components{
+			Datastore:    ds,
+			MessageQueue: mq,
+			Runner:       rnr,
+			EnqueueFunc:  server.DefaultEnqueue,
+		})
 		srv.Run()
 		<-ctx.Done()
 	})
 
 	apiURL := viper.GetString(envAPIURL)
 	svr.AddFunc(func(ctx context.Context) {
-		runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
+		runner.RunAsyncRunner(ctx, apiURL, rnr)
 	})
 
 	svr.Serve(ctx)
-	close(tasks)
 }

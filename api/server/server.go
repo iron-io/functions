@@ -43,15 +43,22 @@ type Server struct {
 	Datastore    models.Datastore
 }
 
-func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *Server {
+type Components struct {
+	Datastore    models.Datastore
+	MessageQueue models.MessageQueue
+	Runner       *runner.Runner
+	EnqueueFunc  models.Enqueue
+}
+
+func New(ctx context.Context, c Components) *Server {
 	Api = &Server{
-		Runner:    r,
 		Router:    gin.New(),
-		Datastore: ds,
-		MQ:        mq,
 		hotroutes: make(map[string]*routecache.Cache),
-		tasks:     tasks,
-		Enqueue:   enqueue,
+
+		Runner:    c.Runner,
+		Datastore: c.Datastore,
+		MQ:        c.MessageQueue,
+		Enqueue:   c.EnqueueFunc,
 	}
 
 	Api.Router.Use(func(c *gin.Context) {
