@@ -64,7 +64,6 @@ _Triggers before and after every app updates that happens in the API_
 Triggered during requests to the following routes:
 
 - PUT /v1/apps
-- PUT /v1/apps/:app/routes
 
 ##### AppDeleteListener
 
