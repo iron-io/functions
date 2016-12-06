@@ -2,10 +2,6 @@
 
 IronFunctions is extensible so you can add custom functionality and extend the project without needing to modify the core.
 
-### Replaceable Components
-
-TODO
-
 ## Listeners
 
 Listeners are the main way to extend IronFunctions. 
@@ -38,13 +34,8 @@ func (c *myCustomListener) BeforeAppDelete(ctx context.Context, appName string) 
 function main () {
     srv := server.New(/* Here all required parameters to initialize the server */)
 
-    // To add a listeners that listen to app's creation
     srv.AddAppCreateListener(myCustomListener)
-
-    // To add listeners that listen to app's update
     srv.AddAppUpdateListener(myCustomListener)
-
-    // To add listeners that listen to app's deletion
     srv.AddAppDeleteListener(myCustomListener)
 
     srv.Run()
@@ -57,6 +48,28 @@ To be a valid listener your struct should respect interfaces combined or alone f
 
 These are all available listeners:
 
-- AppCreateListener
-- AppUpdateListener
-- AppDeleteListener
+##### AppCreateListener
+
+_Triggers before and after every app creation that happens in the API_ 
+
+Triggered on requests to the following routes:
+
+- POST /v1/apps
+- POST /v1/apps/:app/routes
+
+##### AppUpdateListener
+
+_Triggers before and after every app updates that happens in the API_
+
+Triggered during requests to the following routes:
+
+- PUT /v1/apps
+- PUT /v1/apps/:app/routes
+
+##### AppDeleteListener
+
+_Triggers before and after every app deletion that happens in the API_
+
+Triggered during requests to the following routes:
+
+- DELETE /v1/apps/app
