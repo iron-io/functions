@@ -116,7 +116,7 @@ paths:
           schema:
             $ref: '#/definitions/Error'
     put:
-      summary: "Create/update a app."
+      summary: "Updates an app."
       description: "You can set app level settings here. "
       tags:
         - Apps
@@ -322,6 +322,7 @@ definitions:
           path:
             type: string
             description: URL path that will be matched to this route
+            readOnly: true
           image:
             description: Name of Docker image to use in this route. You should include the image tag, which should be a version number, to be more accurate. Can be overridden on a per route basis with route.image.
             type: string
