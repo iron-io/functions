@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	dclient "github.com/iron-io/functions/api/runner/docker"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 	"github.com/iron-io/runner/drivers"
@@ -226,7 +227,22 @@ func (r Runner) EnsureImageExists(ctx context.Context, cfg *task.Config) error {
 		cfg: cfg,
 	}
 
-	_, err := docker.CheckRegistry(ctask.Image(), ctask.DockerAuth())
+	err := r.EnsureImageExistsLocal(ctx, cfg)
+	if err == nil {
+		return nil
+	}
+
+	_, err = docker.CheckRegistry(ctask.Image(), ctask.DockerAuth())
+
+	return err
+}
+
+func (r Runner) EnsureImageExistsLocal(ctx context.Context, cfg *task.Config) error {
+	ctask := &containerTask{
+		cfg: cfg,
+	}
+
+	err := dclient.CheckImageLocally(ctask.Image())
 	return err
 }
 
