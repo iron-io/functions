@@ -227,7 +227,7 @@ func (r Runner) EnsureImageExists(ctx context.Context, cfg *task.Config) error {
 		cfg: cfg,
 	}
 
-	err := r.EnsureImageExistsLocal(ctx, cfg)
+	err := r.EnsureImageExistsLocally(ctx, cfg)
 	if err == nil {
 		return nil
 	}
@@ -237,12 +237,13 @@ func (r Runner) EnsureImageExists(ctx context.Context, cfg *task.Config) error {
 	return err
 }
 
-func (r Runner) EnsureImageExistsLocal(ctx context.Context, cfg *task.Config) error {
+func (r Runner) EnsureImageExistsLocally(ctx context.Context, cfg *task.Config) error {
 	ctask := &containerTask{
 		cfg: cfg,
 	}
 
-	err := dclient.CheckImageLocally(ctask.Image())
+	_, err := r.driver.CanExecuteFast(ctx, ctask)
+
 	return err
 }
 
