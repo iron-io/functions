@@ -35,9 +35,7 @@ func New(p Protocol, in io.Writer, out io.Reader) (ContainerIO, error) {
 	switch p {
 	case HTTP:
 		return &HTTPProtocol{in, out}, nil
-	case Default:
-		return &DefaultProtocol{}, nil
-	case Empty:
+	case Default, Empty:
 		return &DefaultProtocol{}, nil
 	default:
 		return nil, errInvalidProtocol
