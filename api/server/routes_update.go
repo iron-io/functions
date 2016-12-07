@@ -30,6 +30,12 @@ func handleRouteUpdate(c *gin.Context) {
 		return
 	}
 
+	if wroute.Route.Path != "" {
+		log.Debug(models.ErrRoutesPathImmutable)
+		c.JSON(http.StatusForbidden, simpleError(models.ErrRoutesPathImmutable))
+		return
+	}
+
 	wroute.Route.AppName = c.Param("app")
 	wroute.Route.Path = path.Clean(c.Param("route"))
 
@@ -43,12 +49,12 @@ func handleRouteUpdate(c *gin.Context) {
 		}
 	}
 
-	_, err = Api.Datastore.UpdateRoute(ctx, wroute.Route)
+	route, err := Api.Datastore.UpdateRoute(ctx, wroute.Route)
 	if err != nil {
 		log.WithError(err).Debug(models.ErrRoutesUpdate)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesUpdate))
 		return
 	}
 
-	c.JSON(http.StatusOK, routeResponse{"Route successfully updated", wroute.Route})
+	c.JSON(http.StatusOK, routeResponse{"Route successfully updated", route})
 }
