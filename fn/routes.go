@@ -13,16 +13,19 @@ import (
 	"text/tabwriter"
 	"time"
 
-	functions "github.com/iron-io/functions_go"
+	"github.com/iron-io/functions_go"
+	fnclient "github.com/iron-io/functions_go/client"
+	apiroutes "github.com/iron-io/functions_go/client/routes"
 	"github.com/urfave/cli"
 )
 
 type routesCmd struct {
-	*functions.RoutesApi
+	client *fnclient.Functions
 }
 
 func routes() cli.Command {
-	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
+
+	r := routesCmd{client: apiClient()}
 
 	return cli.Command{
 		Name:      "routes",
@@ -158,7 +161,7 @@ func routes() cli.Command {
 }
 
 func call() cli.Command {
-	r := routesCmd{RoutesApi: functions.NewRoutesApi()}
+	r := routesCmd{client: apiClient()}
 
 	return cli.Command{
 		Name:      "call",
@@ -174,31 +177,22 @@ func (a *routesCmd) list(c *cli.Context) error {
 		return errors.New("error: routes listing takes one argument, an app name")
 	}
 
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
 	appName := c.Args().Get(0)
-	wrapper, _, err := a.AppsAppRoutesGet(appName)
+	resp, err := a.client.Routes.GetAppsAppRoutes(&apiroutes.GetAppsAppRoutesParams{App: appName})
 	if err != nil {
 		return fmt.Errorf("error getting routes: %v", err)
 	}
 
-	baseURL, err := url.Parse(a.Configuration.BasePath)
-	if err != nil {
-		return fmt.Errorf("error parsing base path: %v", err)
-	}
-
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprint(w, "path", "\t", "image", "\t", "endpoint", "\n")
-	for _, route := range wrapper.Routes {
+	for _, route := range resp.Payload.Routes {
 		u, err := url.Parse("../")
 		u.Path = path.Join(u.Path, "r", appName, route.Path)
 		if err != nil {
 			return fmt.Errorf("error parsing functions route path: %v", err)
 		}
 
-		fmt.Fprint(w, route.Path, "\t", route.Image, "\t", baseURL.ResolveReference(u).String(), "\n")
+		fmt.Fprint(w, route.Path, "\t", route.Image, "\n")
 	}
 	w.Flush()
 

@@ -9,13 +9,13 @@ import (
 	"github.com/urfave/cli"
 )
 
-const fnversion = "0.1.39"
+const fnVersion = "0.1.39"
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "fn"
-	app.Version = fnversion
-	app.Authors = []cli.Author{{Name: "iron.io"}}
+	app.Version = fnVersion
+	app.Authors = []cli.Author{{Name: "Iron.io"}}
 	app.Usage = "IronFunctions command line tools"
 	app.UsageText = `Check the manual at https://github.com/iron-io/functions/blob/master/fn/README.md
 

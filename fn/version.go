@@ -34,7 +34,7 @@ func (r *versionCmd) version(c *cli.Context) error {
 	}
 	r.Configuration.BasePath = u.String()
 
-	fmt.Println("Client version:", fnversion)
+	fmt.Println("Client version:", fnVersion)
 	v, _, err := r.VersionGet()
 	if err != nil {
 		return err

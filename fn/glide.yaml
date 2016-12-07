@@ -14,9 +14,11 @@ import:
   - bump
   - storage
 - package: github.com/iron-io/functions_go
-  version: 429df8920abd7c47dfcd6777dba278d6122ab93d
+  # TODO: switch back to master after go-swagger branch marged
+  version: 5c8ea021a4263e13c5e7b37c373a1b88cdacf502
 - package: github.com/iron-io/lambda
   subpackages:
   - lambda
 - package: github.com/urfave/cli
 - package: gopkg.in/yaml.v2
+- package: github.com/go-openapi/runtime
