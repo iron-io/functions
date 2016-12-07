@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-	"net/url"
 	"os"
 
 	httptransport "github.com/go-openapi/runtime/client"
@@ -16,20 +14,22 @@ func host() string {
 		apiURL = "http://localhost:8080"
 	}
 
-	u, err := url.Parse(apiURL)
-	if err != nil {
-		log.Fatalln("Couldn't parse API URL:", err)
-	}
-	return apiURL.Host
+	// u, err := url.Parse(apiURL)
+	// if err != nil {
+	// 	log.Fatalln("Couldn't parse API URL:", err)
+	// }
+	// return u.Host
+	return apiURL
 }
 
 func apiClient() *fnclient.Functions {
-	transport := httptransport.New(getHost(), "/v1", nil)
+	transport := httptransport.New(host(), "/v1", nil)
+	if os.Getenv("IRON_TOKEN") != "" {
+		transport.DefaultAuthentication = httptransport.BearerToken(os.Getenv("IRON_TOKEN"))
+	}
 
 	// create the API client, with the transport
 	client := fnclient.New(transport, strfmt.Default)
-	if os.Getenv("IRON_TOKEN") {
-		client.DefaultAuthentication = fnclient.BearerToken(os.Getenv("IRON_TOKEN"))
-	}
+
 	return client
 }
