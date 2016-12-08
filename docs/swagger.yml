@@ -91,6 +91,14 @@ paths:
       responses:
         200:
           description: Apps successfully deleted.
+        404:
+          description: App does not exist.
+          schema:
+            $ref: '#/definitions/Error'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
     get:
       summary: "Get information for a app."
       description: "This gives more details about a app, such as statistics."
@@ -296,6 +304,14 @@ paths:
       responses:
         200:
           description: Route successfully deleted.
+        404:
+          description: Route does not exist.
+          schema:
+            $ref: '#/definitions/Error'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
 
   /tasks:
     get:
