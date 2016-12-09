@@ -17,9 +17,6 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-// Would be nice to not have this is a global, but hard to pass things around to the
-// handlers in Gin without it.
-
 type Server struct {
 	Runner             *runner.Runner
 	Router             *gin.Engine
@@ -53,28 +50,14 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *ru
 
 func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx, log := common.LoggerWithFields(ctx, extractFields(c))
+		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
-		for _, param := range c.Params {
-			if param.Key == "app" {
-				appName := param.Value
-				if appName == "" {
-					log.Error("Invalid app, blank")
-					c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsNotFound))
-					return
-				}
-				ctx = context.WithValue(ctx, "appName", appName)
-			}
+		if appName := c.Param("app"); appName != "" {
+			ctx = context.WithValue(ctx, "appName", appName)
+		}
 
-			if param.Key == "route" {
-				routePath := param.Value
-				if routePath == "" {
-					log.Error("Invalid route path, blank")
-					c.JSON(http.StatusBadRequest, simpleError(models.ErrRoutesNotFound))
-					return
-				}
-				ctx = context.WithValue(ctx, "routePath", routePath)
-			}
+		if routePath := c.Param("route"); routePath != "" {
+			ctx = context.WithValue(ctx, "routePath", routePath)
 		}
 
 		c.Set("ctx", ctx)
