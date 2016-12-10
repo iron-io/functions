@@ -26,7 +26,8 @@ The basic cycle comprises three steps: read standard input up to a previosly
 known point, process the work, the write the output to stdout with some
 information about when functions daemon should stop reading from stdout.
 
-In the case at hand, we start by plugging stdin to a HTTP request parser:
+In the case at hand, we serve a loop, whose first part is plugging stdin to a
+HTTP request parser:
 
 ```go
 r := bufio.NewReader(os.Stdin)
@@ -99,4 +100,4 @@ requests:
 container.
 
 `max_concurrency` (optional) - the number of simultaneous hot containers for
-this functions. This is a per-node configuration option.
+this functions. This is a per-node configuration option. Default: 1
