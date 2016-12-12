@@ -29,7 +29,7 @@ type App struct {
 }
 
 const (
-	maxAppName = 30
+	maxAppName = 36
 )
 
 var (
