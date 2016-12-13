@@ -83,7 +83,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		Path:    path.Clean(ctx.Value("routePath").(string)),
 	}
 
-	s.FireBeforeRun(ctx, reqRoute)
+	s.FireBeforeDispatch(ctx, reqRoute)
 
 	appName := reqRoute.AppName
 	path := reqRoute.Path
@@ -114,7 +114,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
 	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
-		s.FireAfterRun(ctx, reqRoute)
+		s.FireAfterDispatch(ctx, reqRoute)
 		return
 	}
 
