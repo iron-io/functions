@@ -91,11 +91,7 @@ func main() {
 		runner.StartWorkers(ctx, rnr, tasks)
 	})
 
-	svr.AddFunc(func(ctx context.Context) {
-		srv := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
-		srv.Run()
-		<-ctx.Done()
-	})
+	attachHTTP(svr, ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
 
 	apiURL := viper.GetString(envAPIURL)
 	svr.AddFunc(func(ctx context.Context) {

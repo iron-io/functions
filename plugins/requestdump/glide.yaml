@@ -1,0 +1,5 @@
+package: github.com/iron-io/functions/plugins/requestdump
+import:
+- package: github.com/davecgh/go-spew
+  subpackages:
+  - spew

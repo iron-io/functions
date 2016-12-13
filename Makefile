@@ -14,7 +14,7 @@ build-docker:
 	docker build -t iron/functions:latest .
 
 test:
-	go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn)
+	go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn | grep -v plugins)
 	cd fn && $(MAKE) test
 
 test-datastore:
@@ -25,7 +25,7 @@ test-docker:
 	-v /var/run/docker.sock:/var/run/docker.sock \
 	-v $(DIR):/go/src/github.com/iron-io/functions \
 	-w /go/src/github.com/iron-io/functions iron/go:dev go test \
-	-v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn | grep -v datastore)
+	-v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn | grep -v datastore | grep -v plugins)
 
 run:
 	./functions
