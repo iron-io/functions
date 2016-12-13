@@ -19,7 +19,7 @@ func (s *Server) AddRunnerListener(listener RunnerListener) {
 
 func (s *Server) FireBeforeDispatch(ctx context.Context, route *models.Route) error {
 	for _, l := range s.runnerListeners {
-		err := l.BeforeRBeforeDispatchun(ctx, route)
+		err := l.BeforeDispatch(ctx, route)
 		if err != nil {
 			return err
 		}
