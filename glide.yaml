@@ -11,7 +11,6 @@ import:
 - package: github.com/go-openapi/swag
 - package: github.com/go-openapi/validate
 - package: github.com/google/btree
-- package: github.com/iron-io/runner
 - package: github.com/lib/pq
 - package: github.com/satori/go.uuid
   version: v1.1.0
@@ -31,3 +30,5 @@ import:
   - statsd
 - package: github.com/ccirello/supervisor
   version: v0.5.1
+- package: github.com/iron-io/runner
+  version: 63d2a89fb8dc6a1016edcaa05bf94fa87d91ba12
