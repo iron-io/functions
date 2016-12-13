@@ -36,13 +36,11 @@ func (s *Server) handleAppDelete(c *gin.Context) {
 	}
 
 	err = s.Datastore.RemoveApp(ctx, appName)
-	if err != nil {
-		if err == models.ErrAppsNotFound {
-			log.WithError(err).Debug(models.ErrAppsRemoving)
-			c.JSON(http.StatusNotFound, simpleError(err))
-			return
-		}
-
+	if err == models.ErrAppsNotFound {
+		log.WithError(err).Debug(models.ErrAppsRemoving)
+		c.JSON(http.StatusNotFound, simpleError(err))
+		return
+	} else if err != nil {
 		log.WithError(err).Error(models.ErrAppsRemoving)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
