@@ -52,7 +52,13 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 
 	route, err := s.Datastore.UpdateRoute(ctx, wroute.Route)
 	if err != nil {
-		log.WithError(err).Debug(models.ErrRoutesUpdate)
+		if err == models.ErrRoutesNotFound {
+			log.WithError(err).Debug(models.ErrRoutesUpdate)
+			c.JSON(http.StatusNotFound, simpleError(err))
+			return
+		}
+
+		log.WithError(err).Error(models.ErrRoutesUpdate)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesUpdate))
 		return
 	}
