@@ -1,5 +1,5 @@
-hash: bafa31c37e4c599f67fd340ff6a577fb32114d638013897a79e86f34fccd48a0
-updated: 2016-12-13T23:44:35.824962925+01:00
+hash: 0c88334cb5d4f6721c7440fa441a4c7a9f095f3994a9bbe3068c1bc36ba564ac
+updated: 2016-12-13T23:57:51.142189878+01:00
 imports:
 - name: github.com/amir/raidman
   version: c74861fe6a7bb8ede0a010ce4485bdbb4fc4c985
@@ -8,7 +8,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/aws/aws-sdk-go
-  version: 90dec2183a5f5458ee79cbaf4b8e9ab910bc81a6
+  version: d5fd6983e17a1644149fb634fdcf69bd03cb8b21
   subpackages:
   - aws
   - aws/awserr
@@ -18,6 +18,7 @@ imports:
   - aws/corehandlers
   - aws/credentials
   - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
   - aws/credentials/stscreds
   - aws/defaults
   - aws/ec2metadata
@@ -25,7 +26,6 @@ imports:
   - aws/request
   - aws/session
   - aws/signer/v4
-  - private/endpoints
   - private/protocol
   - private/protocol/json/jsonutil
   - private/protocol/jsonrpc
@@ -109,7 +109,7 @@ imports:
 - name: github.com/docker/go-units
   version: e30f1e79f3cd72542f2026ceec18d3bd67ab859c
 - name: github.com/docker/libtrust
-  version: fa567046d9b14f6aa788882a950d69651d230b21
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
 - name: github.com/fsouza/go-dockerclient
@@ -162,9 +162,9 @@ imports:
   subpackages:
   - query
 - name: github.com/gorilla/context
-  version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: e444e69cbd2e2e3e0749a2f3c717cec491552bbf
+  version: 0a192a193177452756c362c20087ddafcf6829c4
 - name: github.com/hashicorp/go-cleanhttp
   version: ad28ea4487f05916463e2423a55166280e8254b5
 - name: github.com/hashicorp/hcl
@@ -194,7 +194,7 @@ imports:
   subpackages:
   - lambda
 - name: github.com/iron-io/runner
-  version: 63d2a89fb8dc6a1016edcaa05bf94fa87d91ba12
+  version: 64628300dc9a81328c4ee6a81068f2c3a1e430f0
   subpackages:
   - common
   - common/stats
