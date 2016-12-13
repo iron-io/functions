@@ -194,7 +194,7 @@ func TestRouteUpdate(t *testing.T) {
 		{&datastore.Mock{}, "/v1/apps/a/routes/myroute/do", ``, http.StatusBadRequest, models.ErrInvalidJSON},
 		{&datastore.Mock{}, "/v1/apps/a/routes/myroute/do", `{}`, http.StatusBadRequest, models.ErrRoutesMissingNew},
 
-		// successTe
+		// success
 		{&datastore.Mock{
 			Routes: []*models.Route{
 				{
