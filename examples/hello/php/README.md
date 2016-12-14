@@ -2,21 +2,11 @@
 
 This example will show you how to test and deploy Go (Golang) code to IronFunctions.
 
-### 1. Prepare the `func.yaml` file:
+### 1. Setup function file
 
-At func.yaml you will find:
-
-```yml
-name: USERNAME/hello
-version: 0.0.1
-path: /hello
-build:
-- docker run --rm -v "$PWD":/worker -w /worker iron/php:dev composer install
+```sh
+fn init USERNAME/hello
 ```
-
-The important step here is to ensure you replace `USERNAME` with your Docker Hub account name. Some points of note:
-the application name is `phpapp` and the route for incoming requests is `/hello`. These informations are relevant for
-the moment you try to test this function.
 
 ### 2. Build:
 
