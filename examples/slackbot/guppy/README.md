@@ -16,7 +16,7 @@ fn routes create slackbot /guppy
 # Change the route response header content-type to application/json
 fn routes headers set slackbot /guppy Content-Type application/json
 # test it remotely
-cat slack.payload | fn call slackbot /guppy2
+cat slack.payload | fn call slackbot /guppy
 ```
 
 ## Create a Slash Command integration in Slack
