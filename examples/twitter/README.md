@@ -9,25 +9,22 @@ This function exemplifies an authentication in Twitter API and get latest tweets
 
 ## Development
 
+### Setup function file
+
+```
+fn init USERNAME/twitter
+```
+
 ### Building image locally
 
 ```
-# SET BELOW TO YOUR DOCKER HUB USERNAME
-USERNAME=YOUR_DOCKER_HUB_USERNAME
-
-# build it
-./build.sh
+fn build
 ```
 
 ### Publishing to DockerHub
 
 ```
-# tagging
-docker run --rm -v "$PWD":/app treeder/bump patch
-docker tag $USERNAME/func-twitter:latest $USERNAME/func-twitter:`cat VERSION`
-
-# pushing to docker hub
-docker push $USERNAME/func-twitter
+fn push
 ```
 
 ### Testing image
@@ -56,28 +53,17 @@ ACCESS_SECRET="XXXXXX"
 With this command we are going to create an application with name `twitter`.
 
 ```
-curl -X POST --data '{
-    "app": {
-        "name": "twitter",
-        "config": { 
-            "CUSTOMER_KEY": "'$CUSTOMER_KEY'",
-            "CUSTOMER_SECRET": "'$CUSTOMER_SECRET'", 
-            "ACCESS_TOKEN": "'$ACCESS_TOKEN'",
-            "ACCESS_SECRET": "'$ACCESS_SECRET'"
-        }
-    }
-}' http://$FUNCAPI/v1/apps
+fn apps create twitter
+fn apps config set twitter CUSTOMER_KEY $CUSTOMER_KEY
+fn apps config set twitter CUSTOMER_SECRET $CUSTOMER_SECRET
+fn apps config set twitter ACCESS_TOKEN $ACCESS_TOKEN
+fn apps config set twitter ACCESS_SECRET $ACCESS_SECRET
 ```
 
 Now, we can create our route
 
 ```
-curl -X POST --data '{
-    "route": {
-        "image": "'$USERNAME'/func-twitter",
-        "path": "/tweets",
-    }
-}' http://$FUNCAPI/v1/apps/twitter/routes
+fn routes create tweeter /tweets
 ```
 
 #### Testing function
