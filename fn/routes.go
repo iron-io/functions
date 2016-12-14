@@ -237,7 +237,9 @@ func callfn(u string, content io.Reader, output io.Writer, env []string) error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	envAsHeader(req, env)
+	if len(env) > 0 {
+		envAsHeader(req, env)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -297,7 +299,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 		if ff.Timeout != nil {
 			timeout = *ff.Timeout
 		}
-		if ff.Path != nil {
+		if route == "" && ff.Path != nil {
 			route = *ff.Path
 		}
 	}
