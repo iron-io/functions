@@ -8,25 +8,22 @@ This images compares the payload info with the header.
 
 ## Development
 
+### Setup function file
+
+```
+fn init $USERNAME/func-echo
+```
+
 ### Building image locally
 
 ```
-# SET BELOW TO YOUR DOCKER HUB USERNAME
-USERNAME=YOUR_DOCKER_HUB_USERNAME
-
-# build it
-./build.sh
+fn build
 ```
 
 ### Publishing to DockerHub
 
 ```
-# tagging
-docker run --rm -v "$PWD":/app treeder/bump patch
-docker tag $USERNAME/func-echo:latest $USERNAME/func-echo:`cat VERSION`
-
-# pushing to docker hub
-docker push $USERNAME/func-echo
+fn push
 ```
 
 ### Testing image
@@ -50,22 +47,13 @@ FUNCAPI=YOUR_FUNCTIONS_ADDRESS
 With this command we are going to create an application with name `echo`.
 
 ```
-curl -X POST --data '{
-    "app": {
-        "name": "echo",
-    }
-}' http://$FUNCAPI/v1/apps
+fn apps create echo
 ```
 
 Now, we can create our route
 
 ```
-curl -X POST --data '{
-    "route": {
-        "image": "'$USERNAME'/func-echo",
-        "path": "/echo",
-    }
-}' http://$FUNCAPI/v1/apps/echo/routes
+fn routes create echo /echo
 ```
 
 #### Testing function
@@ -73,5 +61,5 @@ curl -X POST --data '{
 Now that we created our IronFunction route, let's test our new route
 
 ```
-curl -X POST --data '{"input": "yoooo"}' http://$FUNCAPI/r/echo/echo
+echo '{"input": "yoooo"}' | fn call echo /echo
 ```
