@@ -78,6 +78,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		payload = strings.NewReader(reqPayload)
 	}
 
+	// TODO: these should not be retrieved from the context, these should be explicit parameters
 	appName := ctx.Value("appName").(string)
 	path := path.Clean(ctx.Value("routePath").(string))
 
