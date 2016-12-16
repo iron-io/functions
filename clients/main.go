@@ -108,7 +108,7 @@ func main() {
 		os.Remove(filepath.Join(tmpDir, "gen.zip"))
 
 		log.Printf("Cloning previous `%s` source...\n", language)
-		exec.Command("git", "clone", fmt.Sprintf("git@github.com:pedronasser/functions_%s.git", language), srcDir).Run()
+		exec.Command("git", "clone", fmt.Sprintf("git@github.com:iron-io/functions_%s.git", language), srcDir).Run()
 
 		// Skip language specific files
 		for _, skip := range skipFiles {
