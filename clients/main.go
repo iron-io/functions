@@ -132,10 +132,10 @@ func main() {
 
 		os.Chdir(srcDir)
 		exec.Command("git", "add", ".").Run()
-		exec.Command("git", "commit", "-am", fmt.Sprintf("'Updated to api version %s'", version)).Run()
+		exec.Command("git", "commit", "-am", fmt.Sprintf("Updated to api version %s", version)).Run()
 
 		log.Printf("Tagging new `%s` version as `%s`\n", language, version)
-		r := exec.Command("git", "tag", "-a", "-m", fmt.Sprintf("'Updated to api version %s'", version), version).Run()
+		r := exec.Command("git", "tag", "-a", "-m", fmt.Sprintf("Updated to api version %s", version), version).Run()
 		if r != nil && r.Error() != "" {
 			log.Println("Version already exists, bump swagger the version")
 			os.Exit(-1)
