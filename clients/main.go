@@ -71,7 +71,7 @@ func main() {
 			options["gemName"] = "iron_functions"
 			options["moduleName"] = "IronFunctions"
 			options["gemVersion"] = version
-			options["gemHomepage"] = "https://github.com/iron-io/#{fruby}"
+			options["gemHomepage"] = "https://github.com/iron-io/functions_ruby"
 			options["gemSummary"] = "Ruby gem for IronFunctions"
 			options["gemDescription"] = "Ruby gem for IronFunctions."
 			options["gemAuthorEmail"] = "travis@iron.io"
@@ -102,7 +102,7 @@ func main() {
 		}
 		ioutil.WriteFile(filepath.Join(tmpDir, "gen.zip"), gf, 0777)
 
-		// Unzip]
+		// Unzip
 		log.Printf("Unzipping `%s` client...\n", language)
 		exec.Command("unzip", "-o", filepath.Join(tmpDir, "gen.zip"), "-d", tmpDir).Run()
 		os.Remove(filepath.Join(tmpDir, "gen.zip"))
