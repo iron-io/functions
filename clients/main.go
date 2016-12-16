@@ -58,17 +58,31 @@ func main() {
 		clientDir := filepath.Join(tmpDir, fmt.Sprintf("%s-client", language))
 
 		var options map[string]interface{}
+		var deploy [][]string
 
 		// Specfic language configurations
 		switch language {
 		case "go":
+			options["packageName"] = "functions"
+			options["packageVersion"] = version
 		case "ruby":
+			skipFiles = append(skipFiles, "#{gem_name}.gemspec")
+			deploy = append(deploy, []string{"gem", "build #{gem_name}.gemspec", "gem push #{gem_name}-#{version}.gem"})
+			options["gemName"] = "iron_functions"
+			options["moduleName"] = "IronFunctions"
+			options["gemVersion"] = version
+			options["gemHomepage"] = "https://github.com/iron-io/#{fruby}"
+			options["gemSummary"] = "Ruby gem for IronFunctions"
+			options["gemDescription"] = "Ruby gem for IronFunctions."
+			options["gemAuthorEmail"] = "travis@iron.io"
 		case "javascript":
+			options["projectName"] = "iron_functions"
+			deploy = append(deploy, []string{"npm", "publish"})
 		default:
 			continue
 		}
 		log.Printf("Generating `%s` client...\n", language)
-		err := os.MkdirAll(tmpDir, 0777)
+		err = os.MkdirAll(tmpDir, 0777)
 		if err != nil {
 			log.Printf("Failed to create temporary directory for %s client. Skipping...", language)
 		}
@@ -117,28 +131,32 @@ func main() {
 		})
 
 		os.Chdir(srcDir)
-		d, _ := exec.Command("git", "add", ".").CombinedOutput()
-		fmt.Println(string(d))
+		exec.Command("git", "add", ".").Run()
 		exec.Command("git", "commit", "-am", fmt.Sprintf("'Updated to api version %s'", version)).Run()
 
 		log.Printf("Tagging new `%s` version as `%s`\n", language, version)
-		r := exec.Command("git", "tag", "-a", version).Run()
-		if r.Error() != "" {
+		r := exec.Command("git", "tag", "-a", "-m", fmt.Sprintf("'Updated to api version %s'", version), version).Run()
+		if r != nil && r.Error() != "" {
 			log.Println("Version already exists, bump swagger the version")
 			os.Exit(-1)
 		}
 
 		log.Printf("Pushing new `%s` client\n", language)
 		r = exec.Command("git", "push", "--follow-tags").Run()
-		if r.Error() != "" {
+		if r != nil && r.Error() != "" {
 			log.Printf("Failed to push new version: %s\n", r.Error())
 			os.Exit(-1)
+		}
+
+		log.Printf("Releasing new `%s` client\n", language)
+		for _, d := range deploy {
+			exec.Command(d[0], d[1])
 		}
 
 		log.Printf("Updated `%s` client to `%s` \n", language, version)
 
 		os.Chdir(cwd)
-		// os.RemoveAll(tmpDir)
+		os.RemoveAll(tmpDir)
 	}
 
 }
