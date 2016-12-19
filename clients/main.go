@@ -160,7 +160,7 @@ func main() {
 		log.Printf("Updated `%s` client to `%s` \n", language, version)
 
 		os.Chdir(cwd)
-		os.RemoveAll(tmpDir)
+		// os.RemoveAll(tmpDir)
 	}
 
 }
