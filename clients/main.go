@@ -145,13 +145,6 @@ func main() {
 			os.Exit(-1)
 		}
 
-		log.Printf("Pushing new `%s` client\n", language)
-		r = exec.Command("git", "push", "--follow-tags", "origin", branch).Run()
-		if r != nil && r.Error() != "" {
-			log.Printf("Failed to push new version: %s\n", r.Error())
-			os.Exit(-1)
-		}
-
 		log.Printf("Releasing new `%s` client\n", language)
 		for _, d := range deploy {
 			exec.Command(d[0], d[1])
