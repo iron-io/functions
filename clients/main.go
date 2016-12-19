@@ -138,10 +138,10 @@ func main() {
 		exec.Command("git", "add", ".").Run()
 		exec.Command("git", "commit", "-am", fmt.Sprintf("Updated to api version %s", version)).Run()
 
-		log.Printf("Tagging new `%s` version as `%s`\n", language, version)
-		r := exec.Command("git", "tag", "-a", "-m", fmt.Sprintf("Updated to api version %s", version), version).Run()
+		log.Printf("Pushing new `%s` client\n", language)
+		r := exec.Command("git", "push", "--follow-tags", "origin", branch).Run()
 		if r != nil && r.Error() != "" {
-			log.Println("Version already exists, bump swagger the version")
+			log.Printf("Failed to push new version: %s\n", r.Error())
 			os.Exit(-1)
 		}
 
