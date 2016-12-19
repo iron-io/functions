@@ -16,13 +16,16 @@ import (
 )
 
 const (
-	swaggerURL = "https://raw.githubusercontent.com/iron-io/functions/master/docs/swagger.yml"
+	swaggerURL = "../docs/swagger.yml"
 	rootTmpDir = "tmp"
 )
 
 func main() {
 	os.RemoveAll(rootTmpDir)
 	cwd, _ := os.Getwd()
+	defer func() {
+		os.RemoveAll(rootTmpDir)
+	}()
 
 	// Download swagger yaml and convert to JSON
 	d, err := fmts.YAMLDoc(swaggerURL)
@@ -37,6 +40,12 @@ func main() {
 
 	version := sw.Info.Version
 	fmt.Printf("VERSION: %s\n", version)
+
+	swg, err := ioutil.ReadFile(swaggerURL)
+	if err != nil {
+		log.Fatalf("Failed to load swagger file: %v", err)
+	}
+	gistURL := createGist(swg)
 
 	var only string
 	if len(os.Args) > 1 && os.Args[1] != "" {
@@ -56,8 +65,9 @@ func main() {
 		tmpDir := filepath.Join(rootTmpDir, language)
 		srcDir := filepath.Join(tmpDir, "src")
 		clientDir := filepath.Join(tmpDir, fmt.Sprintf("%s-client", language))
+		short := language
 
-		var options map[string]interface{}
+		options := make(map[string]interface{})
 		var deploy [][]string
 
 		// Specfic language configurations
@@ -76,11 +86,13 @@ func main() {
 			options["gemDescription"] = "Ruby gem for IronFunctions."
 			options["gemAuthorEmail"] = "travis@iron.io"
 		case "javascript":
+			short = "js"
 			options["projectName"] = "iron_functions"
 			deploy = append(deploy, []string{"npm", "publish"})
 		default:
 			continue
 		}
+
 		log.Printf("Generating `%s` client...\n", language)
 		err = os.MkdirAll(tmpDir, 0777)
 		if err != nil {
@@ -88,7 +100,7 @@ func main() {
 		}
 
 		// Generate client
-		gen, err := generateClient(language, options)
+		gen, err := generateClient(gistURL, language, options)
 		if err != nil {
 			log.Printf("Failed to generated %s client. Skipping...", language)
 			continue
@@ -107,8 +119,10 @@ func main() {
 		exec.Command("unzip", "-o", filepath.Join(tmpDir, "gen.zip"), "-d", tmpDir).Run()
 		os.Remove(filepath.Join(tmpDir, "gen.zip"))
 
+		branch := fmt.Sprintf("update-version-%s", version)
+
 		log.Printf("Cloning previous `%s` source...\n", language)
-		exec.Command("git", "clone", fmt.Sprintf("git@github.com:iron-io/functions_%s.git", language), srcDir).Run()
+		exec.Command("git", "clone", fmt.Sprintf("git@github.com:iron-io/functions_%s.git", short), srcDir).Run()
 
 		// Skip language specific files
 		for _, skip := range skipFiles {
@@ -130,22 +144,20 @@ func main() {
 			return nil
 		})
 
+		f, err := os.OpenFile(filepath.Join(srcDir, "VERSION"), os.O_TRUNC|os.O_WRONLY, 0644)
+		f.WriteString(version)
+		f.Close()
+
 		os.Chdir(srcDir)
+		exec.Command("git", "checkout", "-b", branch).Run()
 		exec.Command("git", "add", ".").Run()
 		exec.Command("git", "commit", "-am", fmt.Sprintf("Updated to api version %s", version)).Run()
 
-		log.Printf("Tagging new `%s` version as `%s`\n", language, version)
-		r := exec.Command("git", "tag", "-a", "-m", fmt.Sprintf("Updated to api version %s", version), version).Run()
-		if r != nil && r.Error() != "" {
-			log.Println("Version already exists, bump swagger the version")
-			os.Exit(-1)
-		}
-
 		log.Printf("Pushing new `%s` client\n", language)
-		r = exec.Command("git", "push", "--follow-tags").Run()
+		r := exec.Command("git", "push", "origin", branch).Run()
 		if r != nil && r.Error() != "" {
 			log.Printf("Failed to push new version: %s\n", r.Error())
-			os.Exit(-1)
+			break
 		}
 
 		log.Printf("Releasing new `%s` client\n", language)
@@ -156,18 +168,16 @@ func main() {
 		log.Printf("Updated `%s` client to `%s` \n", language, version)
 
 		os.Chdir(cwd)
-		os.RemoveAll(tmpDir)
 	}
-
 }
 
 type generatedClient struct {
 	Link string `json:"link"`
 }
 
-func generateClient(lang string, options map[string]interface{}) (gc generatedClient, err error) {
+func generateClient(url, lang string, options map[string]interface{}) (gc generatedClient, err error) {
 	payload := map[string]interface{}{
-		"swaggerUrl": swaggerURL,
+		"swaggerUrl": url,
 		"options":    options,
 	}
 
@@ -220,4 +230,50 @@ func getLanguages() (langs []string) {
 	}
 
 	return
+}
+
+type GistFile struct {
+	Content string `json:"content"`
+}
+
+type Gist struct {
+	Description string              `json:"description"`
+	Public      bool                `json:"public"`
+	Files       map[string]GistFile `json:"files"`
+}
+
+type GistResponse struct {
+	Files map[string]struct {
+		RawURL string `json:"raw_url"`
+	} `json:"files"`
+}
+
+func createGist(b []byte) string {
+	var responseObj GistResponse
+
+	gist := Gist{
+		"",
+		false,
+		map[string]GistFile{
+			"swaggerSpec": {string(b)},
+		},
+	}
+
+	b, err := json.Marshal(gist)
+	if err != nil {
+		log.Fatal("JSON Error: ", err)
+	}
+
+	br := bytes.NewBuffer(b)
+	resp, err := http.Post("https://api.github.com/gists", "application/json", br)
+	if err != nil {
+		log.Fatal("HTTP Error: ", err)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&responseObj)
+	if err != nil {
+		log.Fatal("Response JSON Error: ", err)
+	}
+
+	return responseObj.Files["swaggerSpec"].RawURL
 }
