@@ -17,7 +17,6 @@ import (
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
 )
 
 var tmpBolt = "/tmp/func_test_bolt.db"
@@ -28,11 +27,7 @@ func testRouter(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner,
 	r := s.Router
 	r.Use(gin.Logger())
 
-	r.Use(func(c *gin.Context) {
-		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
-		c.Set("ctx", ctx)
-		c.Next()
-	})
+	r.Use(prepareMiddleware(ctx))
 	s.bindHandlers()
 	return r
 }
@@ -109,11 +104,11 @@ func TestFullStack(t *testing.T) {
 		body         string
 		expectedCode int
 	}{
-		{"create my app", "POST", "/v1/apps", `{ "app": { "name": "myapp" } }`, http.StatusCreated},
+		{"create my app", "POST", "/v1/apps", `{ "app": { "name": "myapp" } }`, http.StatusOK},
 		{"list apps", "GET", "/v1/apps", ``, http.StatusOK},
 		{"get app", "GET", "/v1/apps/myapp", ``, http.StatusOK},
-		{"add myroute", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute", "path": "/myroute", "image": "iron/hello" } }`, http.StatusCreated},
-		{"add myroute2", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute2", "path": "/myroute2", "image": "iron/error" } }`, http.StatusCreated},
+		{"add myroute", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute", "path": "/myroute", "image": "iron/hello" } }`, http.StatusOK},
+		{"add myroute2", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute2", "path": "/myroute2", "image": "iron/error" } }`, http.StatusOK},
 		{"get myroute", "GET", "/v1/apps/myapp/routes/myroute", ``, http.StatusOK},
 		{"get myroute2", "GET", "/v1/apps/myapp/routes/myroute2", ``, http.StatusOK},
 		{"get all routes", "GET", "/v1/apps/myapp/routes", ``, http.StatusOK},

@@ -28,8 +28,8 @@ func (c *myCustomListener) AfterAppCreate(ctx context.Context, app *models.App) 
 func (c *myCustomListener) BeforeAppUpdate(ctx context.Context, app *models.App) error { return nil }
 func (c *myCustomListener) AfterAppUpdate(ctx context.Context, app *models.App) error { return nil }
 
-func (c *myCustomListener) BeforeAppDelete(ctx context.Context, appName string) error { return nil }
-func (c *myCustomListener) BeforeAppDelete(ctx context.Context, appName string) error { return nil }
+func (c *myCustomListener) BeforeAppDelete(ctx context.Context, app *models.App) error { return nil }
+func (c *myCustomListener) BeforeAppDelete(ctx context.Context, app *models.App) error { return nil }
 
 function main () {
     srv := server.New(/* Here all required parameters to initialize the server */)
@@ -42,11 +42,13 @@ function main () {
 }
 ```
 
-#### Listener Requirements
-
-To be a valid listener your struct should respect interfaces combined or alone found in the file [listeners.go](/iron-io/functions/blob/master/api/ifaces/listeners.go)
+### Creating a Listener
 
 These are all available listeners:
+
+#### App Listeners
+
+To be a valid listener your struct should respect interfaces combined or alone found [in this file](/iron-io/functions/blob/master/api/server/apps_listeners.go)
 
 ##### AppCreateListener
 
@@ -71,4 +73,48 @@ _Triggers before and after every app deletion that happens in the API_
 
 Triggered during requests to the following routes:
 
-- DELETE /v1/apps/app
+- DELETE /v1/apps/:app
+
+#### Runner Listeners
+
+To be a valid listener your struct should respect interfaces combined or alone found [in this file](/iron-io/functions/blob/master/api/server/runner_listeners.go).
+
+##### RunnerListener
+
+_Triggers before and after every function run_
+
+Triggered during requests to the following routes:
+
+- GET /r/:app/:route
+- POST /r/:app/:route
+
+## Special Handlers
+
+To understand how **Special Handlers** works you need to understand what are **Special Routes**.
+
+**Special Routes** are routes that doesn't match any other API route. 
+
+With **Special Handlers** you can change the behavior of special routes in order to define which function is going to be executed.
+
+For example, let's use special handlers to define `mydomain` as the `appname` for any request for `mydomain.com`.
+
+```
+type SpecialHandler struct{}
+
+func (h *SpecialHandler) Handle(c server.HandlerContext) error {
+    host := c.Request().Host
+    if host == "mydomain.com" {
+        c.Set("app", "mydomain")
+    }
+}
+
+func main () {
+    sh := &SpecialHandler{}
+
+    srv := server.New(/* Here all required parameters to initialize the server */)
+    srv.AddSpecialHandler(sh)
+    srv.Run()
+}
+``` 
+
+With the code above, a request to `http://mydomain.com/hello` will trigger the function `/mydomain/hello`

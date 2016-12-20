@@ -9,16 +9,16 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-func handleAppDelete(c *gin.Context) {
+func (s *Server) handleAppDelete(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
-	appName := c.Param("app")
+	app := &models.App{Name: ctx.Value("appName").(string)}
 
-	routes, err := Api.Datastore.GetRoutesByApp(ctx, appName, &models.RouteFilter{})
+	routes, err := s.Datastore.GetRoutesByApp(ctx, app.Name, &models.RouteFilter{})
 	if err != nil {
-		log.WithError(err).Debug(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsRemoving))
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
@@ -28,23 +28,28 @@ func handleAppDelete(c *gin.Context) {
 		return
 	}
 
-	err = Api.FireBeforeAppDelete(ctx, appName)
+	err = s.FireBeforeAppDelete(ctx, app)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	if err = Api.Datastore.RemoveApp(ctx, appName); err != nil {
+	err = s.Datastore.RemoveApp(ctx, app.Name)
+	if err == models.ErrAppsNotFound {
 		log.WithError(err).Debug(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsRemoving))
+		c.JSON(http.StatusNotFound, simpleError(err))
+		return
+	} else if err != nil {
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	err = Api.FireAfterAppDelete(ctx, appName)
+	err = s.FireAfterAppDelete(ctx, app)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 

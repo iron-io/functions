@@ -9,7 +9,7 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-func handleAppUpdate(c *gin.Context) {
+func (s *Server) handleAppUpdate(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
@@ -30,33 +30,36 @@ func handleAppUpdate(c *gin.Context) {
 
 	if wapp.App.Name != "" {
 		log.Debug(models.ErrAppsNameImmutable)
-		c.JSON(http.StatusForbidden, simpleError(models.ErrAppsNameImmutable))
+		c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsNameImmutable))
 		return
 	}
 
-	wapp.App.Name = c.Param("app")
+	wapp.App.Name = ctx.Value("appName").(string)
 
-	err = Api.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppUpdate(ctx, wapp.App)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsUpdate)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+		log.WithError(err).Error(models.ErrAppsUpdate)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	app, err := Api.Datastore.UpdateApp(ctx, wapp.App)
-	if err != nil {
+	app, err := s.Datastore.UpdateApp(ctx, wapp.App)
+	if err == models.ErrAppsNotFound {
 		log.WithError(err).Debug(models.ErrAppsUpdate)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsUpdate))
+		c.JSON(http.StatusNotFound, simpleError(err))
+		return
+	} else if err != nil {
+		log.WithError(err).Error(models.ErrAppsUpdate)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	err = Api.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppUpdate(ctx, wapp.App)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsUpdate)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+		log.WithError(err).Error(models.ErrAppsUpdate)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	// Nothing to update right now in apps
 	c.JSON(http.StatusOK, appResponse{"App successfully updated", app})
 }
