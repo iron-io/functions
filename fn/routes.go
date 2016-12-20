@@ -184,6 +184,10 @@ func (a *routesCmd) list(c *cli.Context) error {
 		return fmt.Errorf("error getting routes: %v", err)
 	}
 
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
+	}
+
 	baseURL, err := url.Parse(a.Configuration.BasePath)
 	if err != nil {
 		return fmt.Errorf("error parsing base path: %v", err)
@@ -338,8 +342,9 @@ func (a *routesCmd) create(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("error creating route: %v", err)
 	}
-	if wrapper.Route.Path == "" || wrapper.Route.Image == "" {
-		return fmt.Errorf("could not create this route (%s at %s), check if route path is correct", route, appName)
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
 	}
 
 	fmt.Println(wrapper.Route.Path, "created with", wrapper.Route.Image)
@@ -448,7 +453,7 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 	config[key] = value
 	wrapper.Route.Config = config
 
-	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePatch(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
@@ -491,7 +496,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 	delete(config, key)
 	wrapper.Route.Config = config
 
-	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePatch(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
@@ -565,7 +570,7 @@ func (a *routesCmd) headersSet(c *cli.Context) error {
 	headers[key] = append(headers[key], value)
 	wrapper.Route.Headers = headers
 
-	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePatch(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
@@ -608,7 +613,7 @@ func (a *routesCmd) headersUnset(c *cli.Context) error {
 	delete(headers, key)
 	wrapper.Route.Headers = headers
 
-	if _, _, err := a.AppsAppRoutesRoutePut(appName, route, *wrapper); err != nil {
+	if _, _, err := a.AppsAppRoutesRoutePatch(appName, route, *wrapper); err != nil {
 		return fmt.Errorf("error updating route configuration: %v", err)
 	}
 
