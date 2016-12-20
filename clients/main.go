@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/go-openapi/loads/fmts"
 	"github.com/go-openapi/spec"
 	"io/ioutil"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -20,9 +22,11 @@ const (
 	rootTmpDir = "tmp"
 )
 
+var cwd string
+
 func main() {
 	os.RemoveAll(rootTmpDir)
-	cwd, _ := os.Getwd()
+	cwd, _ = os.Getwd()
 	defer func() {
 		os.RemoveAll(rootTmpDir)
 	}()
@@ -94,30 +98,38 @@ func main() {
 		}
 
 		log.Printf("Generating `%s` client...\n", language)
-		err = os.MkdirAll(tmpDir, 0777)
+		err = os.MkdirAll(clientDir, 0777)
 		if err != nil {
 			log.Printf("Failed to create temporary directory for %s client. Skipping...", language)
 		}
 
 		// Generate client
-		gen, err := generateClient(gistURL, language, options)
-		if err != nil {
-			log.Printf("Failed to generated %s client. Skipping...", language)
-			continue
-		}
+		if language == "go" {
+			err := genSwaggerClient(clientDir)
+			if err != nil {
+				log.Printf("Failed to (swagger-go) generated %s client. Skipping...", language)
+				continue
+			}
+		} else {
+			gen, err := generateClient(gistURL, language, options)
+			if err != nil {
+				log.Printf("Failed to generated %s client. Skipping...", language)
+				continue
+			}
 
-		// Download generated client
-		log.Printf("Downloading `%s` client...\n", language)
-		gf, err := getFile(strings.Replace(gen.Link, "https", "http", 1))
-		if err != nil {
-			log.Printf("Failed to download generated %s client. Skipping...", language)
-		}
-		ioutil.WriteFile(filepath.Join(tmpDir, "gen.zip"), gf, 0777)
+			// Download generated client
+			log.Printf("Downloading `%s` client...\n", language)
+			gf, err := getFile(strings.Replace(gen.Link, "https", "http", 1))
+			if err != nil {
+				log.Printf("Failed to download generated %s client. Skipping...", language)
+			}
+			ioutil.WriteFile(filepath.Join(tmpDir, "gen.zip"), gf, 0777)
 
-		// Unzip
-		log.Printf("Unzipping `%s` client...\n", language)
-		exec.Command("unzip", "-o", filepath.Join(tmpDir, "gen.zip"), "-d", tmpDir).Run()
-		os.Remove(filepath.Join(tmpDir, "gen.zip"))
+			// Unzip
+			log.Printf("Unzipping `%s` client...\n", language)
+			exec.Command("unzip", "-o", filepath.Join(tmpDir, "gen.zip"), "-d", tmpDir).Run()
+			os.Remove(filepath.Join(tmpDir, "gen.zip"))
+		}
 
 		branch := fmt.Sprintf("update-version-%s", version)
 
@@ -145,6 +157,10 @@ func main() {
 		})
 
 		f, err := os.OpenFile(filepath.Join(srcDir, "VERSION"), os.O_TRUNC|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Printf("Failed to save new `%s` VERSION file. Skipping...", language)
+			continue
+		}
 		f.WriteString(version)
 		f.Close()
 
@@ -276,4 +292,24 @@ func createGist(b []byte) string {
 	}
 
 	return responseObj.Files["swaggerSpec"].RawURL
+}
+
+const (
+	goSwaggerImage = "quay.io/goswagger/swagger"
+)
+
+func genSwaggerClient(target string) error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("docker", "run", "--rm", "-u", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "-v", fmt.Sprintf("%s/%s:/go/src/github.com/iron-io/functions_go", cwd, target), "-v", fmt.Sprintf("%s/%s:/go/swagger.spec", cwd, swaggerURL), "-w", "/go/src", "quay.io/goswagger/swagger", "generate", "client", "-f", "/go/swagger.spec", "-t", "github.com/iron-io/functions_go", "-A", "functions")
+	d, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Error running go-swagger: %s\n", d)
+		return err
+	}
+
+	return nil
 }
