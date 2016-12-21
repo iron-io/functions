@@ -110,7 +110,7 @@ imports:
 - name: github.com/hashicorp/go-cleanhttp
   version: ad28ea4487f05916463e2423a55166280e8254b5
 - name: github.com/iron-io/functions_go
-  version: 8d1bf12981e7f32bb1cd505782cb39ae92ce7f44
+  version: 69e4dec8454c3c710045263c2ede76139c141146
   subpackages:
   - client
   - client/apps
