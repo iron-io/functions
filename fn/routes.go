@@ -184,12 +184,15 @@ func (a *routesCmd) list(c *cli.Context) error {
 		Context: context.Background(),
 		App:     appName,
 	})
-	if err != nil {
-		return fmt.Errorf("error getting routes: %v", err)
-	}
 
-	if resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
@@ -332,12 +335,17 @@ func (a *routesCmd) create(c *cli.Context) error {
 		App:     appName,
 		Body:    body,
 	})
-	if err != nil {
-		return fmt.Errorf("error creating route: %v", err)
-	}
 
-	if resp != nil && resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.PostAppsAppRoutesBadRequest:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PostAppsAppRoutesBadRequest).Payload.Error.Message)
+		case *apiroutes.PostAppsAppRoutesConflict:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PostAppsAppRoutesConflict).Payload.Error.Message)
+		case *apiroutes.PostAppsAppRoutesDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PostAppsAppRoutesDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	fmt.Println(resp.Payload.Route.Path, "created with", resp.Payload.Route.Image)
@@ -358,7 +366,13 @@ func (a *routesCmd) delete(c *cli.Context) error {
 		Route:   route,
 	})
 	if err != nil {
-		return fmt.Errorf("error deleting route: %v", err)
+		switch err.(type) {
+		case *apiroutes.DeleteAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.DeleteAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.DeleteAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.DeleteAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	fmt.Println(route, "deleted")
@@ -379,11 +393,13 @@ func (a *routesCmd) configList(c *cli.Context) error {
 		Route:   route,
 	})
 	if err != nil {
-		return fmt.Errorf("error loading route information: %v", err)
-	}
-
-	if resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	config := resp.Payload.Route.Config
@@ -426,12 +442,15 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 		App:     appName,
 		Route:   route,
 	})
-	if err != nil {
-		return fmt.Errorf("error loading route: %v", err)
-	}
 
-	if resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	config := resp.Payload.Route.Config
@@ -443,15 +462,23 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 	config[key] = value
 	resp.Payload.Route.Config = config
 
-	if resp, err := a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
+	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
 		Context: context.Background(),
 		App:     appName,
 		Route:   route,
 		Body:    resp.Payload,
-	}); err != nil {
-		return fmt.Errorf("error updating route configuration: %v", err)
-	} else if resp.Payload.Message != "" {
-		return fmt.Errorf("error updating route configuration: %v", resp.Payload.Message)
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	fmt.Println(appName, resp.Payload.Route.Path, "updated", key, "with", value)
@@ -472,12 +499,15 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 		App:     appName,
 		Route:   route,
 	})
-	if err != nil {
-		return fmt.Errorf("error loading route: %v", err)
-	}
 
-	if resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	config := resp.Payload.Route.Config
@@ -493,15 +523,23 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 	delete(config, key)
 	resp.Payload.Route.Config = config
 
-	if resp, err := a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
+	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
 		Context: context.Background(),
 		App:     appName,
 		Route:   route,
 		Body:    resp.Payload,
-	}); err != nil {
-		return fmt.Errorf("error updating route configuration: %v", err)
-	} else if resp.Payload.Message != "" {
-		return fmt.Errorf("error updating route configuration: %v", resp.Payload.Message)
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	fmt.Println(appName, resp.Payload.Route.Path, "removed", key)
@@ -521,12 +559,15 @@ func (a *routesCmd) headersList(c *cli.Context) error {
 		App:     appName,
 		Route:   route,
 	})
-	if err != nil {
-		return fmt.Errorf("error loading route: %v", err)
-	}
 
-	if resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	headers := resp.Payload.Route.Headers
@@ -559,12 +600,15 @@ func (a *routesCmd) headersSet(c *cli.Context) error {
 		App:     appName,
 		Route:   route,
 	})
-	if err != nil {
-		return fmt.Errorf("error loading route: %v", err)
-	}
 
-	if resp.Payload.Error != nil && resp.Payload.Error.Message != "" {
-		return errors.New(resp.Payload.Error.Message)
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	headers := resp.Payload.Route.Headers
@@ -576,15 +620,23 @@ func (a *routesCmd) headersSet(c *cli.Context) error {
 	headers[key] = append(headers[key], value)
 	resp.Payload.Route.Headers = headers
 
-	if resp, err := a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
+	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
 		Context: context.Background(),
 		App:     appName,
 		Route:   route,
 		Body:    resp.Payload,
-	}); err != nil {
-		return fmt.Errorf("error updating route configuration: %v", err)
-	} else if resp.Payload.Message != "" {
-		return fmt.Errorf("error updating route configuration: %v", resp.Payload.Message)
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	fmt.Println(appName, resp.Payload.Route.Path, "headers updated", key, "with", value)
@@ -605,8 +657,15 @@ func (a *routesCmd) headersUnset(c *cli.Context) error {
 		App:     appName,
 		Route:   route,
 	})
+
 	if err != nil {
-		return fmt.Errorf("error loading route: %v", err)
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	headers := resp.Payload.Route.Headers
@@ -622,15 +681,23 @@ func (a *routesCmd) headersUnset(c *cli.Context) error {
 	delete(headers, key)
 	resp.Payload.Route.Headers = headers
 
-	if resp, err := a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
+	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
 		Context: context.Background(),
 		App:     appName,
 		Route:   route,
 		Body:    resp.Payload,
-	}); err != nil {
-		return fmt.Errorf("error updating route configuration: %v", err)
-	} else if resp.Payload.Message != "" {
-		return fmt.Errorf("error updating route configuration: %v", resp.Payload.Message)
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.PatchAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %v", err)
 	}
 
 	fmt.Println(appName, resp.Payload.Route.Path, "removed header", key)
