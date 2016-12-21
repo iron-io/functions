@@ -44,7 +44,7 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
     post:
       summary: "Post new app"
       description: "Insert a new app"
@@ -65,15 +65,15 @@ paths:
         400:
           description: Parameters are missing or invalid.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         409:
           description: App already exists.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
 
   /apps/{app}:
@@ -94,11 +94,11 @@ paths:
         404:
           description: App does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
     get:
       summary: "Get information for a app."
       description: "This gives more details about a app, such as statistics."
@@ -118,11 +118,11 @@ paths:
         404:
           description: App does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
     patch:
       summary: "Updates an app."
       description: "You can set app level settings here. "
@@ -148,15 +148,15 @@ paths:
         400:
           description: Parameters are missing or invalid.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         404:
           description: App does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
   /apps/{app}/routes:
     post:
@@ -184,15 +184,15 @@ paths:
         400:
           description: Invalid route due to parameters being missing or invalid.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         409:
           description: Route already exists.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
     get:
       summary: Get route list by app name.
@@ -213,11 +213,11 @@ paths:
         404:
           description: App does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
   /apps/{app}/routes/{route}:
     patch:
@@ -250,15 +250,15 @@ paths:
         400:
           description: Invalid route due to parameters being missing or invalid.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         404:
           description: App does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
     get:
       summary: Gets route by name
       description: Gets a route by name.
@@ -283,11 +283,11 @@ paths:
         404:
           description: Route does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
     delete:
       summary: Deletes the route
@@ -311,11 +311,11 @@ paths:
         404:
           description: Route does not exist.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
   /tasks:
     get:
@@ -331,7 +331,7 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
 
 definitions:
@@ -411,7 +411,7 @@ definitions:
         items:
           $ref: '#/definitions/Route'
       error:
-        $ref: '#/definitions/ErrorBody'
+        $ref: '#/definitions/ErrorResponseBody'
 
   RouteWrapper:
     type: object
@@ -421,7 +421,7 @@ definitions:
       message:
         type: string
       error:
-        $ref: '#/definitions/ErrorBody'
+        $ref: '#/definitions/ErrorResponseBody'
       route:
         $ref: '#/definitions/Route'
 
@@ -435,7 +435,7 @@ definitions:
         items:
           $ref: '#/definitions/App'
       error:
-        $ref: '#/definitions/ErrorBody'
+        $ref: '#/definitions/ErrorResponseBody'
 
   AppWrapper:
     type: object
@@ -445,7 +445,7 @@ definitions:
       app:
         $ref: '#/definitions/App'
       error:
-        $ref: '#/definitions/ErrorBody'
+        $ref: '#/definitions/ErrorResponseBody'
 
   Task:
     allOf:
@@ -511,11 +511,11 @@ definitions:
         type: string
         readOnly: true
 
-  Error:
+  ErrorResponse:
     type: object
     properties:
       error:
-        $ref: '#/definitions/ErrorBody'
+        $ref: '#/definitions/ErrorResponseBody'
 
   NewTask:
     type: object
