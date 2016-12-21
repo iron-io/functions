@@ -281,7 +281,6 @@ func (a *appsCmd) configUnset(c *cli.Context) error {
 
 func (a *appsCmd) patchApp(appName string, config map[string]string) error {
 	body := &models.AppWrapper{App: &models.App{
-		Name:   appName,
 		Config: config,
 	}}
 
