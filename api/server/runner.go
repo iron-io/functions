@@ -8,6 +8,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -216,6 +218,10 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 
 		switch result.Status() {
 		case "success":
+			if found.Pipeline != "" {
+				s.runPipeline(c, found.Pipeline, &stdout)
+				return
+			}
 			c.Data(http.StatusOK, "", stdout.Bytes())
 		case "timeout":
 			c.AbortWithStatus(http.StatusGatewayTimeout)
@@ -225,6 +231,39 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	}
 
 	return true
+}
+
+func (s *Server) runPipeline(c *gin.Context, pipeline string, stdout *bytes.Buffer) {
+	u, err := url.Parse(pipeline)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Gin's does not store in its internal state which listening port it
+	// holds (whether HTTP, HTTPS or Unix Socket for instance). So in case
+	// of absent protocol and hostname, we just run the pipeline through
+	// Gin's router.
+	if u.Host == "" {
+		w := httptest.NewRecorder()
+		r, err := http.NewRequest("POST", u.Path, stdout)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		s.Router.ServeHTTP(w, r)
+		c.Data(http.StatusOK, "", w.Body.Bytes())
+		return
+	}
+
+	resp, err := http.Post(pipeline, "", stdout)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	var buf bytes.Buffer
+	io.Copy(&buf, resp.Body)
+	c.Data(http.StatusOK, "", buf.Bytes())
 }
 
 var fakeHandler = func(http.ResponseWriter, *http.Request, Params) {}

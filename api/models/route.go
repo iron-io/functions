@@ -39,6 +39,7 @@ type Route struct {
 	Format         string      `json:"format"`
 	MaxConcurrency int         `json:"max_concurrency"`
 	Timeout        int32       `json:"timeout"`
+	Pipeline       string      `json:"pipeline"`
 	Config         `json:"config"`
 }
 
