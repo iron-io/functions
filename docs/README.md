@@ -7,6 +7,7 @@
 If you are a developer using IronFunctions through the API, this section is for you.
 
 * [Quickstart](https://github.com/iron-io/functions#quickstart)
+* [Definitions](definitions.md)
 * [fn (CLI Tool)](/fn/README.md)
 * [Writing functions](writing.md)
 * [Writing Lambda functions](lambda/create.md)
@@ -14,7 +15,6 @@ If you are a developer using IronFunctions through the API, this section is for 
 * [Packaging functions](packaging.md)
 * [Open Function Format](function-format.md)
 * [API Reference](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/iron-io/functions/master/docs/swagger.yml)
-* [API Definitions](definitions.md)
 * [Hot containers](hot-containers.md)
 
 ## For Operators

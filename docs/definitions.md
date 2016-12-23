@@ -1,8 +1,30 @@
 # API Definitions
 
-## App
+# Applications
 
-Represents a unique `app` in the API and is identified by the property `name`
+Applications are the top level object that groups routes together to create an API.
+
+### Creating applications
+
+Using `fn`:
+
+```sh
+fn apps create --config k1=v1 --config k2=v2 myapp
+```
+
+Or using a cURL:
+
+```sh
+curl -H "Content-Type: application/json" -X POST -d '{
+    "app": {
+        "name":"myapp-curl",
+        "config": {
+            "k1": "v1",
+            "k2": "v2"
+        }
+    }
+}' http://localhost:8080/v1/apps
+```
 
 ### App Example
 
@@ -17,17 +39,42 @@ Represents a unique `app` in the API and is identified by the property `name`
 
 #### name (string)
 
-`Name` is a property that references an unique app. 
+`name` is a property that references an unique app. 
+
+App names are immutable. When updating apps with `PATCH` requests, keep in mind that although you
+are able to update an app's configuration set, you cannot really rename it.
 
 #### config (object)
 
-`Config` is a set of configurations that will be passed to all functions inside this app. 
+`config` is a map of values passed to the route runtime in the form of
+environment variables. 
 
-## Route
+Note: Route level configuration overrides app level configuration.
 
-Represents a unique `route` in the API and is identified by the property `path` and `app`.
+## Routes
 
-Every `route` belongs to an `app`.
+### Creating routes
+
+Using `fn`:
+
+```sh
+fn routes create --config k1=v1 --config k2=v2 myapp /path image
+```
+
+Or using a cURL:
+
+```sh
+curl -H "Content-Type: application/json" -X POST -d '{
+    "app": {
+        "path": "/path",
+        "image": "image",
+        "config": {
+            "k1": "v1",
+            "k2": "v2"
+        }
+    }
+}' http://localhost:8080/v1/apps/myapp/routes
+```
 
 ### Route Example
 ```json
@@ -53,13 +100,16 @@ Every `route` belongs to an `app`.
 
 #### path (string)
 
-`Path` is the unique representation from a route inside a app. The combination of the `Path` and the `AppName` referers to a unique route.
+Represents a unique `route` in the API and is identified by the property `path` and `app`.
 
-Every `Path` must start with a `/` (dash)
+Every `route` belongs to an `app`.
+
+Note: Route paths are immutable. If you need to change them, the appropriate approach
+is to add a new route with the modified path.
 
 #### image (string)
 
-`Image` is the name or registry URL that references to a valid container image located locally or in a remote registry (if provided any registry address).
+`image` is the name or registry URL that references to a valid container image located locally or in a remote registry (if provided any registry address).
 
 If no registry is provided and image is not available locally the API will try pull it from a default public registry.
 
@@ -67,27 +117,28 @@ If no registry is provided and image is not available locally the API will try p
 
 Options: `sync` and `async`
 
-`Type` is defines how the function will be executed. If type is `sync` the request will be hold until the result is ready and flushed.
+`type` is defines how the function will be executed. If type is `sync` the request will be hold until the result is ready and flushed.
 
 In `async` functions the request will be ended with a `call_id` and the function will be executed in the background.
 
 #### memory (number)
 
-`Memory` defines the amount of memory (in megabytes) required to run this function.
+`memory` defines the amount of memory (in megabytes) required to run this function.
 
 #### config (object of string values)
 
-`Config` is a set of configurations that will be passed to the function.
+`config` is a map of values passed to the route runtime in the form of
+environment variables.
 
-If any `route` configuration value conflicts with an `app` configuration, the `route` value will be used.
+Note: Route level configuration overrides app level configuration.
 
 #### headers (object of array of string)
 
-`Header` is a set of headers that will be sent in the function execution response. The header value is an array of strings.
+`header` is a set of headers that will be sent in the function execution response. The header value is an array of strings.
 
 #### format (string)
 
-`Format` defines if the function is running or not in `hot container` mode.
+`format` defines if the function is running or not in `hot container` mode.
 
 To define the function execution as `hot container` you set it as one of the following formats:
 
