@@ -16,6 +16,7 @@ If you are a developer using IronFunctions through the API, this section is for 
 * [Open Function Format](function-format.md)
 * [API Reference](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/iron-io/functions/master/docs/swagger.yml)
 * [Hot containers](hot-containers.md)
+* [Plugins](plugins.md)
 
 ## For Operators
 
@@ -30,4 +31,5 @@ If you are operating IronFunctions, this section is for you.
 * [Extending IronFunctions](operating/extending.md)
 * [Docker Configuration](operating/docker.md)
 * [Operating On Windows](operating/windows.md)
+* [Plugins](plugins.md)
 
