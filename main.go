@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/mqs"
-	"github.com/iron-io/functions/api/runner"
-	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/functions/api/server"
 	"github.com/spf13/viper"
 )
@@ -51,15 +47,7 @@ func init() {
 }
 
 func main() {
-	ctx, halt := context.WithCancel(context.Background())
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		log.Info("Halting...")
-		halt()
-	}()
-
+	ctx := context.Background()
 	ds, err := datastore.New(viper.GetString(envDB))
 	if err != nil {
 		log.WithError(err).Fatalln("Invalid DB url.")
@@ -70,38 +58,7 @@ func main() {
 		log.WithError(err).Fatal("Error on init MQ")
 	}
 
-	metricLogger := runner.NewMetricLogger()
-	funcLogger := runner.NewFuncLogger()
-
-	rnr, err := runner.New(ctx, funcLogger, metricLogger)
-	if err != nil {
-		log.WithError(err).Fatalln("Failed to create a runner")
-	}
-
-	svr := &supervisor.Supervisor{
-		MaxRestarts: supervisor.AlwaysRestart,
-		Log: func(msg interface{}) {
-			log.Debug("supervisor: ", msg)
-		},
-	}
-
-	tasks := make(chan task.Request)
-
-	svr.AddFunc(func(ctx context.Context) {
-		runner.StartWorkers(ctx, rnr, tasks)
-	})
-
-	svr.AddFunc(func(ctx context.Context) {
-		srv := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
-		srv.Run()
-		<-ctx.Done()
-	})
-
-	apiURL := viper.GetString(envAPIURL)
-	svr.AddFunc(func(ctx context.Context) {
-		runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
-	})
-
-	svr.Serve(ctx)
-	close(tasks)
+	funcServer := server.New(ds, mq)
+	// Setup your custom extensions, listeners, etc here
+	funcServer.Start()
 }

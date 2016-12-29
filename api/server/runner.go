@@ -14,6 +14,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
@@ -25,8 +26,8 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
-	ctx = context.WithValue(ctx, "appName", "")
-	ctx = context.WithValue(ctx, "routePath", c.Request.URL.Path)
+	// ctx = context.WithValue(ctx, "appName", "")
+	// ctx = context.WithValue(ctx, "routePath", c.Request.URL.Path)
 
 	ctx, err := s.UseSpecialHandlers(ctx, c.Request, c.Writer)
 	if err != nil {
@@ -35,12 +36,11 @@ func (s *Server) handleSpecial(c *gin.Context) {
 		return
 	}
 
-	c.Set("ctx", ctx)
-	if ctx.Value("appName").(string) == "" {
-		log.WithError(err).Errorln("Specialhandler returned empty app name")
-		c.JSON(http.StatusBadRequest, simpleError(models.ErrRunnerRouteNotFound))
-		return
-	}
+	// if ctx.Value("appName").(string) == "" {
+	// log.WithError(err).Errorln("Specialhandler returned empty app name")
+	// c.JSON(http.StatusBadRequest, simpleError(models.ErrRunnerRouteNotFound))
+	// return
+	// }
 
 	// now call the normal runner call
 	s.handleRequest(c, nil)
@@ -78,7 +78,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	}
 
 	reqRoute := &models.Route{
-		AppName: ctx.Value("appName").(string),
+		AppName: c.MustGet(api.CAppName).(string),
 		Path:    path.Clean(ctx.Value("routePath").(string)),
 	}
 

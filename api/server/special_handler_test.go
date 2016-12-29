@@ -2,18 +2,19 @@ package server
 
 import (
 	"context"
+	"testing"
+
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
-	"testing"
 )
 
 type testSpecialHandler struct{}
 
 func (h *testSpecialHandler) Handle(c HandlerContext) error {
-	c.Set("appName", "test")
+	c.Set(api.CAppName, "test")
 	return nil
 }
 

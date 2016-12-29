@@ -6,14 +6,19 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/signal"
 	"path"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
+	"github.com/iron-io/functions/api/server"
 	"github.com/iron-io/runner/common"
+	"github.com/spf13/viper"
 )
 
 type Server struct {
@@ -34,6 +39,47 @@ type Server struct {
 }
 
 func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *Server {
+	ctx, halt := context.WithCancel(ctx)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		log.Info("Halting...")
+		halt()
+	}()
+
+	metricLogger := runner.NewMetricLogger()
+	funcLogger := runner.NewFuncLogger()
+
+	rnr, err := runner.New(ctx, funcLogger, metricLogger)
+	if err != nil {
+		log.WithError(err).Fatalln("Failed to create a runner")
+	}
+
+	svr := &supervisor.Supervisor{
+		MaxRestarts: supervisor.AlwaysRestart,
+		Log: func(msg interface{}) {
+			log.Debug("supervisor: ", msg)
+		},
+	}
+
+	tasks := make(chan task.Request)
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.StartWorkers(ctx, rnr, tasks)
+	})
+
+	funcServer := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
+	svr.AddFunc(func(ctx context.Context) {
+		funcServer.Run()
+		<-ctx.Done()
+	})
+
+	apiURL := viper.GetString(envAPIURL)
+	svr.AddFunc(func(ctx context.Context) {
+		runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
+	})
+
 	s := &Server{
 		Runner:    r,
 		Router:    gin.New(),
@@ -53,11 +99,11 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
 		if appName := c.Param("app"); appName != "" {
-			ctx = context.WithValue(ctx, "appName", appName)
+			c.Set("app_name", appName)
 		}
 
 		if routePath := c.Param("route"); routePath != "" {
-			ctx = context.WithValue(ctx, "routePath", routePath)
+			c.Set("path", routePath)
 		}
 
 		c.Set("ctx", ctx)
@@ -116,12 +162,17 @@ func extractFields(c *gin.Context) logrus.Fields {
 	return fields
 }
 
-func (s *Server) Run() {
+func (s *Server) Start(ctx context.Context) {
+
 	s.bindHandlers()
+
+	go s.Router.Run()
+
+	svr.Serve(ctx)
+	close(tasks)
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
-	go s.Router.Run()
 }
 
 func (s *Server) bindHandlers() {
