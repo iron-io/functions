@@ -14,6 +14,7 @@ import (
 	"time"
 
 	functions "github.com/iron-io/functions_go"
+	"github.com/jmoiron/jsonq"
 	"github.com/urfave/cli"
 )
 
@@ -138,7 +139,7 @@ func routes() cli.Command {
 				Name:      "inspect",
 				Aliases:   []string{"i"},
 				Usage:     "retrieve one or all routes properties",
-				ArgsUsage: "`app` /path [property] [key]",
+				ArgsUsage: "`app` /path [property.[key]]",
 				Action:    r.inspect,
 			},
 		},
@@ -510,10 +511,6 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *functions.Route) er
 	return nil
 }
 
-type inspectRoute struct {
-	Route map[string]interface{} `json:"route"`
-}
-
 func (a *routesCmd) inspect(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: routes listing takes three arguments: an app name and a path")
@@ -526,7 +523,6 @@ func (a *routesCmd) inspect(c *cli.Context) error {
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
 	prop := c.Args().Get(2)
-	key := c.Args().Get(3)
 
 	wrapper, resp, err := a.AppsAppRoutesRouteGet(appName, route)
 	if err != nil {
@@ -537,32 +533,26 @@ func (a *routesCmd) inspect(c *cli.Context) error {
 		return errors.New(msg)
 	}
 
-	var inspect inspectRoute
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "\t")
+
+	if prop == "" {
+		enc.Encode(wrapper.Route)
+		return nil
+	}
+
+	var inspect struct{ Route map[string]interface{} }
 	err = json.Unmarshal(resp.Payload, &inspect)
 	if err != nil {
 		return fmt.Errorf("error inspect route: %v", err)
 	}
 
-	if prop == "" {
-		pretty, err := json.MarshalIndent(inspect.Route, "", "\t")
-		if err != nil {
-			return fmt.Errorf("error inspect route: %v", err)
-		}
-		fmt.Println(string(pretty))
-	} else if v, ok := inspect.Route[prop]; ok {
-		if key == "" {
-			pretty, err := json.MarshalIndent(v, "", "\t")
-			if err != nil {
-				return fmt.Errorf("error inspect route: %v", err)
-			}
-			fmt.Printf("%v\n", string(pretty))
-		} else if k, ok := v.(map[string]interface{}); ok {
-			pretty, err := json.MarshalIndent(k[key], "", "\t")
-			if err != nil {
-				return fmt.Errorf("error inspect route: %v", err)
-			}
-			fmt.Printf("%v\n", string(pretty))
-		}
+	jq := jsonq.NewQuery(inspect.Route)
+	field, err := jq.Interface(strings.Split(prop, ".")...)
+	if err != nil {
+		return errors.New("failed to inspect the property")
 	}
+	enc.Encode(field)
+
 	return nil
 }
