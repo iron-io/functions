@@ -134,6 +134,13 @@ func routes() cli.Command {
 				ArgsUsage: "`app` /path",
 				Action:    r.delete,
 			},
+			{
+				Name:      "inspect",
+				Aliases:   []string{"i"},
+				Usage:     "retrieve one or all routes properties",
+				ArgsUsage: "`app` /path [property] [key]",
+				Action:    r.inspect,
+			},
 		},
 	}
 }
@@ -493,12 +500,69 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *functions.Route) er
 	}
 
 	if wrapper, _, err = a.AppsAppRoutesRoutePatch(appName, routePath, *wrapper); err != nil {
-		return fmt.Errorf("error updating route configuration: %v", err)
+		return fmt.Errorf("error updating route: %v", err)
 	}
 
 	if msg := wrapper.Error_.Message; msg != "" {
 		return errors.New(msg)
 	}
 
+	return nil
+}
+
+type inspectRoute struct {
+	Route map[string]interface{} `json:"route"`
+}
+
+func (a *routesCmd) inspect(c *cli.Context) error {
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
+		return errors.New("error: routes listing takes three arguments: an app name and a path")
+	}
+
+	if err := resetBasePath(a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
+
+	appName := c.Args().Get(0)
+	route := c.Args().Get(1)
+	prop := c.Args().Get(2)
+	key := c.Args().Get(3)
+
+	wrapper, resp, err := a.AppsAppRoutesRouteGet(appName, route)
+	if err != nil {
+		return fmt.Errorf("error retrieving route: %v", err)
+	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
+	}
+
+	var inspect inspectRoute
+	err = json.Unmarshal(resp.Payload, &inspect)
+	if err != nil {
+		return fmt.Errorf("error inspect route: %v", err)
+	}
+
+	if prop == "" {
+		pretty, err := json.MarshalIndent(inspect.Route, "", "\t")
+		if err != nil {
+			return fmt.Errorf("error inspect route: %v", err)
+		}
+		fmt.Println(string(pretty))
+	} else if v, ok := inspect.Route[prop]; ok {
+		if key == "" {
+			pretty, err := json.MarshalIndent(v, "", "\t")
+			if err != nil {
+				return fmt.Errorf("error inspect route: %v", err)
+			}
+			fmt.Printf("%v\n", string(pretty))
+		} else if k, ok := v.(map[string]interface{}); ok {
+			pretty, err := json.MarshalIndent(k[key], "", "\t")
+			if err != nil {
+				return fmt.Errorf("error inspect route: %v", err)
+			}
+			fmt.Printf("%v\n", string(pretty))
+		}
+	}
 	return nil
 }
