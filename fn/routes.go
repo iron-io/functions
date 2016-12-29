@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -83,83 +82,57 @@ func routes() cli.Command {
 				},
 			},
 			{
+				Name:      "update",
+				Aliases:   []string{"u"},
+				Usage:     "update a route in an `app`",
+				ArgsUsage: "`app` /path",
+				Action:    r.update,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "image,i",
+						Usage: "image name",
+					},
+					cli.Int64Flag{
+						Name:  "memory,m",
+						Usage: "memory in MiB",
+						Value: 128,
+					},
+					cli.StringFlag{
+						Name:  "type,t",
+						Usage: "route type - sync or async",
+						Value: "sync",
+					},
+					cli.StringSliceFlag{
+						Name:  "config,c",
+						Usage: "route configuration",
+					},
+					cli.StringSliceFlag{
+						Name:  "headers",
+						Usage: "route response headers",
+					},
+					cli.StringFlag{
+						Name:  "format,f",
+						Usage: "hot container IO format - json or http",
+						Value: "",
+					},
+					cli.IntFlag{
+						Name:  "max-concurrency",
+						Usage: "maximum concurrency for hot container",
+						Value: 1,
+					},
+					cli.DurationFlag{
+						Name:  "timeout",
+						Usage: "route timeout",
+						Value: 30 * time.Second,
+					},
+				},
+			},
+			{
 				Name:      "delete",
 				Aliases:   []string{"d"},
 				Usage:     "delete a route from `app`",
 				ArgsUsage: "`app` /path",
 				Action:    r.delete,
-			},
-			{
-				Name:  "config",
-				Usage: "operate a route configuration set",
-				Subcommands: []cli.Command{
-					{
-						Name:      "view",
-						Aliases:   []string{"v"},
-						Usage:     "view all configuration keys for this route",
-						ArgsUsage: "`app` /path",
-						Action:    r.configList,
-						Flags: []cli.Flag{
-							cli.BoolFlag{
-								Name:  "shell,s",
-								Usage: "output in shell format",
-							},
-							cli.BoolFlag{
-								Name:  "json,j",
-								Usage: "output in JSON format",
-							},
-						},
-					},
-					{
-						Name:      "set",
-						Aliases:   []string{"s"},
-						Usage:     "store a configuration key for this route",
-						ArgsUsage: "`app` /path <key> <value>",
-						Action:    r.configSet,
-					},
-					{
-						Name:      "unset",
-						Aliases:   []string{"u"},
-						Usage:     "remove a configuration key for this route",
-						ArgsUsage: "`app` /path <key>",
-						Action:    r.configUnset,
-					},
-				},
-			},
-
-			{
-				Name:      "image",
-				Usage:     "get/set route's image",
-				ArgsUsage: "`app` /path [new image]",
-				Action:    r.imageGetSet,
-			},
-
-			{
-				Name:      "format",
-				Usage:     "get/set route's format",
-				ArgsUsage: "`app` /path [http|default]",
-				Action:    r.formatGetSet,
-			},
-
-			{
-				Name:      "type",
-				Usage:     "get/set route's type",
-				ArgsUsage: "`app` /path [sync|async]",
-				Action:    r.typeGetSet,
-			},
-
-			{
-				Name:      "maxconcurrency",
-				Usage:     "get/set route's max concurrency (hot containers only)",
-				ArgsUsage: "`app` /path [number of concurrent containers]",
-				Action:    r.maxConcurrencyGetSet,
-			},
-
-			{
-				Name:      "timeout",
-				Usage:     "get/set route's execution timeout",
-				ArgsUsage: "`app` /path [seconds]",
-				Action:    r.timeoutGetSet,
 			},
 		},
 	}
@@ -384,6 +357,49 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	return nil
 }
 
+func (a *routesCmd) update(c *cli.Context) error {
+	if c.Args().Get(0) == "" {
+		return errors.New("error: routes creation takes at least one argument: an app name")
+	}
+
+	if err := resetBasePath(a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
+
+	appName := c.Args().Get(0)
+	route := c.Args().Get(1)
+
+	if route == "" {
+		return errors.New("error: route path is missing")
+	}
+
+	headers := map[string][]string{}
+	for _, header := range c.StringSlice("headers") {
+		parts := strings.Split(header, "=")
+		headers[parts[0]] = strings.Split(parts[1], ";")
+	}
+
+	patchedRoute := &functions.Route{
+		Path:           route,
+		Image:          c.String("image"),
+		Memory:         c.Int64("memory"),
+		Type_:          c.String("type"),
+		Config:         extractEnvConfig(c.StringSlice("config")),
+		Headers:        headers,
+		Format:         c.String("format"),
+		MaxConcurrency: int32(c.Int64("max-concurrency")),
+		Timeout:        int32(c.Int64("timeout")),
+	}
+
+	err := a.patchRoute(appName, route, patchedRoute)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(appName, route, "updated")
+	return nil
+}
+
 func (a *routesCmd) configList(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: route configuration description takes two arguments: an app name and a route")
@@ -484,347 +500,5 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *functions.Route) er
 		return errors.New(msg)
 	}
 
-	return nil
-}
-
-func (a *routesCmd) configSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route, a key and a value")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	key := c.Args().Get(2)
-	value := c.Args().Get(3)
-
-	config := map[string]string{}
-	config[key] = value
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Config: config,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(appName, route, "updated", key, "with", value)
-
-	return nil
-}
-
-func (a *routesCmd) configUnset(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route and a key")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	key := c.Args().Get(2)
-
-	config := map[string]string{}
-	config[key] = ""
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Config: config,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(appName, route, "removed", key)
-	return nil
-}
-
-func (a *routesCmd) imageGetSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: missing two required arguments: an app name and a route path")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	newimage := c.Args().Get(2)
-
-	if newimage == "" {
-		wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
-		if err != nil {
-			return fmt.Errorf("error loading route: %v", err)
-		}
-
-		if msg := wrapper.Error_.Message; msg != "" {
-			return errors.New(msg)
-		}
-
-		fmt.Printf("`%s%s` image: %s \n", appName, route, wrapper.Route.Image)
-		return nil
-	}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Image: newimage,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("`%s%s` image set to %s \n", appName, route, newimage)
-	return nil
-}
-
-func (a *routesCmd) formatGetSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: missing two required arguments: an app name and a route path")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	newformat := c.Args().Get(2)
-
-	if newformat == "" {
-		wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
-		if err != nil {
-			return fmt.Errorf("error loading route: %v", err)
-		}
-
-		if msg := wrapper.Error_.Message; msg != "" {
-			return errors.New(msg)
-		}
-
-		fmt.Printf("`%s%s` format: %s \n", appName, route, wrapper.Route.Format)
-		return nil
-	}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Format: newformat,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("`%s%s` format set to %s \n", appName, route, newformat)
-	return nil
-}
-
-func (a *routesCmd) typeGetSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: missing two required arguments: an app name and a route path")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	newtype := c.Args().Get(2)
-
-	if newtype == "" {
-		wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
-		if err != nil {
-			return fmt.Errorf("error loading route: %v", err)
-		}
-
-		if msg := wrapper.Error_.Message; msg != "" {
-			return errors.New(msg)
-		}
-
-		fmt.Printf("`%s%s` type: %s \n", appName, route, wrapper.Route.Type_)
-		return nil
-	}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Type_: newtype,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("`%s%s` type set to %s \n", appName, route, newtype)
-	return nil
-}
-
-func (a *routesCmd) maxConcurrencyGetSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: missing two required arguments: an app name and a route path")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	maxstr := c.Args().Get(2)
-
-	newmax, _ := strconv.ParseInt(maxstr, 10, 64)
-
-	if newmax > 0 {
-		wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
-		if err != nil {
-			return fmt.Errorf("error loading route: %v", err)
-		}
-
-		if msg := wrapper.Error_.Message; msg != "" {
-			return errors.New(msg)
-		}
-
-		fmt.Printf("`%s%s` max concurrency: %d \n", appName, route, wrapper.Route.MaxConcurrency)
-		return nil
-	}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		MaxConcurrency: int32(newmax),
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("`%s%s` max set to %d \n", appName, route, newmax)
-	return nil
-}
-
-func (a *routesCmd) timeoutGetSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: missing two required arguments: an app name and a route path")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	timeoutstr := c.Args().Get(2)
-
-	newtimeout, _ := strconv.ParseInt(timeoutstr, 10, 64)
-
-	if newtimeout > 0 {
-		wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
-		if err != nil {
-			return fmt.Errorf("error loading route: %v", err)
-		}
-
-		if msg := wrapper.Error_.Message; msg != "" {
-			return errors.New(msg)
-		}
-
-		fmt.Printf("`%s%s` timeout: %d \n", appName, route, wrapper.Route.Timeout)
-		return nil
-	}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Timeout: int32(newtimeout),
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("`%s%s` format set to %d \n", appName, route, newtimeout)
-	return nil
-}
-
-func (a *routesCmd) headersList(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: route configuration description takes two arguments: an app name and a route")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	wrapper, _, err := a.AppsAppRoutesRouteGet(appName, route)
-	if err != nil {
-		return fmt.Errorf("error loading route information: %v", err)
-	}
-
-	if msg := wrapper.Error_.Message; msg != "" {
-		return errors.New(msg)
-	}
-
-	headers := wrapper.Route.Headers
-	if len(headers) == 0 {
-		return errors.New("this route has no headers")
-	}
-
-	fmt.Println(appName, wrapper.Route.Path, "headers:")
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
-	for k, v := range headers {
-		fmt.Fprint(w, k, ":\t", v, "\n")
-	}
-	w.Flush()
-	return nil
-}
-
-func (a *routesCmd) headersSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route, a key and a value")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	key := c.Args().Get(2)
-	value := c.Args().Get(3)
-
-	headers := map[string][]string{}
-	headers[key] = strings.Split(value, ";")
-	for k, v := range headers[key] {
-		headers[key][k] = strings.TrimSpace(v)
-	}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Headers: headers,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(appName, route, "headers updated", key, "with", value)
-	return nil
-}
-
-func (a *routesCmd) headersUnset(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route and a key")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	key := c.Args().Get(2)
-
-	headers := map[string][]string{}
-	headers[key] = []string{""}
-
-	err := a.patchRoute(appName, route, &functions.Route{
-		Headers: headers,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(appName, route, "removed header", key)
 	return nil
 }
