@@ -27,16 +27,15 @@ func (s *Server) handleSpecial(c *gin.Context) {
 
 	ctx = context.WithValue(ctx, "appName", "")
 	ctx = context.WithValue(ctx, "routePath", c.Request.URL.Path)
-	c.Set("ctx", ctx)
 
-	err := s.UseSpecialHandlers(c)
+	ctx, err := s.UseSpecialHandlers(ctx, c.Request, c.Writer)
 	if err != nil {
 		log.WithError(err).Errorln("Error using special handler!")
 		c.JSON(http.StatusInternalServerError, simpleError(errors.New("Failed to run function")))
 		return
 	}
 
-	ctx = c.MustGet("ctx").(context.Context)
+	c.Set("ctx", ctx)
 	if ctx.Value("appName").(string) == "" {
 		log.WithError(err).Errorln("Specialhandler returned empty app name")
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrRunnerRouteNotFound))
@@ -66,7 +65,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	var err error
 	var payload io.Reader
 
-	if c.Request.Method == "POST" || c.Request.Method == "PUT" {
+	if c.Request.Method == "POST" {
 		payload = c.Request.Body
 		// Load complete body and close
 		defer func() {
@@ -78,9 +77,15 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		payload = strings.NewReader(reqPayload)
 	}
 
-	// TODO: these should not be retrieved from the context, these should be explicit parameters
-	appName := ctx.Value("appName").(string)
-	path := path.Clean(ctx.Value("routePath").(string))
+	reqRoute := &models.Route{
+		AppName: ctx.Value("appName").(string),
+		Path:    path.Clean(ctx.Value("routePath").(string)),
+	}
+
+	s.FireBeforeDispatch(ctx, reqRoute)
+
+	appName := reqRoute.AppName
+	path := reqRoute.Path
 
 	app, err := s.Datastore.GetApp(ctx, appName)
 	if err != nil || app == nil {
@@ -108,6 +113,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
 	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
+		s.FireAfterDispatch(ctx, reqRoute)
 		return
 	}
 

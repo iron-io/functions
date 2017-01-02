@@ -13,12 +13,12 @@ func (s *Server) handleAppDelete(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
-	appName := ctx.Value("appName").(string)
+	app := &models.App{Name: ctx.Value("appName").(string)}
 
-	routes, err := s.Datastore.GetRoutesByApp(ctx, appName, &models.RouteFilter{})
+	routes, err := s.Datastore.GetRoutesByApp(ctx, app.Name, &models.RouteFilter{})
 	if err != nil {
-		log.WithError(err).Debug(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsRemoving))
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
@@ -28,27 +28,28 @@ func (s *Server) handleAppDelete(c *gin.Context) {
 		return
 	}
 
-	err = s.FireBeforeAppDelete(ctx, appName)
+	err = s.FireBeforeAppDelete(ctx, app)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	if err = s.Datastore.RemoveApp(ctx, appName); err != nil {
+	err = s.Datastore.RemoveApp(ctx, app.Name)
+	if err == models.ErrAppsNotFound {
 		log.WithError(err).Debug(models.ErrAppsRemoving)
-		if err == models.ErrAppsNotFound {
-			c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
-		} else {
-			c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsRemoving))
-		}
+		c.JSON(http.StatusNotFound, simpleError(err))
+		return
+	} else if err != nil {
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	err = s.FireAfterAppDelete(ctx, appName)
+	err = s.FireAfterAppDelete(ctx, app)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+		log.WithError(err).Error(models.ErrAppsRemoving)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 

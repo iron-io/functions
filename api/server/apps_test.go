@@ -55,7 +55,7 @@ func TestAppCreate(t *testing.T) {
 		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
 
 		// success
-		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "teste" } }`, http.StatusCreated, nil},
+		{&datastore.Mock{}, "/v1/apps", `{ "app": { "name": "teste" } }`, http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
 		router := testRouter(test.mock, &mqs.Mock{}, rnr, tasks)
@@ -226,13 +226,13 @@ func TestAppUpdate(t *testing.T) {
 			Apps: []*models.App{{
 				Name: "myapp",
 			}},
-		}, "/v1/apps/myapp", `{ "app": { "name": "othername" } }`, http.StatusForbidden, nil},
+		}, "/v1/apps/myapp", `{ "app": { "name": "othername" } }`, http.StatusBadRequest, nil},
 	} {
 		rnr, cancel := testRunner(t)
 		router := testRouter(test.mock, &mqs.Mock{}, rnr, tasks)
 
 		body := bytes.NewBuffer([]byte(test.body))
-		_, rec := routerRequest(t, router, "PUT", test.path, body)
+		_, rec := routerRequest(t, router, "PATCH", test.path, body)
 
 		if rec.Code != test.expectedCode {
 			t.Log(buf.String())
