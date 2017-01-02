@@ -16,17 +16,17 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/functions/api/server"
 	"github.com/iron-io/runner/common"
-	"github.com/spf13/viper"
 )
 
 type Server struct {
-	Datastore models.Datastore
-	Runner    *runner.Runner
-	Router    *gin.Engine
-	MQ        models.MessageQueue
-	Enqueue   models.Enqueue
+	Supervisor *supervisor.Supervisor
+	Datastore  models.Datastore
+	Runner     *runner.Runner
+	Router     *gin.Engine
+	MQ         models.MessageQueue
+	Enqueue    models.Enqueue
+	apiURL     string
 
 	specialHandlers    []SpecialHandler
 	appCreateListeners []AppCreateListener
@@ -38,13 +38,13 @@ type Server struct {
 	singleflight singleflight // singleflight assists Datastore
 }
 
-func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *Server {
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiURL string) *Server {
 	ctx, halt := context.WithCancel(ctx)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
-		log.Info("Halting...")
+		logrus.Info("Halting...")
 		halt()
 	}()
 
@@ -53,13 +53,13 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *ru
 
 	rnr, err := runner.New(ctx, funcLogger, metricLogger)
 	if err != nil {
-		log.WithError(err).Fatalln("Failed to create a runner")
+		logrus.WithError(err).Fatalln("Failed to create a runner")
 	}
 
 	svr := &supervisor.Supervisor{
 		MaxRestarts: supervisor.AlwaysRestart,
 		Log: func(msg interface{}) {
-			log.Debug("supervisor: ", msg)
+			logrus.Debug("supervisor: ", msg)
 		},
 	}
 
@@ -69,24 +69,15 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *ru
 		runner.StartWorkers(ctx, rnr, tasks)
 	})
 
-	funcServer := server.New(ctx, ds, mq, rnr, tasks, server.DefaultEnqueue)
-	svr.AddFunc(func(ctx context.Context) {
-		funcServer.Run()
-		<-ctx.Done()
-	})
-
-	apiURL := viper.GetString(envAPIURL)
-	svr.AddFunc(func(ctx context.Context) {
-		runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
-	})
-
 	s := &Server{
-		Runner:    r,
-		Router:    gin.New(),
-		Datastore: ds,
-		MQ:        mq,
-		tasks:     tasks,
-		Enqueue:   enqueue,
+		Supervisor: svr,
+		Runner:     rnr,
+		Router:     gin.New(),
+		Datastore:  ds,
+		MQ:         mq,
+		tasks:      tasks,
+		Enqueue:    enqueue,
+		apiURL:     apiURL,
 	}
 
 	s.Router.Use(prepareMiddleware(ctx))
@@ -166,9 +157,18 @@ func (s *Server) Start(ctx context.Context) {
 
 	s.bindHandlers()
 
+	s.Supervisor.AddFunc(func(ctx context.Context) {
+		s.Run()
+		<-ctx.Done()
+	})
+
+	s.Supervisor.AddFunc(func(ctx context.Context) {
+		s.runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
+	})
+
 	go s.Router.Run()
 
-	svr.Serve(ctx)
+	s.Supervisor.Serve(ctx)
 	close(tasks)
 
 	// By default it serves on :8080 unless a

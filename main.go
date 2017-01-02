@@ -58,7 +58,9 @@ func main() {
 		log.WithError(err).Fatal("Error on init MQ")
 	}
 
-	funcServer := server.New(ds, mq)
+	apiURL := viper.GetString(envAPIURL)
+
+	funcServer := server.New(ctx, ds, mq, apiURL)
 	// Setup your custom extensions, listeners, etc here
 	funcServer.Start()
 }
