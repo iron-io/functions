@@ -31,5 +31,7 @@ import:
 - package: github.com/ccirello/supervisor
   version: v0.5.1
 - package: github.com/iron-io/runner
+  # change this back to master (or some normal version) after this is merged: https://github.com/iron-io/runner/pull/26/
+  version: windows-build
 - package: github.com/iron-io/functions
   version: 64628300dc9a81328c4ee6a81068f2c3a1e430f0

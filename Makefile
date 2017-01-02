@@ -10,6 +10,9 @@ dep2:
 	rm -rf vendor/github.com/docker/docker/hack
 	rm -rf vendor/github.com/docker/docker/project
 
+cp-runner:
+	# copies iron-io/runner into functions/vendor, good for dual development
+	rsync -av --exclude='vendor' --exclude='examples' --exclude='docs' --exclude='.git' ../runner/ vendor/github.com/iron-io/runner
 
 build:
 	go build -o functions
