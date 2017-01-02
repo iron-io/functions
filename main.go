@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -47,7 +48,8 @@ func init() {
 }
 
 func main() {
-	ctx := context.Background()
+	ctx := contextWithSignal(context.Background(), os.Interrupt)
+
 	ds, err := datastore.New(viper.GetString(envDB))
 	if err != nil {
 		log.WithError(err).Fatalln("Invalid DB url.")
@@ -63,4 +65,16 @@ func main() {
 	funcServer := server.New(ctx, ds, mq, apiURL)
 	// Setup your custom extensions, listeners, etc here
 	funcServer.Start(ctx)
+}
+
+func contextWithSignal(ctx context.Context, signals ...os.Signal) context.Context {
+	ctx, halt := context.WithCancel(context.Background())
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, signals...)
+	go func() {
+		<-c
+		log.Info("Halting...")
+		halt()
+	}()
+	return ctx
 }
