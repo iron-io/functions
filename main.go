@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/datastore"
@@ -11,7 +12,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx := contextWithSignal(context.Background(), os.Interrupt)
+
 	ds, err := datastore.New(viper.GetString(envDB))
 	if err != nil {
 		log.WithError(err).Fatalln("Invalid DB url.")

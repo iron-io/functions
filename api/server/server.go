@@ -6,8 +6,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"os/signal"
 	"path"
 
 	"github.com/Sirupsen/logrus"
@@ -20,13 +18,12 @@ import (
 )
 
 type Server struct {
-	Supervisor *supervisor.Supervisor
-	Datastore  models.Datastore
-	Runner     *runner.Runner
-	Router     *gin.Engine
-	MQ         models.MessageQueue
-	Enqueue    models.Enqueue
-	apiURL     string
+	Datastore models.Datastore
+	Runner    *runner.Runner
+	Router    *gin.Engine
+	MQ        models.MessageQueue
+	Enqueue   models.Enqueue
+	apiURL    string
 
 	specialHandlers    []SpecialHandler
 	appCreateListeners []AppCreateListener
@@ -39,15 +36,6 @@ type Server struct {
 }
 
 func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiURL string) *Server {
-	ctx, halt := context.WithCancel(ctx)
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		logrus.Info("Halting...")
-		halt()
-	}()
-
 	metricLogger := runner.NewMetricLogger()
 	funcLogger := runner.NewFuncLogger()
 
@@ -56,24 +44,16 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 		logrus.WithError(err).Fatalln("Failed to create a runner")
 	}
 
-	svr := &supervisor.Supervisor{
-		MaxRestarts: supervisor.AlwaysRestart,
-		Log: func(msg interface{}) {
-			logrus.Debug("supervisor: ", msg)
-		},
-	}
-
 	tasks := make(chan task.Request)
 
 	s := &Server{
-		Supervisor: svr,
-		Runner:     rnr,
-		Router:     gin.New(),
-		Datastore:  ds,
-		MQ:         mq,
-		tasks:      tasks,
-		Enqueue:    DefaultEnqueue,
-		apiURL:     apiURL,
+		Runner:    rnr,
+		Router:    gin.New(),
+		Datastore: ds,
+		MQ:        mq,
+		tasks:     tasks,
+		Enqueue:   DefaultEnqueue,
+		apiURL:    apiURL,
 	}
 
 	s.Router.Use(prepareMiddleware(ctx))
@@ -150,27 +130,35 @@ func extractFields(c *gin.Context) logrus.Fields {
 }
 
 func (s *Server) Start(ctx context.Context) {
-
 	s.bindHandlers()
-
-	s.Supervisor.AddFunc(func(ctx context.Context) {
-		s.Router.Run()
-		<-ctx.Done()
-	})
-
-	s.Supervisor.AddFunc(func(ctx context.Context) {
-		runner.StartWorkers(ctx, s.Runner, s.tasks)
-	})
-
-	s.Supervisor.AddFunc(func(ctx context.Context) {
-		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
-	})
-
-	s.Supervisor.Serve(ctx)
+	s.startGears(ctx)
 	close(s.tasks)
+}
+
+func (s *Server) startGears(ctx context.Context) {
+	svr := &supervisor.Supervisor{
+		MaxRestarts: supervisor.AlwaysRestart,
+		Log: func(msg interface{}) {
+			logrus.Debug("supervisor: ", msg)
+		},
+	}
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
+	svr.AddFunc(func(ctx context.Context) {
+		go s.Router.Run()
+		<-ctx.Done()
+	})
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.StartWorkers(ctx, s.Runner, s.tasks)
+	})
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
+	})
+
+	svr.Serve(ctx)
 }
 
 func (s *Server) bindHandlers() {

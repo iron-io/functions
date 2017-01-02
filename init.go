@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -40,4 +42,16 @@ func init() {
 	if logLevel == logrus.DebugLevel {
 		gin.SetMode(gin.DebugMode)
 	}
+}
+
+func contextWithSignal(ctx context.Context, signals ...os.Signal) context.Context {
+	ctx, halt := context.WithCancel(context.Background())
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, signals...)
+	go func() {
+		<-c
+		logrus.Info("Halting...")
+		halt()
+	}()
+	return ctx
 }
