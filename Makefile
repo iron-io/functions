@@ -1,13 +1,11 @@
 # Just builds
-set -ex
-
 DIR := ${CURDIR}
 
 dep:
 	glide install --strip-vendor
 	# glide messes up on some of these things while trying to strip-vendor, so deleting them
 	rm -rf vendor/github.com/heroku/docker-registry-client/vendor
-    rm -rf vendor/github.com/docker/docker/hack
+	rm -rf vendor/github.com/docker/docker/hack
 	rm -rf vendor/github.com/docker/docker/project
 
 build:
