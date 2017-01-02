@@ -58,9 +58,8 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 
 	s.Router.Use(prepareMiddleware(ctx))
 
-	for _, opt := range opts {
-		opt(s)
-	}
+	// todo: add this back, not sure why it has to be so much more complicated than the other endpoints though.
+	// server.EnableShutdownEndpoint(halt)(s)
 
 	return s
 }
