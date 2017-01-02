@@ -79,7 +79,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	reqRoute := &models.Route{
 		AppName: c.MustGet(api.CAppName).(string),
-		Path:    path.Clean(ctx.Value("routePath").(string)),
+		Path:    path.Clean(c.MustGet(api.CPath).(string)),
 	}
 
 	s.FireBeforeDispatch(ctx, reqRoute)
