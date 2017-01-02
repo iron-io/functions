@@ -62,5 +62,5 @@ func main() {
 
 	funcServer := server.New(ctx, ds, mq, apiURL)
 	// Setup your custom extensions, listeners, etc here
-	funcServer.Start()
+	funcServer.Start(ctx)
 }

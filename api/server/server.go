@@ -65,10 +65,6 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 
 	tasks := make(chan task.Request)
 
-	svr.AddFunc(func(ctx context.Context) {
-		runner.StartWorkers(ctx, rnr, tasks)
-	})
-
 	s := &Server{
 		Supervisor: svr,
 		Runner:     rnr,
@@ -76,7 +72,7 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 		Datastore:  ds,
 		MQ:         mq,
 		tasks:      tasks,
-		Enqueue:    enqueue,
+		Enqueue:    DefaultEnqueue,
 		apiURL:     apiURL,
 	}
 
@@ -158,18 +154,20 @@ func (s *Server) Start(ctx context.Context) {
 	s.bindHandlers()
 
 	s.Supervisor.AddFunc(func(ctx context.Context) {
-		s.Run()
+		s.Router.Run()
 		<-ctx.Done()
 	})
 
 	s.Supervisor.AddFunc(func(ctx context.Context) {
-		s.runner.RunAsyncRunner(ctx, apiURL, tasks, rnr)
+		runner.StartWorkers(ctx, s.Runner, s.tasks)
 	})
 
-	go s.Router.Run()
+	s.Supervisor.AddFunc(func(ctx context.Context) {
+		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
+	})
 
 	s.Supervisor.Serve(ctx)
-	close(tasks)
+	close(s.tasks)
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.

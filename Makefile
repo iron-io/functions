@@ -1,15 +1,19 @@
 # Just builds
+set -ex
 
 DIR := ${CURDIR}
 
 dep:
 	glide install --strip-vendor
+	# glide messes up on some of these things while trying to strip-vendor, so deleting them
+	rm -rf vendor/github.com/heroku/docker-registry-client/vendor
+    rm -rf vendor/github.com/docker/docker/hack
+	rm -rf vendor/github.com/docker/docker/project
 
 build:
 	go build -o functions
 
 build-docker:
-	set -ex
 	docker run --rm -v $(DIR):/go/src/github.com/iron-io/functions -w /go/src/github.com/iron-io/functions iron/go:dev go build -o functions-alpine
 	docker build -t iron/functions:latest .
 
@@ -31,7 +35,6 @@ run:
 	./functions
 
 run-docker: build-docker
-	set -ex
 	docker run --rm --privileged -it -e LOG_LEVEL=debug -e "DB_URL=bolt:///app/data/bolt.db" -v $(DIR)/data:/app/data -p 8080:8080 iron/functions
 
 all: dep build
