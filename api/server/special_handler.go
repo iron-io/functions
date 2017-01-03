@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"context"
@@ -13,16 +14,16 @@ type SpecialHandler interface {
 // Each handler can modify the context here so when it gets passed along, it will use the new info.
 type HandlerContext interface {
 	// Context return the context object
-	Context() context.Context
+	// Context() context.Context
 
 	// Request returns the underlying http.Request object
 	Request() *http.Request
 
 	// Response returns the http.ResponseWriter
-	Response() http.ResponseWriter
+	// Response() http.ResponseWriter
 
 	// Overwrite value in the context
-	Set(key string, value interface{})
+	// Set(key string, value interface{})
 }
 
 type SpecialHandlerContext struct {
@@ -52,7 +53,10 @@ func (s *Server) AddSpecialHandler(handler SpecialHandler) {
 }
 
 // UseSpecialHandlers execute all special handlers
-func (s *Server) UseSpecialHandlers(ctx context.Context, req *http.Request, resp http.ResponseWriter) (context.Context, error) {
+func (s *Server) UseSpecialHandlers(ctx context.Context, req *http.Request, resp http.ResponseWriter) (int, error) {
+	if len(s.specialHandlers) == 0 {
+		return http.StatusNotFound, errors.New("Path not found")
+	}
 	c := &SpecialHandlerContext{
 		request:  req,
 		response: resp,
@@ -61,8 +65,8 @@ func (s *Server) UseSpecialHandlers(ctx context.Context, req *http.Request, resp
 	for _, l := range s.specialHandlers {
 		err := l.Handle(c)
 		if err != nil {
-			return c.ctx, err
+			return 0, err
 		}
 	}
-	return c.ctx, nil
+	return 0, nil
 }

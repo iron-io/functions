@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,10 +28,13 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	// ctx = context.WithValue(ctx, "appName", "")
 	// ctx = context.WithValue(ctx, "routePath", c.Request.URL.Path)
 
-	ctx, err := s.UseSpecialHandlers(ctx, c.Request, c.Writer)
+	httpCode, err := s.UseSpecialHandlers(ctx, c.Request, c.Writer)
 	if err != nil {
+		if httpCode <= 0 {
+			httpCode = http.StatusInternalServerError
+		}
 		log.WithError(err).Errorln("Error using special handler!")
-		c.JSON(http.StatusInternalServerError, simpleError(errors.New("Failed to run function")))
+		c.JSON(httpCode, simpleError(err))
 		return
 	}
 
