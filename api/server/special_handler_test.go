@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"net/http/httputil"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -15,7 +17,7 @@ import (
 type testSpecialHandler struct{}
 
 func (h *testSpecialHandler) Handle(c HandlerContext) error {
-	c.Set("appName", "test")
+	c.Set(api.AppName, "test")
 	return nil
 }
 
@@ -54,6 +56,7 @@ func TestSpecialHandlerSet(t *testing.T) {
 
 	_, rec := routerRequest(t, router, "GET", "/test", nil)
 	if rec.Code != 200 {
-		t.Fatal("Test SpecialHandler: expected special handler to run functions successfully")
+		dump, _ := httputil.DumpResponse(rec.Result(), true)
+		t.Fatalf("Test SpecialHandler: expected special handler to run functions successfully. Response:\n%s", dump)
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
@@ -80,11 +81,11 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
 		if appName := c.Param("app"); appName != "" {
-			ctx = context.WithValue(ctx, "appName", appName)
+			c.Set(api.AppName, appName)
 		}
 
 		if routePath := c.Param("route"); routePath != "" {
-			ctx = context.WithValue(ctx, "routePath", routePath)
+			c.Set(api.Path, routePath)
 		}
 
 		c.Set("ctx", ctx)
