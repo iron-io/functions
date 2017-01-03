@@ -29,5 +29,6 @@ func (s *Server) handleRouteDelete(c *gin.Context) {
 		return
 	}
 
+	s.hotroutes.Delete(appName, routePath)
 	c.JSON(http.StatusOK, gin.H{"message": "Route deleted"})
 }
