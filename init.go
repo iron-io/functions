@@ -9,15 +9,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api/server"
 	"github.com/spf13/viper"
-)
-
-const (
-	envLogLevel = "log_level"
-	envMQ       = "mq_url"
-	envDB       = "db_url"
-	envPort     = "port" // be careful, Gin expects this variable to be "port"
-	envAPIURL   = "api_url"
 )
 
 func init() {
@@ -26,13 +19,13 @@ func init() {
 		logrus.WithError(err).Fatalln("")
 	}
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.SetDefault(envLogLevel, "info")
-	viper.SetDefault(envMQ, fmt.Sprintf("bolt://%s/data/worker_mq.db", cwd))
-	viper.SetDefault(envDB, fmt.Sprintf("bolt://%s/data/bolt.db?bucket=funcs", cwd))
-	viper.SetDefault(envPort, 8080)
-	viper.SetDefault(envAPIURL, fmt.Sprintf("http://127.0.0.1:%d", viper.GetInt(envPort)))
+	viper.SetDefault(server.EnvLogLevel, "info")
+	viper.SetDefault(server.EnvMQURL, fmt.Sprintf("bolt://%s/data/worker_mq.db", cwd))
+	viper.SetDefault(server.EnvDBURL, fmt.Sprintf("bolt://%s/data/bolt.db?bucket=funcs", cwd))
+	viper.SetDefault(server.EnvPort, 8080)
+	viper.SetDefault(server.EnvAPIURL, fmt.Sprintf("http://127.0.0.1:%d", viper.GetInt(server.EnvPort)))
 	viper.AutomaticEnv() // picks up env vars automatically
-	logLevel, err := logrus.ParseLevel(viper.GetString(envLogLevel))
+	logLevel, err := logrus.ParseLevel(viper.GetString(server.EnvLogLevel))
 	if err != nil {
 		logrus.WithError(err).Fatalln("Invalid log level.")
 	}

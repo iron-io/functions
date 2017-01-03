@@ -17,6 +17,14 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
+const (
+	EnvLogLevel = "log_level"
+	EnvMQURL    = "mq_url"
+	EnvDBURL    = "db_url"
+	EnvPort     = "port" // be careful, Gin expects this variable to be "port"
+	EnvAPIURL   = "api_url"
+)
+
 type Server struct {
 	Datastore models.Datastore
 	Runner    *runner.Runner

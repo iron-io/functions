@@ -4,11 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
+	"github.com/spf13/viper"
 )
 
 type testSpecialHandler struct{}
@@ -37,7 +39,7 @@ func TestSpecialHandlerSet(t *testing.T) {
 		Routes: []*models.Route{
 			{Path: "/test", Image: "iron/hello", AppName: "test"},
 		},
-	}, &mqs.Mock{}, rnr, tasks, DefaultEnqueue)
+	}, &mqs.Mock{}, viper.GetString(EnvAPIURL))
 	router := s.Router
 	router.Use(prepareMiddleware(ctx))
 	s.bindHandlers()

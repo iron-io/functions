@@ -17,13 +17,14 @@ import (
 	"github.com/iron-io/functions/api/mqs"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
+	"github.com/spf13/viper"
 )
 
 var tmpBolt = "/tmp/func_test_bolt.db"
 
 func testRouter(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request) *gin.Engine {
 	ctx := context.Background()
-	s := New(ctx, ds, mq, rnr, tasks, DefaultEnqueue)
+	s := New(ctx, ds, mq, viper.GetString(EnvAPIURL))
 	r := s.Router
 	r.Use(gin.Logger())
 

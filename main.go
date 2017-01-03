@@ -14,17 +14,17 @@ import (
 func main() {
 	ctx := contextWithSignal(context.Background(), os.Interrupt)
 
-	ds, err := datastore.New(viper.GetString(envDB))
+	ds, err := datastore.New(viper.GetString(server.EnvDBURL))
 	if err != nil {
 		log.WithError(err).Fatalln("Invalid DB url.")
 	}
 
-	mq, err := mqs.New(viper.GetString(envMQ))
+	mq, err := mqs.New(viper.GetString(server.EnvMQURL))
 	if err != nil {
 		log.WithError(err).Fatal("Error on init MQ")
 	}
 
-	apiURL := viper.GetString(envAPIURL)
+	apiURL := viper.GetString(server.EnvAPIURL)
 
 	funcServer := server.New(ctx, ds, mq, apiURL)
 	// Setup your custom extensions, listeners, etc here
