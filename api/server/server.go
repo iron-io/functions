@@ -9,11 +9,20 @@ import (
 	"path"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
+)
+
+const (
+	EnvLogLevel = "log_level"
+	EnvMQURL    = "mq_url"
+	EnvDBURL    = "db_url"
+	EnvPort     = "port" // be careful, Gin expects this variable to be "port"
+	EnvAPIURL   = "api_url"
 )
 
 type Server struct {
@@ -22,6 +31,8 @@ type Server struct {
 	Router    *gin.Engine
 	MQ        models.MessageQueue
 	Enqueue   models.Enqueue
+
+	apiURL string
 
 	specialHandlers    []SpecialHandler
 	appCreateListeners []AppCreateListener
@@ -33,14 +44,26 @@ type Server struct {
 	singleflight singleflight // singleflight assists Datastore
 }
 
-func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan task.Request, enqueue models.Enqueue, opts ...ServerOption) *Server {
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiURL string, opts ...ServerOption) *Server {
+	metricLogger := runner.NewMetricLogger()
+	funcLogger := runner.NewFuncLogger()
+
+	rnr, err := runner.New(ctx, funcLogger, metricLogger)
+	if err != nil {
+		logrus.WithError(err).Fatalln("Failed to create a runner")
+		return nil
+	}
+
+	tasks := make(chan task.Request)
+
 	s := &Server{
-		Runner:    r,
+		Runner:    rnr,
 		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
 		tasks:     tasks,
-		Enqueue:   enqueue,
+		Enqueue:   DefaultEnqueue,
+		apiURL:    apiURL,
 	}
 
 	s.Router.Use(prepareMiddleware(ctx))
@@ -120,12 +143,36 @@ func extractFields(c *gin.Context) logrus.Fields {
 	return fields
 }
 
-func (s *Server) Run() {
+func (s *Server) Start(ctx context.Context) {
 	s.bindHandlers()
+	s.startGears(ctx)
+	close(s.tasks)
+}
+
+func (s *Server) startGears(ctx context.Context) {
+	svr := &supervisor.Supervisor{
+		MaxRestarts: supervisor.AlwaysRestart,
+		Log: func(msg interface{}) {
+			logrus.Debug("supervisor: ", msg)
+		},
+	}
 
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
-	go s.Router.Run()
+	svr.AddFunc(func(ctx context.Context) {
+		go s.Router.Run()
+		<-ctx.Done()
+	})
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.StartWorkers(ctx, s.Runner, s.tasks)
+	})
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
+	})
+
+	svr.Serve(ctx)
 }
 
 func (s *Server) bindHandlers() {
