@@ -61,7 +61,7 @@ func (c *Cache) Get(appname, path string) (route *models.Route, ok bool) {
 	return
 }
 
-// Delete ...
+// Delete removes the element for the given appname and path from the cache.
 func (c *Cache) Delete(appname, path string) {
 	if ele, hit := c.cache[appname+path]; hit {
 		c.removeElement(ele)

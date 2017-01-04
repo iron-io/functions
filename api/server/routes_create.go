@@ -100,7 +100,6 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	// For any create just push the new route to the front of the list
 	s.hotroutes.Refresh(route)
 
 	c.JSON(http.StatusOK, routeResponse{"Route successfully created", route})
