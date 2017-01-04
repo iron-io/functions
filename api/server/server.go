@@ -41,6 +41,7 @@ type Server struct {
 
 	specialHandlers []SpecialHandler
 	appListeners    []AppListener
+	middlewares     []Middleware
 	runnerListeners []RunnerListener
 
 	tasks        chan task.Request
@@ -88,7 +89,7 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 	}
 
 	s.Router.Use(prepareMiddleware(ctx))
-	s.bindHandlers()
+	s.bindHandlers(ctx)
 
 	for _, opt := range opts {
 		opt(s)
@@ -97,6 +98,7 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 	return s
 }
 
+// todo: remove this or change name
 func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
@@ -199,7 +201,7 @@ func (s *Server) startGears(ctx context.Context) {
 	svr.Serve(ctx)
 }
 
-func (s *Server) bindHandlers() {
+func (s *Server) bindHandlers(ctx context.Context) {
 	engine := s.Router
 
 	engine.GET("/", handlePing)
@@ -207,6 +209,7 @@ func (s *Server) bindHandlers() {
 	engine.GET("/stats", s.handleStats)
 
 	v1 := engine.Group("/v1")
+	v1.Use(s.middlewareWrapperFunc(ctx))
 	{
 		v1.GET("/apps", s.handleAppList)
 		v1.POST("/apps", s.handleAppCreate)
