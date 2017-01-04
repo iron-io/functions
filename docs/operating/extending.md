@@ -2,6 +2,13 @@
 
 IronFunctions is extensible so you can add custom functionality and extend the project without needing to modify the core.
 
+There are 4 different ways to extend the functionality of IronFunctions. 
+
+1. Listeners - listen to API events such as a route getting updated and react accordingly.
+1. Middleware - a chain of middleware is executed before an API handler is called.
+1. Add API Endpoints - extend the default IronFunctions API. 
+1. Special Handlers - TODO: DO WE NEED THIS ANYMORE??
+
 ## Listeners
 
 Listeners are the main way to extend IronFunctions. 
@@ -93,6 +100,14 @@ Triggered during requests to the following routes:
 You can add API endpoints by using the `AddEndpoint` and `AddEndpointFunc` methods to the IronFunctions server. 
 
 See examples of this in [/examples/extensions/main.go](/examples/extensions/main.go). 
+
+## Middleware
+
+TODO: 
+
+NOTES:
+
+* middleware is responsible for writing output if it's going to cancel the chain
 
 ## Special Handlers
 
