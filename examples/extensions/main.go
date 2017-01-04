@@ -13,11 +13,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-<<<<<<< HEAD
 	funcServer := server.NewFromEnv(ctx)
-=======
-	funcServer := server.New(ctx)
->>>>>>> 82a4e7a... API endpoint extensions working.
 	// Setup your custom extensions, listeners, etc here
 	funcServer.AddEndpoint("GET", "/custom1", &Custom1Handler{})
 	funcServer.AddEndpointFunc("GET", "/custom2", func(w http.ResponseWriter, r *http.Request) {

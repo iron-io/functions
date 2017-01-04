@@ -10,7 +10,7 @@ func (h *testSpecialHandler) Handle(c HandlerContext) error {
 }
 
 func TestSpecialHandlerSet(t *testing.T) {
-	// temporarily commented until we figure out if we want this anymore
+	// TODO: I'm not removing this completely yet, but it's likely the SpecialHandler will be removed
 	// ctx := context.Background()
 
 	// tasks := make(chan task.Request)
