@@ -47,6 +47,7 @@ type Server struct {
 	singleflight singleflight // singleflight assists Datastore
 }
 
+// NewEnv creates a new IronFunctions server based on env vars.
 func NewEnv(ctx context.Context) *Server {
 	ds, err := datastore.New(viper.GetString(EnvDBURL))
 	if err != nil {
@@ -100,11 +101,11 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
-		if appName := c.Param("app"); appName != "" {
+		if appName := c.Param(api.CApp); appName != "" {
 			c.Set(api.AppName, appName)
 		}
 
-		if routePath := c.Param("route"); routePath != "" {
+		if routePath := c.Param(api.CRoute); routePath != "" {
 			c.Set(api.Path, routePath)
 		}
 
