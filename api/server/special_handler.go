@@ -15,16 +15,16 @@ type SpecialHandler interface {
 // Each handler can modify the context here so when it gets passed along, it will use the new info.
 type HandlerContext interface {
 	// Context return the context object
-	// Context() context.Context
+	Context() context.Context
 
 	// Request returns the underlying http.Request object
 	Request() *http.Request
 
 	// Response returns the http.ResponseWriter
-	// Response() http.ResponseWriter
+	Response() http.ResponseWriter
 
 	// Overwrite value in the context
-	// Set(key string, value interface{})
+	Set(key string, value interface{})
 }
 
 type SpecialHandlerContext struct {
