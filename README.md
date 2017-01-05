@@ -76,7 +76,7 @@ This guide will get you up and running in a few minutes.
 To get started quickly with IronFunctions, just fire up an `iron/functions` container:
 
 ```sh
-docker run --rm -it --name functions --privileged -v $PWD/data:/app/data -p 8080:8080 iron/functions
+docker run --rm -it --name functions --privileged -v ${pwd}/data:/app/data -p 8080:8080 iron/functions
 ```
 
 This will start IronFunctions in single server mode, using an embedded database and message queue. You can find all the
@@ -288,11 +288,11 @@ See [docs/](docs/README.md) for full documentation.
 
 These are the high level roadmap goals. See [milestones](https://github.com/iron-io/functions/milestones) for detailed issues.
 
-* Alpha 1 - November 2016
+* ~~Alpha 1 - November 2016~~
   * Initial release of base framework
   * Lambda support
-* Alpha 2 - December 2016
-  * Streaming input for hot containers #214
+* ~~Alpha 2 - December 2016~~
+  * Streaming input for hot functions #214
   * Logging endpoint(s) for per function debugging #263
 * Beta 1 - January 2017
   * Smart Load Balancer #151
@@ -305,7 +305,7 @@ These are the high level roadmap goals. See [milestones](https://github.com/iron
 You can get community support via:
 
 * [Stack Overflow](http://stackoverflow.com/questions/tagged/ironfunctions)
-* [Slack](https://get.iron.io/open-slack)
+* [Slack](http://get.iron.io/open-slack)
 
 You can get commercial support by contacting [Iron.io](https://iron.io/contact)
 
