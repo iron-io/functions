@@ -164,7 +164,7 @@ func (a *appsCmd) patchApp(appName string, app *functions.App) error {
 		if app.Config != nil {
 			for k, v := range app.Config {
 				if v == "" {
-					delete(app.Config, k)
+					delete(wrapper.App.Config, k)
 					continue
 				}
 				wrapper.App.Config[k] = v

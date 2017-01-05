@@ -468,7 +468,7 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *functions.Route) er
 		if r.Config != nil {
 			for k, v := range r.Config {
 				if v == "" {
-					delete(r.Config, k)
+					delete(wrapper.Route.Config, k)
 					continue
 				}
 				wrapper.Route.Config[k] = v
@@ -477,7 +477,7 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *functions.Route) er
 		if r.Headers != nil {
 			for k, v := range r.Headers {
 				if v[0] == "" {
-					delete(r.Headers, k)
+					delete(wrapper.Route.Headers, k)
 					continue
 				}
 				wrapper.Route.Headers[k] = v
