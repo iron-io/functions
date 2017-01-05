@@ -130,7 +130,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 }
 
 func (s *Server) loadroutes(ctx context.Context, filter models.RouteFilter) ([]*models.Route, error) {
-	if route, ok := s.hotroutes.Get(filter.AppName, filter.Path); ok {
+	if route, ok := s.cacheget(filter.AppName, filter.Path); ok {
 		return []*models.Route{route}, nil
 	}
 	resp, err := s.singleflight.do(

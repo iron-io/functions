@@ -112,10 +112,16 @@ func (s *Server) cacheget(appname, path string) (*models.Route, bool) {
 	return route, ok
 }
 
-func (s *Server) refreshcache(route *models.Route) {
+func (s *Server) cacherefresh(route *models.Route) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.hotroutes.Refresh(route)
+}
+
+func (s *Server) cachedelete(appname, path string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.hotroutes.Delete(appname, path)
 }
 
 func (s *Server) handleRunnerRequest(c *gin.Context) {

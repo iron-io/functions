@@ -100,7 +100,7 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	s.hotroutes.Refresh(route)
+	s.cacherefresh(route)
 
 	c.JSON(http.StatusOK, routeResponse{"Route successfully created", route})
 }
