@@ -22,7 +22,7 @@ func apps() cli.Command {
 
 	return cli.Command{
 		Name:      "apps",
-		Usage:     "operate applications",
+		Usage:     "manage applications",
 		ArgsUsage: "fn apps",
 		Subcommands: []cli.Command{
 			{
