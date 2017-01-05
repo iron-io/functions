@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"text/tabwriter"
 
 	"github.com/iron-io/functions_go"
+	"github.com/jmoiron/jsonq"
 	"github.com/urfave/cli"
+	"strings"
 )
 
 type appsCmd struct {
@@ -38,47 +39,30 @@ func apps() cli.Command {
 				},
 			},
 			{
+				Name:      "inspect",
+				Aliases:   []string{"i"},
+				Usage:     "retrieve one or all apps properties",
+				ArgsUsage: "`app` [property.[key]]",
+				Action:    a.inspect,
+			},
+			{
+				Name:      "update",
+				Aliases:   []string{"u"},
+				Usage:     "update an `app`",
+				ArgsUsage: "`app`",
+				Action:    a.update,
+				Flags: []cli.Flag{
+					cli.StringSliceFlag{
+						Name:  "config,c",
+						Usage: "route configuration",
+					},
+				},
+			},
+			{
 				Name:    "list",
 				Aliases: []string{"l"},
 				Usage:   "list all apps",
 				Action:  a.list,
-			},
-			{
-				Name:  "config",
-				Usage: "operate an application configuration set",
-				Subcommands: []cli.Command{
-					{
-						Name:      "view",
-						Aliases:   []string{"v"},
-						Usage:     "view all configuration keys for this app",
-						ArgsUsage: "`app`",
-						Action:    a.configList,
-						Flags: []cli.Flag{
-							cli.BoolFlag{
-								Name:  "shell,s",
-								Usage: "output in shell format",
-							},
-							cli.BoolFlag{
-								Name:  "json,j",
-								Usage: "output in JSON format",
-							},
-						},
-					},
-					{
-						Name:      "set",
-						Aliases:   []string{"s"},
-						Usage:     "store a configuration key for this application",
-						ArgsUsage: "`app` <key> <value>",
-						Action:    a.configSet,
-					},
-					{
-						Name:      "unset",
-						Aliases:   []string{"u"},
-						Usage:     "remove a configuration key for this application",
-						ArgsUsage: "`app` <key>",
-						Action:    a.configUnset,
-					},
-				},
 			},
 			{
 				Name:   "delete",
@@ -117,7 +101,7 @@ func (a *appsCmd) list(c *cli.Context) error {
 
 func (a *appsCmd) create(c *cli.Context) error {
 	if c.Args().First() == "" {
-		return errors.New("error: app creating takes one argument, an app name")
+		return errors.New("error: missing app name after create command")
 	}
 
 	if err := resetBasePath(a.Configuration); err != nil {
@@ -137,142 +121,110 @@ func (a *appsCmd) create(c *cli.Context) error {
 		return errors.New(msg)
 	}
 
-	fmt.Println(wrapper.App.Name, "created")
+	fmt.Println("app", wrapper.App.Name, "created")
 	return nil
 }
 
-func (a *appsCmd) configList(c *cli.Context) error {
+func (a *appsCmd) update(c *cli.Context) error {
 	if c.Args().First() == "" {
-		return errors.New("error: app description takes one argument, an app name")
+		return errors.New("error: missing app name after update command")
 	}
 
 	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
-	appName := c.Args().Get(0)
+	appName := c.Args().First()
+
+	patchedApp := &functions.App{
+		Config: extractEnvConfig(c.StringSlice("config")),
+	}
+
+	err := a.patchApp(appName, patchedApp)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("app", appName, "updated")
+	return nil
+}
+
+func (a *appsCmd) patchApp(appName string, app *functions.App) error {
 	wrapper, _, err := a.AppsAppGet(appName)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error loading app: %v", err)
 	}
 
 	if msg := wrapper.Error_.Message; msg != "" {
 		return errors.New(msg)
 	}
 
-	config := wrapper.App.Config
-	if len(config) == 0 {
-		return errors.New("this application has no configurations")
+	wrapper.App.Name = ""
+	if app != nil {
+		if app.Config != nil {
+			for k, v := range app.Config {
+				if v == "" {
+					delete(app.Config, k)
+					continue
+				}
+				wrapper.App.Config[k] = v
+			}
+		}
 	}
 
-	if c.Bool("json") {
-		if err := json.NewEncoder(os.Stdout).Encode(config); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-	} else if c.Bool("shell") {
-		for k, v := range wrapper.App.Config {
-			fmt.Print("export ", k, "=", v, "\n")
-		}
-	} else {
-		fmt.Println(wrapper.App.Name, "configuration:")
-		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
-		for k, v := range config {
-			fmt.Fprint(w, k, ":\t", v, "\n")
-		}
-		w.Flush()
+	if wrapper, _, err = a.AppsAppPatch(appName, *wrapper); err != nil {
+		return fmt.Errorf("error updating app: %v", err)
 	}
+
+	if msg := wrapper.Error_.Message; msg != "" {
+		return errors.New(msg)
+	}
+
 	return nil
 }
 
-func (a *appsCmd) configSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
+func (a *appsCmd) inspect(c *cli.Context) error {
+	if c.Args().Get(0) == "" {
+		return errors.New("error: missing app name after the inspect command")
 	}
 
 	if err := resetBasePath(a.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
-	appName := c.Args().Get(0)
-	key := c.Args().Get(1)
-	value := c.Args().Get(2)
+	appName := c.Args().First()
+	prop := c.Args().Get(1)
 
-	wrapper, _, err := a.AppsAppGet(appName)
+	wrapper, resp, err := a.AppsAppGet(appName)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error retrieving app: %v", err)
 	}
 
 	if msg := wrapper.Error_.Message; msg != "" {
 		return errors.New(msg)
 	}
 
-	config := wrapper.App.Config
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "\t")
 
-	if config == nil {
-		config = make(map[string]string)
+	if prop == "" {
+		enc.Encode(wrapper.App)
+		return nil
 	}
 
-	config[key] = value
-
-	if err := a.storeApp(appName, config); err != nil {
-		return fmt.Errorf("error updating app configuration: %v", err)
-	}
-
-	fmt.Println(wrapper.App.Name, "updated", key, "with", value)
-	return nil
-}
-
-func (a *appsCmd) configUnset(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
-	}
-
-	if err := resetBasePath(a.Configuration); err != nil {
-		return fmt.Errorf("error setting endpoint: %v", err)
-	}
-
-	appName := c.Args().Get(0)
-	key := c.Args().Get(1)
-
-	wrapper, _, err := a.AppsAppGet(appName)
+	var inspect struct{ App map[string]interface{} }
+	err = json.Unmarshal(resp.Payload, &inspect)
 	if err != nil {
-		return fmt.Errorf("error creating app: %v", err)
+		return fmt.Errorf("error inspect app: %v", err)
 	}
 
-	if msg := wrapper.Error_.Message; msg != "" {
-		return errors.New(msg)
+	jq := jsonq.NewQuery(inspect.App)
+	field, err := jq.Interface(strings.Split(prop, ".")...)
+	if err != nil {
+		return errors.New("failed to inspect the property")
 	}
+	enc.Encode(field)
 
-	config := wrapper.App.Config
-
-	if config == nil {
-		config = make(map[string]string)
-	}
-
-	if _, ok := config[key]; !ok {
-		return fmt.Errorf("configuration key %s not found", key)
-	}
-
-	delete(config, key)
-
-	if err := a.storeApp(appName, config); err != nil {
-		return fmt.Errorf("error updating app configuration: %v", err)
-	}
-
-	fmt.Println(wrapper.App.Name, "removed", key)
-	return nil
-}
-
-func (a *appsCmd) storeApp(appName string, config map[string]string) error {
-	body := functions.AppWrapper{App: functions.App{
-		Name:   appName,
-		Config: config,
-	}}
-
-	if _, _, err := a.AppsPost(body); err != nil {
-		return fmt.Errorf("error updating app configuration: %v", err)
-	}
 	return nil
 }
 
@@ -295,6 +247,6 @@ func (a *appsCmd) delete(c *cli.Context) error {
 		return errors.New("could not delete this application - pending routes")
 	}
 
-	fmt.Println(appName, "deleted")
+	fmt.Println("app", appName, "deleted")
 	return nil
 }
