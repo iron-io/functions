@@ -147,6 +147,7 @@ func routes() cli.Command {
 						Action:    r.configUnset,
 					},
 				},
+			},
 			{
 				Name:      "delete",
 				Aliases:   []string{"d"},
