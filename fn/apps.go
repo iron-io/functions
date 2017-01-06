@@ -59,6 +59,26 @@ func apps() cli.Command {
 				},
 			},
 			{
+				Name:  "config",
+				Usage: "manage your apps's function configs",
+				Subcommands: []cli.Command{
+					{
+						Name:      "set",
+						Aliases:   []string{"s"},
+						Usage:     "store a configuration key for this application",
+						ArgsUsage: "`app` <key> <value>",
+						Action:    a.configSet,
+					},
+					{
+						Name:      "unset",
+						Aliases:   []string{"u"},
+						Usage:     "remove a configuration key for this application",
+						ArgsUsage: "`app` <key>",
+						Action:    a.configUnset,
+					},
+				},
+			},
+			{
 				Name:    "list",
 				Aliases: []string{"l"},
 				Usage:   "list all apps",
@@ -149,6 +169,59 @@ func (a *appsCmd) update(c *cli.Context) error {
 	return nil
 }
 
+func (a *appsCmd) configSet(c *cli.Context) error {
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
+		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
+	}
+
+	if err := resetBasePath(a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
+
+	appName := c.Args().Get(0)
+	key := c.Args().Get(1)
+	value := c.Args().Get(2)
+
+	app := &functions.App{
+		Config: make(map[string]string),
+	}
+
+	app.Config[key] = value
+
+	if err := a.patchApp(appName, app); err != nil {
+		return fmt.Errorf("error updating app configuration: %v", err)
+	}
+
+	fmt.Println(appName, "updated", key, "with", value)
+	return nil
+}
+
+func (a *appsCmd) configUnset(c *cli.Context) error {
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
+		return errors.New("error: application configuration setting takes three arguments: an app name, a key and a value")
+	}
+
+	if err := resetBasePath(a.Configuration); err != nil {
+		return fmt.Errorf("error setting endpoint: %v", err)
+	}
+
+	appName := c.Args().Get(0)
+	key := c.Args().Get(1)
+
+	app := &functions.App{
+		Config: make(map[string]string),
+	}
+
+	app.Config["-"+key] = ""
+
+	if err := a.patchApp(appName, app); err != nil {
+		return fmt.Errorf("error updating app configuration: %v", err)
+	}
+
+	fmt.Println("app", appName, "removed config key", key)
+	return nil
+}
+
 func (a *appsCmd) patchApp(appName string, app *functions.App) error {
 	wrapper, _, err := a.AppsAppGet(appName)
 	if err != nil {
@@ -163,8 +236,8 @@ func (a *appsCmd) patchApp(appName string, app *functions.App) error {
 	if app != nil {
 		if app.Config != nil {
 			for k, v := range app.Config {
-				if v == "" {
-					delete(wrapper.App.Config, k)
+				if string(k[0]) == "-" {
+					delete(wrapper.App.Config, string(k[1:]))
 					continue
 				}
 				wrapper.App.Config[k] = v
