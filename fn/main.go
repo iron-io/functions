@@ -56,9 +56,9 @@ ALIASES:
      build    (images build)
      bump     (images bump)
      deploy   (images deploy)
-     push     (images push)
      run      (images run)
      call     (routes call)
+     push     (images push)
 
 GLOBAL OPTIONS:
    {{range $index, $option := .VisibleFlags}}{{if $index}}
