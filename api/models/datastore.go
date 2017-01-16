@@ -23,6 +23,8 @@ type Datastore interface {
 	// todo: should we namespace these by app? Then when an app is deleted, it can delete any of this extra data too.
 	Put(context.Context, []byte, []byte) error
 	Get(context.Context, []byte) ([]byte, error)
+
+	Close() error
 }
 
 var (

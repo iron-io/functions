@@ -49,6 +49,8 @@ type MessageQueue interface {
 	// the job does not have an outstanding reservation, error. If a job did not
 	// exist, succeed.
 	Delete(context.Context, *Task) error
+
+	Close() error
 }
 
 type Enqueue func(context.Context, MessageQueue, *Task) (*Task, error)

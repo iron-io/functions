@@ -82,6 +82,10 @@ func New(url *url.URL) (models.Datastore, error) {
 	return pg, nil
 }
 
+func (ds *PostgresDatastore) Close() error {
+	return ds.db.Close()
+}
+
 func (ds *PostgresDatastore) InsertApp(ctx context.Context, app *models.App) (*models.App, error) {
 	var cbyte []byte
 	var err error

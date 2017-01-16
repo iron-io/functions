@@ -18,6 +18,7 @@ import (
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
+	"net/url"
 )
 
 const (
@@ -187,7 +188,8 @@ func (s *Server) startGears(ctx context.Context) {
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
 	svr.AddFunc(func(ctx context.Context) {
-		go s.Router.Run()
+		u, _ := url.Parse(s.apiURL)
+		go s.Router.Run(u.Host)
 		<-ctx.Done()
 	})
 

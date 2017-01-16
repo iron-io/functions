@@ -94,6 +94,10 @@ func NewIronMQ(url *url.URL) *IronMQ {
 	return mq
 }
 
+func (mq *IronMQ) Close() error {
+	return nil
+}
+
 func (mq *IronMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
 	if job.Priority == nil || *job.Priority < 0 || *job.Priority > 2 {
 		return nil, fmt.Errorf("IronMQ Push job %s: Bad priority", job.ID)

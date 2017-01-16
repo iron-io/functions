@@ -58,6 +58,10 @@ func NewRedisMQ(url *url.URL) (*RedisMQ, error) {
 	return mq, nil
 }
 
+func (mq *RedisMQ) Close() error {
+	return mq.pool.Close()
+}
+
 func (mq *RedisMQ) k(s string) string {
 	return mq.prefix + s
 }

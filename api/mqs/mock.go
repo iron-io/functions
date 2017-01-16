@@ -24,3 +24,7 @@ func (mock *Mock) Reserve(context.Context) (*models.Task, error) {
 func (mock *Mock) Delete(context.Context, *models.Task) error {
 	return nil
 }
+
+func (mock *Mock) Close() error {
+	return nil
+}

@@ -56,6 +56,10 @@ func NewMemoryMQ() *MemoryMQ {
 	return mq
 }
 
+func (mq *MemoryMQ) Close() error {
+	return nil
+}
+
 func (mq *MemoryMQ) start() {
 	// start goroutine to check for delayed jobs and put them onto regular queue when ready
 	go func() {

@@ -101,6 +101,10 @@ func NewBoltMQ(url *url.URL) (*BoltDbMQ, error) {
 	return mq, nil
 }
 
+func (mq *BoltDbMQ) Close() error {
+	return mq.db.Close()
+}
+
 func (mq *BoltDbMQ) Start() {
 	go func() {
 		// It would be nice to switch to a tick-less, next-event Timer based model.

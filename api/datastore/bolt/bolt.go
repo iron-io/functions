@@ -35,7 +35,7 @@ func New(url *url.URL) (models.Datastore, error) {
 		return nil, err
 	}
 	log.Infoln("Creating bolt db at ", url.Path)
-	db, err := bolt.Open(url.Path, 0655, &bolt.Options{Timeout: 1 * time.Second})
+	db, err := bolt.Open(url.Path, 0655, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		log.WithError(err).Errorln("Error on bolt.Open")
 		return nil, err
@@ -75,6 +75,10 @@ func New(url *url.URL) (models.Datastore, error) {
 	log.WithFields(logrus.Fields{"prefix": bucketPrefix, "file": url.Path}).Info("BoltDB initialized")
 
 	return ds, nil
+}
+
+func (ds *BoltDatastore) Close() error {
+	return ds.db.Close()
 }
 
 func (ds *BoltDatastore) InsertApp(ctx context.Context, app *models.App) (*models.App, error) {

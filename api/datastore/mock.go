@@ -21,6 +21,8 @@ func NewMock(apps []*models.App, routes []*models.Route) *Mock {
 	return &Mock{apps, routes}
 }
 
+func (m *Mock) Close() error { return nil }
+
 func (m *Mock) GetApp(ctx context.Context, appName string) (app *models.App, err error) {
 	for _, a := range m.Apps {
 		if a.Name == appName {

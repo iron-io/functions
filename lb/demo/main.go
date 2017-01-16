@@ -24,7 +24,7 @@ func init() {
 
 func main() {
 	nodes := strings.Split(fnodes, ",")
-	p := lb.ConsistentHashReverseProxy(context.Background(), nodes)
+	p := lb.ConsistentHashReverseProxy(context.Background(), lb.DefaultDirector, nodes)
 	fmt.Println("forwarding calls to", nodes)
 	fmt.Println("listening to", flisten)
 	if err := http.ListenAndServe(flisten, p); err != nil {
