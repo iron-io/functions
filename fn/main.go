@@ -15,6 +15,9 @@ var aliases = map[string]cli.Command{
 	"build":  build(),
 	"bump":   bump(),
 	"deploy": deploy(),
+	"push":   push(),
+	"run":    run(),
+	"call":   call(),
 }
 
 func aliasesFn() []cli.Command {
@@ -27,7 +30,7 @@ func aliasesFn() []cli.Command {
 	return cmds
 }
 
-func main() {
+func newFn() *cli.App {
 	app := cli.NewApp()
 	app.Name = "fn"
 	app.Version = fnversion
@@ -53,6 +56,9 @@ ALIASES:
      build    (images build)
      bump     (images bump)
      deploy   (images deploy)
+     run      (images run)
+     call     (routes call)
+     push     (images push)
 
 GLOBAL OPTIONS:
    {{range $index, $option := .VisibleFlags}}{{if $index}}
@@ -71,6 +77,11 @@ GLOBAL OPTIONS:
 		version(),
 	}
 	app.Commands = append(app.Commands, aliasesFn()...)
+	return app
+}
+
+func main() {
+	app := newFn()
 	app.Run(os.Args)
 }
 
