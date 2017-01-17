@@ -197,17 +197,17 @@ func (s *Server) startGears(ctx context.Context) {
 	}
 
 	svr.AddFunc(func(ctx context.Context) {
-		go http.Serve(listener, s.Router)
+		http.Serve(listener, s.Router)
 		<-ctx.Done()
 	})
 
 	svr.AddFunc(func(ctx context.Context) {
-		go runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
+		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
 		<-ctx.Done()
 	})
 
 	svr.AddFunc(func(ctx context.Context) {
-		go runner.StartWorkers(ctx, s.Runner, s.tasks)
+		runner.StartWorkers(ctx, s.Runner, s.tasks)
 		<-ctx.Done()
 	})
 
