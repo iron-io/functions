@@ -197,7 +197,12 @@ func (s *Server) startGears(ctx context.Context) {
 	}
 
 	svr.AddFunc(func(ctx context.Context) {
-		http.Serve(listener, s.Router)
+		go func() {
+			err := http.Serve(listener, s.Router)
+			if err != nil {
+				logrus.Fatalf("Error serving API: %v", err)
+			}
+		}()
 		<-ctx.Done()
 	})
 
