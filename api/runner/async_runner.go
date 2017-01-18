@@ -85,7 +85,9 @@ func deleteTask(url string, task *models.Task) error {
 // RunAsyncRunner pulls tasks off a queue and processes them
 func RunAsyncRunner(ctx context.Context, tasksrv string, tasks chan task.Request, rnr *Runner) {
 	u := tasksrvURL(tasksrv)
+
 	startAsyncRunners(ctx, u, tasks, rnr)
+	<-ctx.Done()
 }
 
 func startAsyncRunners(ctx context.Context, url string, tasks chan task.Request, rnr *Runner) {

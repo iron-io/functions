@@ -203,12 +203,10 @@ func (s *Server) startGears(ctx context.Context) {
 
 	svr.AddFunc(func(ctx context.Context) {
 		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
-		<-ctx.Done()
 	})
 
 	svr.AddFunc(func(ctx context.Context) {
 		runner.StartWorkers(ctx, s.Runner, s.tasks)
-		<-ctx.Done()
 	})
 
 	svr.Serve(ctx)
