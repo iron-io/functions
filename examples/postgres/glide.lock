@@ -1,0 +1,11 @@
+hash: 31259c5d600b1ed4ceeece32d429c91d64e133cc8390c3f102b50853352c0c37
+updated: 2017-01-20T21:23:53.671650781Z
+imports:
+- name: github.com/lib/pq
+  version: 67c3f2a8884c9b1aac5503c8d42ae4f73a93511c
+  subpackages:
+  - oid
+  - redis
+- name: github.com/pkg/errors
+  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+testImports: []
