@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,10 +14,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"context"
 	fnclient "github.com/iron-io/functions_go/client"
 	apiroutes "github.com/iron-io/functions_go/client/routes"
 	"github.com/iron-io/functions_go/models"
+	"github.com/jmoiron/jsonq"
 	"github.com/urfave/cli"
 )
 
@@ -30,7 +31,7 @@ func routes() cli.Command {
 
 	return cli.Command{
 		Name:      "routes",
-		Usage:     "operate routes",
+		Usage:     "manage routes",
 		ArgsUsage: "fn routes",
 		Subcommands: []cli.Command{
 			{
@@ -70,6 +71,52 @@ func routes() cli.Command {
 					},
 					cli.StringFlag{
 						Name:  "format,f",
+						Usage: "hot function IO format - json or http",
+						Value: "",
+					},
+					cli.IntFlag{
+						Name:  "max-concurrency",
+						Usage: "maximum concurrency for hot function",
+						Value: 1,
+					},
+					cli.DurationFlag{
+						Name:  "timeout",
+						Usage: "route timeout",
+						Value: 30 * time.Second,
+					},
+				},
+			},
+			{
+				Name:      "update",
+				Aliases:   []string{"u"},
+				Usage:     "update a route in an `app`",
+				ArgsUsage: "`app` /path",
+				Action:    r.update,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "image,i",
+						Usage: "image name",
+					},
+					cli.Int64Flag{
+						Name:  "memory,m",
+						Usage: "memory in MiB",
+						Value: 128,
+					},
+					cli.StringFlag{
+						Name:  "type,t",
+						Usage: "route type - sync or async",
+						Value: "sync",
+					},
+					cli.StringSliceFlag{
+						Name:  "config,c",
+						Usage: "route configuration",
+					},
+					cli.StringSliceFlag{
+						Name:  "headers",
+						Usage: "route response headers",
+					},
+					cli.StringFlag{
+						Name:  "format,f",
 						Usage: "hot container IO format - json or http",
 						Value: "",
 					},
@@ -86,33 +133,9 @@ func routes() cli.Command {
 				},
 			},
 			{
-				Name:      "delete",
-				Aliases:   []string{"d"},
-				Usage:     "delete a route from `app`",
-				ArgsUsage: "`app` /path",
-				Action:    r.delete,
-			},
-			{
 				Name:  "config",
 				Usage: "operate a route configuration set",
 				Subcommands: []cli.Command{
-					{
-						Name:      "view",
-						Aliases:   []string{"v"},
-						Usage:     "view all configuration keys for this route",
-						ArgsUsage: "`app` /path",
-						Action:    r.configList,
-						Flags: []cli.Flag{
-							cli.BoolFlag{
-								Name:  "shell,s",
-								Usage: "output in shell format",
-							},
-							cli.BoolFlag{
-								Name:  "json,j",
-								Usage: "output in JSON format",
-							},
-						},
-					},
 					{
 						Name:      "set",
 						Aliases:   []string{"s"},
@@ -129,33 +152,19 @@ func routes() cli.Command {
 					},
 				},
 			},
-
 			{
-				Name:  "headers",
-				Usage: "operate a route's header configuration",
-				Subcommands: []cli.Command{
-					{
-						Name:      "view",
-						Aliases:   []string{"v"},
-						Usage:     "view all route's headers",
-						ArgsUsage: "`app` /path",
-						Action:    r.headersList,
-					},
-					{
-						Name:      "set",
-						Aliases:   []string{"s"},
-						Usage:     "add header to a router",
-						ArgsUsage: "`app` /path <key> <value>",
-						Action:    r.headersSet,
-					},
-					{
-						Name:      "unset",
-						Aliases:   []string{"u"},
-						Usage:     "remove a configuration key for this route",
-						ArgsUsage: "`app` /path <key>",
-						Action:    r.headersUnset,
-					},
-				},
+				Name:      "delete",
+				Aliases:   []string{"d"},
+				Usage:     "delete a route from `app`",
+				ArgsUsage: "`app` /path",
+				Action:    r.delete,
+			},
+			{
+				Name:      "inspect",
+				Aliases:   []string{"i"},
+				Usage:     "retrieve one or all routes properties",
+				ArgsUsage: "`app` /path [property.[key]]",
+				Action:    r.inspect,
 			},
 		},
 	}
@@ -379,7 +388,26 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	return nil
 }
 
-func (a *routesCmd) configList(c *cli.Context) error {
+// _, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
+// 	Context: context.Background(),
+// 	App:     appName,
+// 	Route:   route,
+// 	Body:    resp.Payload,
+// })
+
+// if err != nil {
+// 	switch err.(type) {
+// 	case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
+// 		return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
+// 	case *apiroutes.PatchAppsAppRoutesRouteNotFound:
+// 		return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
+// 	case *apiroutes.PatchAppsAppRoutesRouteDefault:
+// 		return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
+// 	}
+// 	return fmt.Errorf("unexpected error: %v", err)
+// }
+
+func (a *routesCmd) update(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: route configuration description takes two arguments: an app name and a route")
 	}
@@ -424,6 +452,34 @@ func (a *routesCmd) configList(c *cli.Context) error {
 		}
 		w.Flush()
 	}
+
+	// 	if route == "" {
+	// 		return errors.New("error: route path is missing")
+	// 	}
+
+	// 	headers := map[string][]string{}
+	// 	for _, header := range c.StringSlice("headers") {
+	// 		parts := strings.Split(header, "=")
+	// 		headers[parts[0]] = strings.Split(parts[1], ";")
+	// 	}
+
+	// 	patchRoute := &functions.Route{
+	// 		Image:          c.String("image"),
+	// 		Memory:         c.Int64("memory"),
+	// 		Type_:          c.String("type"),
+	// 		Config:         extractEnvConfig(c.StringSlice("config")),
+	// 		Headers:        headers,
+	// 		Format:         c.String("format"),
+	// 		MaxConcurrency: int32(c.Int64("max-concurrency")),
+	// 		Timeout:        int32(c.Int64("timeout")),
+	// 	}
+
+	// 	err := a.patchRoute(appName, route, patchRoute)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	fmt.Println(appName, route, "updated")
 	return nil
 }
 
@@ -482,6 +538,19 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 	}
 
 	fmt.Println(appName, resp.Payload.Route.Path, "updated", key, "with", value)
+
+	// patchRoute := functions.Route{
+	// 	Config: make(map[string]string),
+	// }
+
+	// patchRoute.Config[key] = value
+
+	// err := a.patchRoute(appName, route, &patchRoute)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// fmt.Println(appName, route, "updated", key, "with", value)
 	return nil
 }
 
@@ -523,36 +592,18 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 	delete(config, key)
 	resp.Payload.Route.Config = config
 
-	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
-		Context: context.Background(),
-		App:     appName,
-		Route:   route,
-		Body:    resp.Payload,
-	})
-
-	if err != nil {
-		switch err.(type) {
-		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
-			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
-		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
-			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
-		case *apiroutes.PatchAppsAppRoutesRouteDefault:
-			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
-		}
-		return fmt.Errorf("unexpected error: %v", err)
-	}
-
 	fmt.Println(appName, resp.Payload.Route.Path, "removed", key)
 	return nil
 }
 
-func (a *routesCmd) headersList(c *cli.Context) error {
+func (a *routesCmd) inspect(c *cli.Context) error {
 	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: route configuration description takes two arguments: an app name and a route")
+		return errors.New("error: routes listing takes three arguments: an app name and a path")
 	}
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
+	prop := c.Args().Get(2)
 
 	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
 		Context: context.Background(),
@@ -570,136 +621,20 @@ func (a *routesCmd) headersList(c *cli.Context) error {
 		return fmt.Errorf("unexpected error: %v", err)
 	}
 
-	headers := resp.Payload.Route.Headers
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "\t")
 
-	if len(headers) == 0 {
-		return errors.New("this route has no headers")
+	if prop == "" {
+		enc.Encode(resp.Payload.Route)
+		return nil
 	}
 
-	fmt.Println(appName, resp.Payload.Route.Path, "headers:")
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
-	for k, v := range headers {
-		fmt.Fprint(w, k, ":\t", v, "\n")
-	}
-	w.Flush()
-	return nil
-}
-
-func (a *routesCmd) headersSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route, a key and a value")
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	key := c.Args().Get(2)
-	value := c.Args().Get(3)
-
-	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
-		Context: context.Background(),
-		App:     appName,
-		Route:   route,
-	})
-
+	jq := jsonq.NewQuery(resp.Payload.Route)
+	field, err := jq.Interface(strings.Split(prop, ".")...)
 	if err != nil {
-		switch err.(type) {
-		case *apiroutes.GetAppsAppRoutesRouteNotFound:
-			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
-		case *apiroutes.GetAppsAppRoutesRouteDefault:
-			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
-		}
-		return fmt.Errorf("unexpected error: %v", err)
+		return errors.New("failed to inspect the property")
 	}
+	enc.Encode(field)
 
-	headers := resp.Payload.Route.Headers
-
-	if headers == nil {
-		headers = make(map[string][]string)
-	}
-
-	headers[key] = append(headers[key], value)
-	resp.Payload.Route.Headers = headers
-
-	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
-		Context: context.Background(),
-		App:     appName,
-		Route:   route,
-		Body:    resp.Payload,
-	})
-
-	if err != nil {
-		switch err.(type) {
-		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
-			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
-		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
-			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
-		case *apiroutes.PatchAppsAppRoutesRouteDefault:
-			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
-		}
-		return fmt.Errorf("unexpected error: %v", err)
-	}
-
-	fmt.Println(appName, resp.Payload.Route.Path, "headers updated", key, "with", value)
-	return nil
-}
-
-func (a *routesCmd) headersUnset(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route and a key")
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	key := c.Args().Get(2)
-
-	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
-		Context: context.Background(),
-		App:     appName,
-		Route:   route,
-	})
-
-	if err != nil {
-		switch err.(type) {
-		case *apiroutes.GetAppsAppRoutesRouteNotFound:
-			return fmt.Errorf("error: %v", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
-		case *apiroutes.GetAppsAppRoutesRouteDefault:
-			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
-		}
-		return fmt.Errorf("unexpected error: %v", err)
-	}
-
-	headers := resp.Payload.Route.Headers
-
-	if headers == nil {
-		headers = make(map[string][]string)
-	}
-
-	if _, ok := headers[key]; !ok {
-		return fmt.Errorf("configuration key %s not found", key)
-	}
-
-	delete(headers, key)
-	resp.Payload.Route.Headers = headers
-
-	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
-		Context: context.Background(),
-		App:     appName,
-		Route:   route,
-		Body:    resp.Payload,
-	})
-
-	if err != nil {
-		switch err.(type) {
-		case *apiroutes.PatchAppsAppRoutesRouteBadRequest:
-			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteBadRequest).Payload.Error.Message)
-		case *apiroutes.PatchAppsAppRoutesRouteNotFound:
-			return fmt.Errorf("error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteNotFound).Payload.Error.Message)
-		case *apiroutes.PatchAppsAppRoutesRouteDefault:
-			return fmt.Errorf("unexpected error: %v", err.(*apiroutes.PatchAppsAppRoutesRouteDefault).Payload.Error.Message)
-		}
-		return fmt.Errorf("unexpected error: %v", err)
-	}
-
-	fmt.Println(appName, resp.Payload.Route.Path, "removed header", key)
 	return nil
 }

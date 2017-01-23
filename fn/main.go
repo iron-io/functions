@@ -9,33 +9,79 @@ import (
 	"github.com/urfave/cli"
 )
 
-const fnVersion = "0.1.39"
+const fnversion = "0.1.40"
 
-func main() {
+var aliases = map[string]cli.Command{
+	"build":  build(),
+	"bump":   bump(),
+	"deploy": deploy(),
+	"push":   push(),
+	"run":    run(),
+	"call":   call(),
+}
+
+func aliasesFn() []cli.Command {
+	cmds := []cli.Command{}
+	for alias, cmd := range aliases {
+		cmd.Name = alias
+		cmd.Hidden = true
+		cmds = append(cmds, cmd)
+	}
+	return cmds
+}
+
+func newFn() *cli.App {
 	app := cli.NewApp()
 	app.Name = "fn"
-	app.Version = fnVersion
-	app.Authors = []cli.Author{{Name: "Iron.io"}}
-	app.Usage = "IronFunctions command line tools"
-	app.UsageText = `Check the manual at https://github.com/iron-io/functions/blob/master/fn/README.md
+	app.Version = fnversion
+	app.Authors = []cli.Author{{Name: "iron.io"}}
+	app.Description = "IronFunctions command line tools"
+	app.UsageText = `Check the manual at https://github.com/iron-io/functions/blob/master/fn/README.md`
+
+	cli.AppHelpTemplate = `{{.Name}} {{.Version}}{{if .Description}}
+
+{{.Description}}{{end}}
+
+USAGE:
+   {{if .UsageText}}{{.UsageText}}{{else}}{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}
 
 ENVIRONMENT VARIABLES:
-   API_URL - IronFunctions remote API address`
-	app.CommandNotFound = func(c *cli.Context, cmd string) { fmt.Fprintf(os.Stderr, "command not found: %v\n", cmd) }
+   API_URL - IronFunctions remote API address{{if .VisibleCommands}}
+
+COMMANDS:{{range .VisibleCategories}}{{if .Name}}
+   {{.Name}}:{{end}}{{range .VisibleCommands}}
+     {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
+
+ALIASES:
+     build    (images build)
+     bump     (images bump)
+     deploy   (images deploy)
+     run      (images run)
+     call     (routes call)
+     push     (images push)
+
+GLOBAL OPTIONS:
+   {{range $index, $option := .VisibleFlags}}{{if $index}}
+   {{end}}{{$option}}{{end}}{{end}}
+`
+
+	app.CommandNotFound = func(c *cli.Context, cmd string) {
+		fmt.Fprintf(os.Stderr, "command not found: %v\n", cmd)
+	}
 	app.Commands = []cli.Command{
-		apps(),
-		build(),
-		bump(),
-		call(),
-		deploy(),
 		initFn(),
-		lambda(),
-		push(),
+		apps(),
 		routes(),
-		run(),
-		testfn(),
+		images(),
+		lambda(),
 		version(),
 	}
+	app.Commands = append(app.Commands, aliasesFn()...)
+	return app
+}
+
+func main() {
+	app := newFn()
 	app.Run(os.Args)
 }
 

@@ -4,16 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
+	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
+	"github.com/spf13/viper"
+)
+
+const (
+	EnvLogLevel = "log_level"
+	EnvMQURL    = "mq_url"
+	EnvDBURL    = "db_url"
+	EnvPort     = "port" // be careful, Gin expects this variable to be "port"
+	EnvAPIURL   = "api_url"
 )
 
 type Server struct {
@@ -23,28 +38,49 @@ type Server struct {
 	MQ        models.MessageQueue
 	Enqueue   models.Enqueue
 
+	apiURL string
+
 	specialHandlers    []SpecialHandler
 	appCreateListeners []AppCreateListener
 	appUpdateListeners []AppUpdateListener
 	appDeleteListeners []AppDeleteListener
 	runnerListeners    []RunnerListener
 
+	mu           sync.Mutex // protects hotroutes
+	hotroutes    *routecache.Cache
 	tasks        chan task.Request
 	singleflight singleflight // singleflight assists Datastore
 }
 
-func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, r *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *Server {
+const cacheSize = 1024
+
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiURL string, opts ...ServerOption) *Server {
+	metricLogger := runner.NewMetricLogger()
+	funcLogger := runner.NewFuncLogger()
+
+	rnr, err := runner.New(ctx, funcLogger, metricLogger)
+	if err != nil {
+		logrus.WithError(err).Fatalln("Failed to create a runner")
+		return nil
+	}
+
+	tasks := make(chan task.Request)
 	s := &Server{
-		Runner:    r,
+		Runner:    rnr,
 		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
+		hotroutes: routecache.New(cacheSize),
 		tasks:     tasks,
-		Enqueue:   enqueue,
+		Enqueue:   DefaultEnqueue,
+		apiURL:    apiURL,
 	}
 
 	s.Router.Use(prepareMiddleware(ctx))
 
+	for _, opt := range opts {
+		opt(s)
+	}
 	return s
 }
 
@@ -53,13 +89,12 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
 		if appName := c.Param("app"); appName != "" {
-			ctx = context.WithValue(ctx, "appName", appName)
+			c.Set(api.AppName, appName)
 		}
 
 		if routePath := c.Param("route"); routePath != "" {
-			ctx = context.WithValue(ctx, "routePath", routePath)
+			c.Set(api.Path, routePath)
 		}
-
 		c.Set("ctx", ctx)
 		c.Next()
 	}
@@ -68,6 +103,28 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 func DefaultEnqueue(ctx context.Context, mq models.MessageQueue, task *models.Task) (*models.Task, error) {
 	ctx, _ = common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
 	return mq.Push(ctx, task)
+}
+
+func (s *Server) cacheget(appname, path string) (*models.Route, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	route, ok := s.hotroutes.Get(appname, path)
+	if !ok {
+		return nil, false
+	}
+	return route, ok
+}
+
+func (s *Server) cacherefresh(route *models.Route) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.hotroutes.Refresh(route)
+}
+
+func (s *Server) cachedelete(appname, path string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.hotroutes.Delete(appname, path)
 }
 
 func (s *Server) handleRunnerRequest(c *gin.Context) {
@@ -116,12 +173,48 @@ func extractFields(c *gin.Context) logrus.Fields {
 	return fields
 }
 
-func (s *Server) Run() {
+func (s *Server) Start(ctx context.Context) {
 	s.bindHandlers()
+	s.startGears(ctx)
+	close(s.tasks)
+}
 
+func (s *Server) startGears(ctx context.Context) {
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
-	go s.Router.Run()
+	listen := fmt.Sprintf(":%d", viper.GetInt(EnvPort))
+	listener, err := net.Listen("tcp", listen)
+	if err != nil {
+		logrus.WithError(err).Fatalln("Failed to serve functions API.")
+	}
+	logrus.Infof("Serving Functions API on address `%s`", listen)
+
+	svr := &supervisor.Supervisor{
+		MaxRestarts: supervisor.AlwaysRestart,
+		Log: func(msg interface{}) {
+			logrus.Debug("supervisor: ", msg)
+		},
+	}
+
+	svr.AddFunc(func(ctx context.Context) {
+		go func() {
+			err := http.Serve(listener, s.Router)
+			if err != nil {
+				logrus.Fatalf("Error serving API: %v", err)
+			}
+		}()
+		<-ctx.Done()
+	})
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.RunAsyncRunner(ctx, s.apiURL, s.tasks, s.Runner)
+	})
+
+	svr.AddFunc(func(ctx context.Context) {
+		runner.StartWorkers(ctx, s.Runner, s.tasks)
+	})
+
+	svr.Serve(ctx)
 }
 
 func (s *Server) bindHandlers() {
@@ -129,6 +222,7 @@ func (s *Server) bindHandlers() {
 
 	engine.GET("/", handlePing)
 	engine.GET("/version", handleVersion)
+	engine.GET("/stats", s.handleStats)
 
 	v1 := engine.Group("/v1")
 	{
