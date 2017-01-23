@@ -10,11 +10,14 @@
 - [#313](https://github.com/iron-io/functions/issues/313): fnctl: Add .NET core support?.
 - [#310](https://github.com/iron-io/functions/issues/310): fnctl: Add python support.
 - [#69](https://github.com/iron-io/functions/issues/69): Long(er) running containers for better performance aka Hot Containers.
-- [#472](https://github.com/iron-io/functions/pull/472): Add global lru for routes with keys being the appname + path
+- [#472](https://github.com/iron-io/functions/pull/472): Add global lru for routes with keys being the appname + path.
 - [#484](https://github.com/iron-io/functions/pull/484): Add triggers example for OpenStack project Picasso.
+- [#487](https://github.com/iron-io/functions/pull/487): Add initial load balancer.
 
 ### Bugfixes
 
+- [#483](https://github.com/iron-io/functions/pull/483): Listen for PORT before running async/sync workers in order to prevent errors.
+- [#479](https://github.com/iron-io/functions/pull/478): Add routes config set/unset back
 - [#429](https://github.com/iron-io/functions/issues/429): Broken docs after merge.
 - [#422](https://github.com/iron-io/functions/issues/422): The headers field in func.yaml expects an array of values for each header key.
 - [#421](https://github.com/iron-io/functions/issues/421): Can't update a route and show better error message.
