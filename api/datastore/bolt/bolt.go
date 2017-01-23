@@ -414,6 +414,10 @@ func (ds *BoltDatastore) GetRoute(ctx context.Context, appName, routePath string
 		}
 
 		v := b.Get([]byte(routePath))
+		if v == nil {
+			return models.ErrRoutesNotFound
+		}
+
 		if v != nil {
 			err = json.Unmarshal(v, &route)
 		}
