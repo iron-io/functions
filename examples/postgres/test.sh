@@ -1,9 +1,6 @@
 #!/bin/bash
 set -x
 
-./build.sh
-
-# test it
 docker stop test-postgres-func
 docker rm test-postgres-func
 
@@ -17,27 +14,26 @@ RECORD1='{
     "last": "Smith",
     "age": 30
 }'
-echo $RECORD1 | docker run --rm -i -e SERVER=postgres:5432 -e COMMAND=INSERT -e TABLE=people --link test-postgres-func:postgres iron/func-postgres
-
+echo $RECORD1 | /home/jordan/go/bin/fn run -e SERVER=postgres:5432 -e COMMAND=INSERT -e TABLE=people --link test-postgres-func:postgres
 QUERY1='{
     "last": "Smith"
 }'
-echo $QUERY1 | docker run --rm -i -e SERVER=postgres:5432 -e COMMAND=SELECT -e TABLE=people --link test-postgres-func:postgres iron/func-postgres
+echo $QUERY1 | /home/jordan/go/bin/fn run -e SERVER=postgres:5432 -e COMMAND=SELECT -e TABLE=people --link test-postgres-func:postgres
 
 RECORD2='{
     "first": "Bob",
     "last": "Smith",
     "age": 43
 }'
-echo $RECORD2 | docker run --rm -i -e SERVER=postgres:5432 -e COMMAND=INSERT -e TABLE=people --link test-postgres-func:postgres iron/func-postgres
+echo $RECORD2 | /home/jordan/go/bin/fn run -e SERVER=postgres:5432 -e COMMAND=INSERT -e TABLE=people --link test-postgres-func:postgres
 
-echo $QUERY1 | docker run --rm -i -e SERVER=postgres:5432 -e COMMAND=SELECT -e TABLE=people --link test-postgres-func:postgres iron/func-postgres
+echo $QUERY1 | /home/jordan/go/bin/fn run -e SERVER=postgres:5432 -e COMMAND=SELECT -e TABLE=people --link test-postgres-func:postgres
 
 QUERY2='{
     "first": "John",
     "last": "Smith"
 }'
-echo $QUERY2 | docker run --rm -i -e SERVER=postgres:5432 -e COMMAND=SELECT -e TABLE=people --link test-postgres-func:postgres iron/func-postgres
+echo $QUERY2 | /home/jordan/go/bin/fn run -e SERVER=postgres:5432 -e COMMAND=SELECT -e TABLE=people --link test-postgres-func:postgres
 
 docker stop test-postgres-func
 docker rm test-postgres-func

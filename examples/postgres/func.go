@@ -16,11 +16,11 @@ import (
 
 var (
 	// command to execute, 'SELECT' or 'INSERT'
-	command = os.Getenv("COMMAND")
+	command = os.Getenv("HEADER_COMMAND")
 	// postgres host:port, e.g. 'postgres:5432'
-	server = os.Getenv("SERVER")
+	server = os.Getenv("HEADER_SERVER")
 	// postgres table name
-	table = os.Getenv("TABLE")
+	table = os.Getenv("HEADER_TABLE")
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 			log.Fatal(errors.Wrap(err, "insert command failed"))
 		}
 	default:
-		log.Fatal("invalid command: " + command)
+		log.Fatalf("invalid command: %q", command)
 	}
 }
 

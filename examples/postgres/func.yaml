@@ -1,3 +1,6 @@
-name: iron/func-postgres
-build:
-  - ./build.sh
+name: jmank88/func-postgres
+version: 0.0.1
+runtime: go
+entrypoint: ./func
+path: /func-postgres
+max_concurrency: 1
