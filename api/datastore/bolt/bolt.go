@@ -229,6 +229,8 @@ func (ds *BoltDatastore) GetApp(ctx context.Context, name string) (*models.App, 
 				return err
 			}
 			res = app
+		} else {
+			return models.ErrAppsNotFound
 		}
 		return nil
 	})
