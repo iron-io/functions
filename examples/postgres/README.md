@@ -20,6 +20,6 @@ fn routes create --config TABLE=<TABLE_NAME> --config COMMAND=SELECT <YOUR_APP> 
 Now you can call your function on IronFunctions:
 
 ```
-curl -X POST -d @<INSERT_RECORD>.json http://localhost:8080/r/<YOUR_APP>/<TABLE_NAME>/insert
-curl -X POST -d @<SELECT_FIELDS>.json http://localhost:8080/r/<YOUR_APP>/<TABLE_NAME>/select
+echo <JSON_RECORD> | fn call /<YOUR_APP>/<TABLE_NAME>/insert
+echo <JSON_QUERY> | fn call /<YOUR_APP>/<TABLE_NAME>/select
 ```
