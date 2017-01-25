@@ -20,3 +20,8 @@ curl http://localhost:8080/v1/apps
 
 You should get a 401 error. 
 
+Add an auth header and it should go through successfully:
+
+```sh
+curl -X GET -H "Authorization: Bearer KlaatuBaradaNikto" http://localhost:8080/v1/apps
+```

@@ -18,9 +18,12 @@ func main() {
 
 	funcServer := server.NewEnv(ctx)
 
-	funcServer.AddMiddlewareFunc(func(w http.ResponseWriter, r *http.Request, app *models.App) error {
-		fmt.Println("CustomMiddlewareFunc called at:", time.Now())
+	funcServer.AddMiddlewareFunc(func(ctx server.MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
+		start := time.Now()
+		fmt.Println("CustomMiddlewareFunc called at:", start)
 		// TODO: probably need a way to let the chain go forward here and return back to the middleware, for things like timing, etc.
+		ctx.Next()
+		fmt.Println("Duration:", (time.Now().Sub(start)))
 		return nil
 	})
 	funcServer.AddMiddleware(&CustomMiddleware{})
@@ -31,7 +34,7 @@ func main() {
 type CustomMiddleware struct {
 }
 
-func (h *CustomMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, app *models.App) error {
+func (h *CustomMiddleware) Serve(ctx server.MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
 	fmt.Println("CustomMiddleware called")
 
 	// check auth header
