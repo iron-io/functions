@@ -32,7 +32,7 @@ func runflags() []cli.Flag {
 			Usage: "select environment variables to be sent to function",
 		},
 		cli.StringSliceFlag{
-			Name: "link",
+			Name:  "link",
 			Usage: "select container links for the function",
 		},
 	}
