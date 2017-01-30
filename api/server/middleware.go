@@ -3,7 +3,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
@@ -45,16 +44,13 @@ type middlewareContextImpl struct {
 }
 
 func (c *middlewareContextImpl) Next() {
-	fmt.Println("NEXT called")
 	c.nextCalled = true
 	c.index++
 	c.serveNext()
 }
 
 func (c *middlewareContextImpl) serveNext() {
-	fmt.Println("serveNext()", c.Index())
 	if c.Index() >= len(c.middlewares) {
-		fmt.Println("end of middleware")
 		return
 	}
 	// make shallow copy:
@@ -64,7 +60,6 @@ func (c *middlewareContextImpl) serveNext() {
 	err := c.middlewares[c.Index()].Serve(&fctx2, c.ginContext.Writer, r, nil)
 	if err != nil {
 		logrus.WithError(err).Warnln("Middleware error")
-		// cancel() // I know this is unecessary right now
 		// todo: might be a good idea to check if anything is written yet, and if not, output the error: simpleError(err)
 		// see: http://stackoverflow.com/questions/39415827/golang-http-check-if-responsewriter-has-been-written
 		c.ginContext.Abort()
