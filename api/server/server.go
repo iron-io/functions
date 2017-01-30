@@ -54,8 +54,8 @@ type Server struct {
 
 const cacheSize = 1024
 
-// NewEnv creates a new IronFunctions server based on env vars.
-func NewEnv(ctx context.Context) *Server {
+// NewFromEnv creates a new IronFunctions server based on env vars.
+func NewFromEnv(ctx context.Context) *Server {
 	ds, err := datastore.New(viper.GetString(EnvDBURL))
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error initializing datastore.")

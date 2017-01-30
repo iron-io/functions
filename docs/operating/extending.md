@@ -15,7 +15,7 @@ package main
 
 import (
     "context"
-df
+
     "github.com/iron-io/functions/api/server"
     "github.com/iron-io/functions/api/models"
 )

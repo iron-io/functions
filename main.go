@@ -9,7 +9,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	funcServer := server.NewEnv(ctx)
+	funcServer := server.NewFromEnv(ctx)
 	// Setup your custom extensions, listeners, etc here
 	funcServer.Start(ctx)
 }
