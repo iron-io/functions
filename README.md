@@ -274,6 +274,10 @@ If you watch the logs, you will see the function actually runs in the background
 
 Read more on [logging](docs/logging.md).
 
+## Functions UI
+
+See https://github.com/iron-io/functions-ui
+
 ## Writing Functions
 
 See [Writing Functions](docs/writing.md).
