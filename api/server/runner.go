@@ -30,20 +30,18 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	ctx = context.WithValue(ctx, api.Path, c.Request.URL.Path)
 	c.Set(api.Path, c.Request.URL.Path)
 
-	if len(s.middlewares) > 0 {
-		fctx := &middlewareContextImpl{Context: ctx}
-		// fctx.index = -1
-		fctx.ginContext = c
-		fctx.middlewares = s.runMiddlewares
-		fctx.middlewares = append(fctx.middlewares, MiddlewareFunc(func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
-			// now call the normal runner call
-			s.handleRequest(c, nil)
-			return nil
-		}))
+	fctx := &middlewareContextImpl{Context: ctx}
+	// fctx.index = -1
+	fctx.ginContext = c
+	fctx.middlewares = s.runMiddlewares
+	fctx.middlewares = append(fctx.middlewares, MiddlewareFunc(func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
+		// now call the normal runner call
+		s.handleRequest(c, nil)
+		return nil
+	}))
 
-		// start the chain:
-		fctx.serveNext()
-	}
+	// start the chain:
+	fctx.serveNext()
 
 	c.Set("ctx", ctx)
 	c.Set(api.AppName, ctx.Value(api.AppName).(string))
@@ -89,6 +87,8 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 		AppName: c.MustGet(api.AppName).(string),
 		Path:    path.Clean(c.MustGet(api.Path).(string)),
 	}
+
+	log.Infoln("reqRoute:", reqRoute)
 
 	s.FireBeforeDispatch(ctx, reqRoute)
 
