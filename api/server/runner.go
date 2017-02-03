@@ -30,13 +30,19 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	ctx = context.WithValue(ctx, api.Path, c.Request.URL.Path)
 	c.Set(api.Path, c.Request.URL.Path)
 
-	fctx := &middlewareContextImpl{Context: ctx}
+	// middleware can modify this
+	app := &models.App{}
+
+	fctx := &middlewareContextImpl{
+		Context: ctx,
+	}
+	fctx.app = app
 	// fctx.index = -1
 	fctx.ginContext = c
 	fctx.middlewares = s.runMiddlewares
 	fctx.middlewares = append(fctx.middlewares, MiddlewareFunc(func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
 		// now call the normal runner call
-		s.handleRequest(c, nil)
+		s.handleRequest(c, app, nil)
 		return nil
 	}))
 
@@ -57,7 +63,7 @@ func ToEnvName(envtype, name string) string {
 	return fmt.Sprintf("%s_%s", envtype, name)
 }
 
-func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
+func (s *Server) handleRequest(c *gin.Context, app *models.App, enqueue models.Enqueue) {
 	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
 		c.Status(http.StatusNotFound)
 		return
@@ -84,7 +90,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	}
 
 	reqRoute := &models.Route{
-		AppName: c.MustGet(api.AppName).(string),
+		AppName: app.Name,
 		Path:    path.Clean(c.MustGet(api.Path).(string)),
 	}
 
@@ -92,18 +98,8 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	s.FireBeforeDispatch(ctx, reqRoute)
 
-	appName := reqRoute.AppName
-	path := reqRoute.Path
-
-	app, err := s.Datastore.GetApp(ctx, appName)
-	if err != nil || app == nil {
-		log.WithError(err).Error(models.ErrAppsNotFound)
-		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
-		return
-	}
-
-	log.WithFields(logrus.Fields{"app": appName, "path": path}).Debug("Finding route on datastore")
-	routes, err := s.loadroutes(ctx, models.RouteFilter{AppName: appName, Path: path})
+	log.WithFields(logrus.Fields{"app": reqRoute.AppName, "path": reqRoute.Path}).Debug("Finding route on datastore")
+	routes, err := s.loadroutes(ctx, models.RouteFilter{AppName: reqRoute.AppName, Path: reqRoute.Path})
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))
@@ -118,9 +114,9 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	log.WithField("routes", len(routes)).Debug("Got routes from datastore")
 	route := routes[0]
-	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
+	log = log.WithFields(logrus.Fields{"app": reqRoute.AppName, "path": route.Path, "image": route.Image})
 
-	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
+	if s.serve(ctx, c, reqRoute.AppName, route, app, reqRoute.Path, reqID, payload, enqueue) {
 		s.FireAfterDispatch(ctx, reqRoute)
 		return
 	}

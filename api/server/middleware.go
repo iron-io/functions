@@ -44,6 +44,7 @@ type middlewareContextImpl struct {
 	nextCalled  bool
 	index       int
 	middlewares []Middleware
+	app         *models.App
 }
 
 // WithValue is essentially the same as context.Context, but returns the MiddlewareContext
@@ -77,7 +78,7 @@ func (c *middlewareContextImpl) serveNext() {
 	fctx2 := *c
 	fctx2.nextCalled = false
 	r := c.ginContext.Request.WithContext(fctx2)
-	err := c.middlewares[c.Index()].Serve(&fctx2, c.ginContext.Writer, r, nil)
+	err := c.middlewares[c.Index()].Serve(&fctx2, c.ginContext.Writer, r, fctx2.app)
 	if err != nil {
 		logrus.WithError(err).Warnln("Middleware error")
 		// todo: might be a good idea to check if anything is written yet, and if not, output the error: simpleError(err)
