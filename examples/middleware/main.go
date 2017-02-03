@@ -16,13 +16,13 @@ import (
 func main() {
 	ctx := context.Background()
 
-	funcServer := server.NewEnv(ctx)
+	funcServer := server.NewFromEnv(ctx)
 
 	funcServer.AddMiddlewareFunc(func(ctx server.MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
 		start := time.Now()
 		fmt.Println("CustomMiddlewareFunc called at:", start)
 		// TODO: probably need a way to let the chain go forward here and return back to the middleware, for things like timing, etc.
-		ctx.Next()
+		ctx.Next(ctx)
 		fmt.Println("Duration:", (time.Now().Sub(start)))
 		return nil
 	})

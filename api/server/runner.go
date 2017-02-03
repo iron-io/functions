@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,27 +30,28 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	ctx = context.WithValue(ctx, api.Path, c.Request.URL.Path)
 	c.Set(api.Path, c.Request.URL.Path)
 
-	ctx, err := s.UseSpecialHandlers(ctx, c.Request, c.Writer)
-	if err == ErrNoSpecialHandlerFound {
-		log.WithError(err).Errorln("Not special handler found")
-		c.JSON(http.StatusNotFound, http.StatusText(http.StatusNotFound))
-		return
-	} else if err != nil {
-		log.WithError(err).Errorln("Error using special handler!")
-		c.JSON(http.StatusInternalServerError, simpleError(errors.New("Failed to run function")))
-		return
+	if len(s.middlewares) > 0 {
+		fctx := &middlewareContextImpl{Context: ctx}
+		// fctx.index = -1
+		fctx.ginContext = c
+		fctx.middlewares = s.runMiddlewares
+		fctx.middlewares = append(fctx.middlewares, MiddlewareFunc(func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
+			// now call the normal runner call
+			s.handleRequest(c, nil)
+			return nil
+		}))
+
+		// start the chain:
+		fctx.serveNext()
 	}
 
 	c.Set("ctx", ctx)
 	c.Set(api.AppName, ctx.Value(api.AppName).(string))
 	if c.MustGet(api.AppName).(string) == "" {
-		log.WithError(err).Errorln("Specialhandler returned empty app name")
-		c.JSON(http.StatusBadRequest, simpleError(models.ErrRunnerRouteNotFound))
+		log.Warnln("app not found, no middleware set the name")
+		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
 		return
 	}
-
-	// now call the normal runner call
-	s.handleRequest(c, nil)
 }
 
 func ToEnvName(envtype, name string) string {

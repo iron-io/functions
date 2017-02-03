@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"reflect"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
@@ -29,9 +30,11 @@ func (f MiddlewareFunc) Serve(ctx MiddlewareContext, w http.ResponseWriter, r *h
 type MiddlewareContext interface {
 	context.Context
 	// Middleware can call Next() explicitly to call the next middleware in the chain. If Next() is not called and an error is not returned, Next() will automatically be called.
-	Next()
+	Next(ctx MiddlewareContext)
 	// Index returns the index of where we're at in the chain
 	Index() int
+	// WithValue same behavior as context.WithValue, but returns MiddlewareContext
+	WithValue(key, val interface{}) MiddlewareContext
 }
 
 type middlewareContextImpl struct {
@@ -43,14 +46,31 @@ type middlewareContextImpl struct {
 	middlewares []Middleware
 }
 
-func (c *middlewareContextImpl) Next() {
-	c.nextCalled = true
-	c.index++
-	c.serveNext()
+// WithValue is essentially the same as context.Context, but returns the MiddlewareContext
+func (c *middlewareContextImpl) WithValue(key, val interface{}) MiddlewareContext {
+	if key == nil {
+		panic("nil key")
+	}
+	if !reflect.TypeOf(key).Comparable() {
+		panic("key is not comparable")
+	}
+	ct2 := context.WithValue(c, key, val)
+	mc2 := &middlewareContextImpl{Context: ct2, ginContext: c.ginContext, nextCalled: c.nextCalled, index: c.index, middlewares: c.middlewares}
+	return mc2
+}
+
+func (c *middlewareContextImpl) Next(ctx MiddlewareContext) {
+	c2 := ctx.(*middlewareContextImpl)
+	c2.nextCalled = true
+	c2.index++
+	c2.serveNext()
 }
 
 func (c *middlewareContextImpl) serveNext() {
 	if c.Index() >= len(c.middlewares) {
+		// pass onto gin
+		c.ginContext.Set("ctx", c)
+		c.ginContext.Next()
 		return
 	}
 	// make shallow copy:
@@ -67,7 +87,7 @@ func (c *middlewareContextImpl) serveNext() {
 	}
 	if !fctx2.nextCalled {
 		// then we automatically call next
-		fctx2.Next()
+		fctx2.Next(c)
 	}
 
 }
@@ -83,20 +103,30 @@ func (s *Server) middlewareWrapperFunc(ctx context.Context) gin.HandlerFunc {
 		}
 		ctx = c.MustGet("ctx").(context.Context)
 		fctx := &middlewareContextImpl{Context: ctx}
-		fctx.index = -1
+		// fctx.index = -1
 		fctx.ginContext = c
 		fctx.middlewares = s.middlewares
 		// start the chain:
-		fctx.Next()
+		fctx.serveNext()
 	}
 }
 
-// AddAppEndpoint adds an endpoints to /v1/apps/:app/x
+// AddMiddleware adds middleware to all /v1/* routes
 func (s *Server) AddMiddleware(m Middleware) {
 	s.middlewares = append(s.middlewares, m)
 }
 
-// AddAppEndpoint adds an endpoints to /v1/apps/:app/x
+// AddAppEndpoint adds middleware to all /v1/* routes
 func (s *Server) AddMiddlewareFunc(m func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error) {
 	s.AddMiddleware(MiddlewareFunc(m))
+}
+
+// AddRunMiddleware adds middleware to the user functions routes, not the API
+func (s *Server) AddRunMiddleware(m Middleware) {
+	s.runMiddlewares = append(s.middlewares, m)
+}
+
+// AddRunMiddleware adds middleware to the user functions routes, not the API
+func (s *Server) AddRunMiddlewareFunc(m func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error) {
+	s.AddRunMiddleware(MiddlewareFunc(m))
 }

@@ -42,9 +42,9 @@ type Server struct {
 
 	apiURL string
 
-	specialHandlers []SpecialHandler
 	appListeners    []AppListener
 	middlewares     []Middleware
+	runMiddlewares  []Middleware
 	runnerListeners []RunnerListener
 
 	mu           sync.Mutex // protects hotroutes
