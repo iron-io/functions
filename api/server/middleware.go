@@ -5,75 +5,42 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api"
 )
 
-// Middleware is the interface required for implementing functions middlewar
-type Middleware interface {
-	// Serve is what the Middleware must implement. Can modify the request, write output, etc.
-	// todo: should we abstract the HTTP out of this?  In case we want to support other protocols.
-	Serve(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error
-}
+// Middleware is the interface required for implementing functions middleware
+type Middleware func(*MiddlewareContext)
 
-// MiddlewareFunc func form of Middleware
-type MiddlewareFunc func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error
+type MiddlewareContext struct {
+	AppName   string
+	RoutePath string
 
-// Serve wrapper
-func (f MiddlewareFunc) Serve(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
-	return f(ctx, w, r, app)
-}
-
-// MiddlewareContext extends context.Context for Middleware
-type MiddlewareContext interface {
 	context.Context
-	// Middleware can call Next() explicitly to call the next middleware in the chain. If Next() is not called and an error is not returned, Next() will automatically be called.
-	Next()
-	// Index returns the index of where we're at in the chain
-	Index() int
+	*http.Request
+	http.ResponseWriter
+
+	Next  func(*MiddlewareContext)
+	Index int
 }
 
-type middlewareContextImpl struct {
-	context.Context
-
-	ginContext  *gin.Context
-	nextCalled  bool
-	index       int
-	middlewares []Middleware
-}
-
-func (c *middlewareContextImpl) Next() {
-	c.nextCalled = true
-	c.index++
-	c.serveNext()
-}
-
-func (c *middlewareContextImpl) serveNext() {
-	if c.Index() >= len(c.middlewares) {
-		return
-	}
-	// make shallow copy:
-	fctx2 := *c
-	fctx2.nextCalled = false
-	r := c.ginContext.Request.WithContext(fctx2)
-	err := c.middlewares[c.Index()].Serve(&fctx2, c.ginContext.Writer, r, nil)
-	if err != nil {
-		logrus.WithError(err).Warnln("Middleware error")
-		// todo: might be a good idea to check if anything is written yet, and if not, output the error: simpleError(err)
-		// see: http://stackoverflow.com/questions/39415827/golang-http-check-if-responsewriter-has-been-written
-		c.ginContext.Abort()
-		return
-	}
-	if !fctx2.nextCalled {
-		// then we automatically call next
-		fctx2.Next()
+func runMiddlewares(rootCtx *MiddlewareContext, middlewares []Middleware) {
+	index := -1
+	next := func(mc *MiddlewareContext) {
+		index++
+		mdw := middlewares[index]
+		mcc := *mc
+		mcc.Index = index
+		mdw(&mcc)
+		mc.AppName = mcc.AppName
+		mc.RoutePath = mcc.RoutePath
 	}
 
-}
+	rootCtx.Next = next
 
-func (c *middlewareContextImpl) Index() int {
-	return c.index
+	for index < len(middlewares)-1 {
+		next(rootCtx)
+	}
 }
 
 func (s *Server) middlewareWrapperFunc(ctx context.Context) gin.HandlerFunc {
@@ -81,13 +48,25 @@ func (s *Server) middlewareWrapperFunc(ctx context.Context) gin.HandlerFunc {
 		if len(s.middlewares) == 0 {
 			return
 		}
-		ctx = c.MustGet("ctx").(context.Context)
-		fctx := &middlewareContextImpl{Context: ctx}
-		fctx.index = -1
-		fctx.ginContext = c
-		fctx.middlewares = s.middlewares
-		// start the chain:
-		fctx.Next()
+
+		appName := c.Param(api.AppName)
+		routePath := c.Param(api.Path)
+
+		ctx := c.MustGet("ctx").(context.Context)
+
+		mc := MiddlewareContext{
+			Context:        ctx,
+			Request:        c.Request,
+			ResponseWriter: c.Writer,
+
+			AppName:   appName,
+			RoutePath: routePath,
+		}
+
+		runMiddlewares(&mc, s.middlewares)
+
+		c.Set(api.AppName, mc.AppName)
+		c.Set(api.Path, mc.RoutePath)
 	}
 }
 
@@ -97,6 +76,8 @@ func (s *Server) AddMiddleware(m Middleware) {
 }
 
 // AddAppEndpoint adds an endpoints to /v1/apps/:app/x
-func (s *Server) AddMiddlewareFunc(m func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error) {
-	s.AddMiddleware(MiddlewareFunc(m))
+func (s *Server) AddMiddlewareFunc(m http.HandlerFunc) {
+	s.AddMiddleware(func(c *MiddlewareContext) {
+		m.ServeHTTP(c.ResponseWriter, c.Request)
+	})
 }
