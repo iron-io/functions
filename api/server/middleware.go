@@ -8,6 +8,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	fcommon "github.com/iron-io/functions/api/common"
 	"github.com/iron-io/functions/api/models"
 )
 
@@ -30,7 +31,7 @@ func (f MiddlewareFunc) Serve(ctx MiddlewareContext, w http.ResponseWriter, r *h
 type MiddlewareContext interface {
 	context.Context
 	// Middleware can call Next() explicitly to call the next middleware in the chain. If Next() is not called and an error is not returned, Next() will automatically be called.
-	Next(ctx MiddlewareContext)
+	Next(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App)
 	// Index returns the index of where we're at in the chain
 	Index() int
 	// WithValue same behavior as context.WithValue, but returns MiddlewareContext
@@ -60,14 +61,17 @@ func (c *middlewareContextImpl) WithValue(key, val interface{}) MiddlewareContex
 	return mc2
 }
 
-func (c *middlewareContextImpl) Next(ctx MiddlewareContext) {
+func (c *middlewareContextImpl) Next(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) {
 	c2 := ctx.(*middlewareContextImpl)
+	c2.app = app
 	c2.nextCalled = true
 	c2.index++
 	c2.serveNext()
 }
 
 func (c *middlewareContextImpl) serveNext() {
+	c2, log := fcommon.LoggerWithStack(c, "serveNext")
+	log.Infoln("serving", c.Index())
 	if c.Index() >= len(c.middlewares) {
 		// pass onto gin
 		c.ginContext.Set("ctx", c)
@@ -76,6 +80,7 @@ func (c *middlewareContextImpl) serveNext() {
 	}
 	// make shallow copy:
 	fctx2 := *c
+	fctx2.Context = c2
 	fctx2.nextCalled = false
 	r := c.ginContext.Request.WithContext(fctx2)
 	err := c.middlewares[c.Index()].Serve(&fctx2, c.ginContext.Writer, r, fctx2.app)
@@ -88,7 +93,7 @@ func (c *middlewareContextImpl) serveNext() {
 	}
 	if !fctx2.nextCalled {
 		// then we automatically call next
-		fctx2.Next(c)
+		fctx2.Next(c, c.ginContext.Writer, r, fctx2.app)
 	}
 
 }
@@ -104,6 +109,7 @@ func (s *Server) middlewareWrapperFunc(ctx context.Context) gin.HandlerFunc {
 		}
 		ctx = c.MustGet("ctx").(context.Context)
 		fctx := &middlewareContextImpl{Context: ctx}
+		fctx.app = &models.App{}
 		// fctx.index = -1
 		fctx.ginContext = c
 		fctx.middlewares = s.middlewares

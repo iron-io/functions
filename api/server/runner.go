@@ -23,7 +23,7 @@ import (
 
 func (s *Server) handleSpecial(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+	// log := common.Logger(ctx)
 
 	ctx = context.WithValue(ctx, api.AppName, "")
 	c.Set(api.AppName, "")
@@ -51,11 +51,11 @@ func (s *Server) handleSpecial(c *gin.Context) {
 
 	c.Set("ctx", ctx)
 	c.Set(api.AppName, ctx.Value(api.AppName).(string))
-	if c.MustGet(api.AppName).(string) == "" {
-		log.Warnln("app not found, no middleware set the name")
-		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
-		return
-	}
+	// if c.MustGet(api.AppName).(string) == "" {
+	// 	log.Warnln("app not found, no middleware set the name")
+	// 	c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
+	// 	return
+	// }
 }
 
 func ToEnvName(envtype, name string) string {

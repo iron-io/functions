@@ -20,7 +20,7 @@ func LoggerWithStack(ctx context.Context, call string) (context.Context, logrus.
 	// grab the stack field and append to it
 	v, ok := entry.Data["stack"]
 	stack := ""
-	if !ok {
+	if ok && v != nil {
 		stack = v.(string)
 	}
 	stack += "." + call
