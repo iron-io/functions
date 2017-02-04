@@ -1,4 +1,3 @@
-// TODO: it would be nice to move these into the top level folder so people can use these with the "functions" package, eg: functions.AddMiddleware(...)
 package server
 
 import (
@@ -9,7 +8,6 @@ import (
 	"github.com/iron-io/functions/api"
 )
 
-// Middleware is the interface required for implementing functions middleware
 type Middleware func(*MiddlewareContext)
 
 type MiddlewareContext struct {
