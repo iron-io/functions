@@ -252,7 +252,7 @@ func (ds *BoltDatastore) getRouteBucketForApp(tx *bolt.Tx, appName string) (*bol
 
 func (ds *BoltDatastore) InsertRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
 	if route == nil {
-		return nil, models.ErrDatastoreEmptyApp
+		return nil, models.ErrDatastoreEmptyRoute
 	}
 
 	if route.AppName == "" {

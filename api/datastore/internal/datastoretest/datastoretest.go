@@ -1,56 +1,47 @@
-package datastore
+package datastoretest
 
 import (
+	"bytes"
 	"context"
-	"database/sql"
-	"fmt"
-	"os/exec"
+	"log"
 	"testing"
-	"time"
 
 	"github.com/iron-io/functions/api/models"
+	"github.com/gin-gonic/gin"
+	"github.com/Sirupsen/logrus"
 )
 
-const tmpPostgres = "postgres://postgres@127.0.0.1:15432/funcs?sslmode=disable"
-
-func preparePostgresTest() func() {
-	fmt.Println("initializing postgres for test")
-	exec.Command("docker", "rm", "-f", "iron-postgres-test").Run()
-	exec.Command("docker", "run", "--name", "iron-postgres-test", "-p", "15432:5432", "-d", "postgres").Run()
-	for {
-		db, err := sql.Open("postgres", "postgres://postgres@127.0.0.1:15432?sslmode=disable")
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		db.Exec(`CREATE DATABASE funcs;`)
-		_, err = db.Exec(`GRANT ALL PRIVILEGES ON DATABASE funcs TO postgres;`)
-		if err == nil {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-	fmt.Println("postgres for test ready")
-	return func() {
-		exec.Command("docker", "rm", "-f", "iron-postgres-test").Run()
-	}
+func setLogBuffer() *bytes.Buffer {
+	var buf bytes.Buffer
+	buf.WriteByte('\n')
+	logrus.SetOutput(&buf)
+	gin.DefaultErrorWriter = &buf
+	gin.DefaultWriter = &buf
+	log.SetOutput(&buf)
+	return &buf
 }
 
-func TestPostgres(t *testing.T) {
-	close := preparePostgresTest()
-	defer close()
+func New(ds models.Datastore, err error) func(*testing.T) {
+	if err != nil {
+		return func(t *testing.T) {
+			t.Fatalf("Error when creating datastore: %v", err)
+		}
+	}
+	testds := &datastore{ds}
+	return testds.test
+}
+
+type datastore struct {
+	models.Datastore
+}
+
+func (ds *datastore) test(t *testing.T) {
 	buf := setLogBuffer()
 
 	ctx := context.Background()
 
-	ds, err := New(tmpPostgres)
-	if err != nil {
-		t.Fatalf("Error when creating datastore: %v", err)
-	}
-
 	// Testing insert app
-	_, err = ds.InsertApp(ctx, nil)
+	_, err := ds.InsertApp(ctx, nil)
 	if err != models.ErrDatastoreEmptyApp {
 		t.Log(buf.String())
 		t.Fatalf("Test InsertApp(nil): expected error `%v`, but it was `%v`", models.ErrDatastoreEmptyApp, err)
@@ -59,7 +50,7 @@ func TestPostgres(t *testing.T) {
 	_, err = ds.InsertApp(ctx, &models.App{})
 	if err != models.ErrDatastoreEmptyAppName {
 		t.Log(buf.String())
-		t.Fatalf("Test InsertApp(nil): expected error `%v`, but it was `%v`", models.ErrDatastoreEmptyAppName, err)
+		t.Fatalf("Test InsertApp(&{}): expected error `%v`, but it was `%v`", models.ErrDatastoreEmptyAppName, err)
 	}
 
 	_, err = ds.InsertApp(ctx, testApp)
@@ -318,6 +309,42 @@ func TestPostgres(t *testing.T) {
 
 }
 
-func testPostgresInsert(t *testing.T, ctx context.Context, ds models.Datastore) {
+var testApp = &models.App{
+	Name: "Test",
+}
 
+var testRoute = &models.Route{
+	AppName: testApp.Name,
+	Path:    "/test",
+	Image:   "iron/hello",
+	Type:    "sync",
+	Format:  "http",
+}
+
+//TODO use these
+var paramRoutes = []string{
+	`/blogs`,
+	`/blogs/:blog_id`,
+	`/blogs/:blog_id/comments`,
+	`/blogs/:blog_id/comments/:comment_id`,
+}
+
+var paramTests = []struct{ path, expectedRoute string }{
+	{
+		`/blogs`,
+		`/blogs`,
+	},
+	{
+		`/blogs/123`,
+		`/blogs/:blog_id`,
+	},
+	{
+		`/blogs/123/comments`,
+		`/blogs/:blog_id/comments`,
+	},
+	{
+		`/blogs/123/comments/456`,
+		`/blogs/:blog_id/comments/:comment_id`,
+	},
+	//TODO more tests
 }
