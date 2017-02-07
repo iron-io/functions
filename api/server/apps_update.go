@@ -35,7 +35,7 @@ func (s *Server) handleAppUpdate(c *gin.Context) {
 		return
 	}
 
-	wapp.App.Name = c.MustGet(api.AppName).(string)
+	wapp.App.Name = c.Param(api.CApp)
 
 	err = s.FireAfterAppUpdate(ctx, wapp.App)
 	if err != nil {

@@ -110,14 +110,6 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
-		if appName := c.Param(api.CApp); appName != "" {
-			c.Set(api.AppName, appName)
-		}
-
-		if routePath := c.Param(api.CRoute); routePath != "" {
-			c.Set(api.Path, routePath)
-		}
-
 		// todo: can probably replace the "ctx" value with the Go 1.7 context on the http.Request
 		c.Set("ctx", ctx)
 		c.Request = c.Request.WithContext(ctx)
@@ -164,7 +156,7 @@ func (s *Server) handleAppRequest(c *gin.Context) {
 	app, err := s.Datastore.GetApp(ctx, appName)
 	if err != nil || app == nil {
 		if err != nil {
-			log.WithError(err).Error("error getting app")
+			log.WithError(err).Error("error getting app from datastore")
 		}
 		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
 		return

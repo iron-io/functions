@@ -23,8 +23,8 @@ func LoggerWithStack(ctx context.Context, call string) (context.Context, logrus.
 	if ok && v != nil {
 		stack = v.(string)
 	}
-	stack += "." + call
-	l = l.WithField("stack", v)
+	stack += "->" + call
+	l = l.WithField("stack", stack)
 	ctx = rcommon.WithLogger(ctx, l)
 	return ctx, l
 }

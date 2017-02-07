@@ -13,7 +13,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
+	fcommon "github.com/iron-io/functions/api/common"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
@@ -23,14 +23,10 @@ import (
 
 func (s *Server) handleSpecial(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
-	// log := common.Logger(ctx)
+	ctx, log := fcommon.LoggerWithStack(ctx, "server.handleSpecial")
+	log.Infoln("handleSpecial called")
 
-	ctx = context.WithValue(ctx, api.AppName, "")
-	c.Set(api.AppName, "")
-	ctx = context.WithValue(ctx, api.Path, c.Request.URL.Path)
-	c.Set(api.Path, c.Request.URL.Path)
-
-	// middleware can modify this
+	// middleware should pass this or a new one along to Next()
 	app := &models.App{}
 
 	fctx := &middlewareContextImpl{
@@ -50,12 +46,6 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	fctx.serveNext()
 
 	c.Set("ctx", ctx)
-	c.Set(api.AppName, ctx.Value(api.AppName).(string))
-	// if c.MustGet(api.AppName).(string) == "" {
-	// 	log.Warnln("app not found, no middleware set the name")
-	// 	c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
-	// 	return
-	// }
 }
 
 func ToEnvName(envtype, name string) string {
@@ -91,7 +81,7 @@ func (s *Server) handleRequest(c *gin.Context, app *models.App, enqueue models.E
 
 	reqRoute := &models.Route{
 		AppName: app.Name,
-		Path:    path.Clean(c.MustGet(api.Path).(string)),
+		Path:    path.Clean(c.Request.URL.Path),
 	}
 
 	log.Infoln("reqRoute:", reqRoute)
@@ -107,7 +97,7 @@ func (s *Server) handleRequest(c *gin.Context, app *models.App, enqueue models.E
 	}
 
 	if len(routes) == 0 {
-		log.WithError(err).Error(models.ErrRunnerRouteNotFound)
+		log.WithError(err).Error("route not found in db:", reqRoute.Path)
 		c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
 		return
 	}
@@ -140,7 +130,9 @@ func (s *Server) loadroutes(ctx context.Context, filter models.RouteFilter) ([]*
 
 // TODO: Should remove *gin.Context from these functions, should use only context.Context
 func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
-	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
+	ctx, log := fcommon.LoggerWithStack(ctx, "serve")
+	ctx, log = common.LoggerWithFields(ctx, logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
+	log.Infoln("serving ", appName, found.Path)
 
 	params, match := matchRoute(found.Path, route)
 	if !match {

@@ -37,8 +37,8 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 		return
 	}
 
-	wroute.Route.AppName = c.MustGet(api.AppName).(string)
-	wroute.Route.Path = path.Clean(c.MustGet(api.Path).(string))
+	wroute.Route.AppName = c.Param(api.CApp)
+	wroute.Route.Path = path.Clean(c.Param(api.CRoute))
 
 	if wroute.Route.Image != "" {
 		err = s.Runner.EnsureImageExists(ctx, &task.Config{
