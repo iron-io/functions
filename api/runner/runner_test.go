@@ -66,7 +66,6 @@ func TestRunnerHello(t *testing.T) {
 }
 
 func TestRunnerError(t *testing.T) {
-	t.Skip()
 	buf := setLogBuffer()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

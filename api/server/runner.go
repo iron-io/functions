@@ -54,7 +54,7 @@ func (s *Server) handleSpecial(c *gin.Context) {
 	s.handleRequest(c, nil)
 }
 
-func ToEnvName(envtype, name string) string {
+func toEnvName(envtype, name string) string {
 	name = strings.ToUpper(strings.Replace(name, "-", "_", -1))
 	return fmt.Sprintf("%s_%s", envtype, name)
 }
@@ -161,20 +161,20 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 
 	// app config
 	for k, v := range app.Config {
-		envVars[ToEnvName("", k)] = v
+		envVars[toEnvName("", k)] = v
 	}
 	for k, v := range found.Config {
-		envVars[ToEnvName("", k)] = v
+		envVars[toEnvName("", k)] = v
 	}
 
 	// params
 	for _, param := range params {
-		envVars[ToEnvName("PARAM", param.Key)] = param.Value
+		envVars[toEnvName("PARAM", param.Key)] = param.Value
 	}
 
 	// headers
 	for header, value := range c.Request.Header {
-		envVars[ToEnvName("HEADER", header)] = strings.Join(value, " ")
+		envVars[toEnvName("HEADER", header)] = strings.Join(value, " ")
 	}
 
 	cfg := &task.Config{
