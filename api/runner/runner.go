@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -162,7 +161,7 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 		cfg.Memory = 128
 	}
 
-	cfg.Stderr = io.MultiWriter(r.flog.Writer(ctx, cfg.AppName, cfg.Path, cfg.Image, cfg.ID), cfg.Stderr)
+	cfg.Stderr = r.flog.Writer(ctx, cfg.AppName, cfg.Path, cfg.Image, cfg.ID)
 	if cfg.Stdout == nil {
 		cfg.Stdout = cfg.Stderr
 	}

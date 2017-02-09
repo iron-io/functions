@@ -259,7 +259,13 @@ func callfn(u string, content io.Reader, output io.Writer, method string, env []
 		return fmt.Errorf("error running route: %v", err)
 	}
 
-	io.Copy(output, resp.Body)
+	if resp.StatusCode >= 400 {
+		err := fmt.Sprintf("Something went terribly wrong, please check your functions logs! (Status Code: %d)", resp.StatusCode)
+		output.Write([]byte(err))
+	} else {
+		io.Copy(output, resp.Body)
+	}
+
 	return nil
 }
 
