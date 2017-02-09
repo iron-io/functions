@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
@@ -232,7 +234,17 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 		case "timeout":
 			c.AbortWithStatus(http.StatusGatewayTimeout)
 		default:
-			c.AbortWithStatus(http.StatusInternalServerError)
+			errMsg := &models.ErrorBody{
+				Message:   result.Error(),
+				RequestID: cfg.ID,
+			}
+
+			errStr, err := json.Marshal(errMsg)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}
+
+			c.Data(http.StatusInternalServerError, "", errStr)
 		}
 	}
 
