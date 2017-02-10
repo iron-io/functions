@@ -125,6 +125,51 @@ func (r *Route) Validate() error {
 	return nil
 }
 
+func (r *Route) Clone() *Route {
+	var clone Route
+	clone.AppName = r.AppName
+	clone.Path = r.Path
+	clone.Update(r)
+	return &clone
+}
+
+func (r *Route) Update(new *Route) {
+	if new.Image != "" {
+		r.Image = new.Image
+	}
+	if new.Memory != 0 {
+		r.Memory = new.Memory
+	}
+	if new.Type != "" {
+		r.Type = new.Type
+	}
+	if new.Timeout != 0 {
+		r.Timeout = new.Timeout
+	}
+	if new.Format != "" {
+		r.Format = new.Format
+	}
+	if new.MaxConcurrency != 0 {
+		r.MaxConcurrency = new.MaxConcurrency
+	}
+	if new.Headers != nil {
+		if r.Headers == nil {
+			r.Headers = make(http.Header)
+		}
+		for k, v := range new.Headers {
+			r.Headers[k] = v
+		}
+	}
+	if new.Config != nil {
+		if r.Config == nil {
+			r.Config = make(Config)
+		}
+		for k, v := range new.Config {
+			r.Config[k] = v
+		}
+	}
+}
+
 type RouteFilter struct {
 	Path    string
 	AppName string

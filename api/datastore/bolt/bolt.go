@@ -1,20 +1,19 @@
 package bolt
 
 import (
+	"context"
 	"encoding/json"
 	"net/url"
 	"os"
 	"path/filepath"
-	"time"
-
-	"context"
-
 	"regexp"
 	"strings"
+	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/boltdb/bolt"
 	"github.com/iron-io/functions/api/models"
+
+	"github.com/boltdb/bolt"
+	"github.com/Sirupsen/logrus"
 )
 
 type BoltDatastore struct {
@@ -325,32 +324,8 @@ func (ds *BoltDatastore) UpdateRoute(ctx context.Context, newroute *models.Route
 		if err != nil {
 			return err
 		}
-		// Update route fields
-		if newroute.Image != "" {
-			route.Image = newroute.Image
-		}
-		if route.Memory != 0 {
-			route.Memory = newroute.Memory
-		}
-		if route.Type != "" {
-			route.Type = newroute.Type
-		}
-		if newroute.Timeout != 0 {
-			route.Timeout = newroute.Timeout
-		}
-		if newroute.Format != "" {
-			route.Format = newroute.Format
-		}
-		if newroute.MaxConcurrency != 0 {
-			route.MaxConcurrency = newroute.MaxConcurrency
-		}
-		if newroute.Headers != nil {
-			route.Headers = newroute.Headers
-		}
-		if newroute.Config != nil {
-			route.Config = newroute.Config
-		}
 
+		route.Update(newroute)
 		if err := route.Validate(); err != nil {
 			return err
 		}

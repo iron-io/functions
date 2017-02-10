@@ -1,17 +1,16 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/url"
 
-	"context"
+	"github.com/iron-io/functions/api/models"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/iron-io/functions/api/models"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
 
 const routesTableCreate = `

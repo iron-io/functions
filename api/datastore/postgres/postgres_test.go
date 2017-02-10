@@ -1,23 +1,24 @@
-package postgres_test
+package postgres
 
 import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os/exec"
 	"testing"
 	"time"
 
-	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
+	"github.com/iron-io/functions/api/models"
 )
 
 const tmpPostgres = "postgres://postgres@127.0.0.1:15432/funcs?sslmode=disable"
 
-func preparePostgresTest(t *testing.T) func() {
+func preparePostgresTest(logf, fatalf func(string,...interface{})) func() {
 	fmt.Println("initializing postgres for test")
-	tryRun(t, "remove old postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
-	mustRun(t, "start postgres container", exec.Command("docker", "run", "--name", "iron-postgres-test", "-p", "15432:5432", "-d", "postgres"))
+	tryRun(logf, "remove old postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
+	mustRun(fatalf, "start postgres container", exec.Command("docker", "run", "--name", "iron-postgres-test", "-p", "15432:5432", "-d", "postgres"))
 
 	wait := 1 * time.Second
 	for {
@@ -49,29 +50,56 @@ func preparePostgresTest(t *testing.T) func() {
 	}
 	fmt.Println("postgres for test ready")
 	return func() {
-		tryRun(t, "stop postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
+		tryRun(logf, "stop postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
 	}
 }
 
 func TestPostgres(t *testing.T) {
-	close := preparePostgresTest(t)
+	close := preparePostgresTest(t.Logf, t.Fatalf)
 	defer close()
 
-	datastoretest.New(datastore.New(tmpPostgres))(t)
+	u, err := url.Parse(tmpPostgres)
+	if err != nil {
+		t.Fatalf("failed to parse url:", err)
+	}
+	ds, err := New(u)
+	if err != nil {
+		t.Fatalf("failed to create postgres datastore:", err)
+	}
+
+	datastoretest.Test(t, ds)
 }
 
-func tryRun(t *testing.T, desc string, cmd *exec.Cmd) {
+func BenchmarkPostgres(b *testing.B) {
+	u, err := url.Parse(tmpPostgres)
+	if err != nil {
+		b.Fatalf("failed to parse url:", err)
+	}
+
+	datastoretest.Benchmark(b, func(b *testing.B) (models.Datastore, func()) {
+		close := preparePostgresTest(b.Logf, b.Fatalf)
+
+		ds, err := New(u)
+		if err != nil {
+			close()
+			b.Fatalf("failed to create postgres datastore:", err)
+		}
+		return ds, close
+	})
+}
+
+func tryRun(logf func(string,...interface{}), desc string, cmd *exec.Cmd) {
 	var b bytes.Buffer
 	cmd.Stderr = &b
 	if err := cmd.Run(); err != nil {
-		t.Logf("failed to %s: %s", desc, b.String())
+		logf("failed to %s: %s", desc, b.String())
 	}
 }
 
-func mustRun(t *testing.T, desc string, cmd *exec.Cmd) {
+func mustRun(fatalf func(string,...interface{}), desc string, cmd *exec.Cmd) {
 	var b bytes.Buffer
 	cmd.Stderr = &b
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("failed to %s: %s", desc, b.String())
+		fatalf("failed to %s: %s", desc, b.String())
 	}
 }
