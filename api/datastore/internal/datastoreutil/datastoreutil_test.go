@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func TestPathParts(t *testing.T) {
+func TestSplitPath(t *testing.T) {
 	for _, test := range []struct{
 		path string
 		expectedParts []string

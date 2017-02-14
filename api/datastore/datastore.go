@@ -21,8 +21,6 @@ func New(dbURL string) (models.Datastore, error) {
 		return bolt.New(u)
 	case "postgres":
 		return postgres.New(u)
-	case "mock":
-		return NewMock(), nil
 	default:
 		return nil, fmt.Errorf("db type not supported %v", u.Scheme)
 	}
