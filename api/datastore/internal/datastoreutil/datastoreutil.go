@@ -5,6 +5,21 @@ import (
 	"strings"
 )
 
+// SplitPath splits path (without leading or trailing '/') on '/', and notes whether a trailing '/' was present.
+func SplitPath(path string) (parts []string, trailingSlash bool) {
+	if len(path) > 0 && path[0] == '/' {
+		path = path[1:]
+	}
+	trailingSlash = len(path) > 0 && path[len(path)-1] == '/'
+	if trailingSlash {
+		path = path[:len(path)-1]
+	}
+	if len(path) > 0 {
+		parts = strings.Split(path, "/")
+	}
+	return
+}
+
 // SqlLikeToRegExp converts an sql 'LIKE' query into an equivalent regular expression.
 func SqlLikeToRegExp(l string) string {
 	return "^" + strings.Replace(l, "%", ".*?", -1) + "$"

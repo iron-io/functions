@@ -3,10 +3,7 @@ package datastoretest
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
-	"fmt"
 	"log"
-	"strings"
 	"testing"
 
 	"github.com/iron-io/functions/api/models"
@@ -275,8 +272,10 @@ func Test(t *testing.T, ds models.Datastore) {
 
 		for _, path := range []string{
 			`/blogs`,
+			`/blogs/`,
 			`/blogs/:blog_id`,
 			`/blogs/:blog_id/comments`,
+			`/blogs/:blog_id/comments/`,
 			`/blogs/:blog_id/comments/:comment_id`,
 			`/blogs/:blog_id/comments/:comment_id/*suffix`,
 		} {
@@ -291,8 +290,10 @@ func Test(t *testing.T, ds models.Datastore) {
 
 		for _, testCase := range []struct{ path, expectedRoute string }{
 			{`/blogs`, `/blogs`},
+			{`/blogs/`, `/blogs/`},
 			{`/blogs/123`, `/blogs/:blog_id`},
 			{`/blogs/123/comments`, `/blogs/:blog_id/comments`},
+			{`/blogs/123/comments/`, `/blogs/:blog_id/comments/`},
 			{
 				`/blogs/123/comments/456`,
 				`/blogs/:blog_id/comments/:comment_id`,
@@ -398,184 +399,6 @@ func Test(t *testing.T, ds models.Datastore) {
 			t.Fatalf("Test Get: expected value to be `%v`, but it was `%v`", "", string(val))
 		}
 	})
-}
-
-func Benchmark(b *testing.B, newDS func(*testing.B) (models.Datastore, func())) {
-	ctx := context.Background()
-
-	for _, apps := range []int{1, 10, 100} {
-		for _, routes := range []int{10, 100, 1000, 10000} {
-			b.Run(fmt.Sprintf("GetRoute/apps=%d/routes=%d", apps, routes),
-				benchmarkGetRoute(ctx, apps, routes, newDS))
-		}
-	}
-
-	for _, cnt := range []int{1,5,10,50,100,500,1000} {
-		b.Run(fmt.Sprintf("GetRoute/segmentCount=%d", cnt),
-			benchmarkSegmentCount(ctx, cnt, newDS))
-	}
-
-	for _, cnt := range []int{1,5,10,50,100,500,1000,5000,10000} {
-		b.Run(fmt.Sprintf("GetRoute/branchFactor=%d", cnt),
-			benchmarkBranchFactor(ctx, cnt, newDS))
-	}
-
-	for _, size := range []int{1,5,10,50,100,200} {
-		b.Run(fmt.Sprintf("GetRoute/segmentSize=%d", size),
-			benchmarkSegmentSize(ctx, size, newDS))
-	}
-}
-
-func benchmarkGetRoute(ctx context.Context, apps int, routes int, newDS func(*testing.B) (models.Datastore, func())) func(b *testing.B) {
-	return func(b *testing.B) {
-		ds, close := newDS(b)
-		defer close()
-
-		cases := make([]*models.Route, routes, routes)
-		for i := 0; i < apps; i++ {
-			if _, err := ds.InsertApp(ctx, &models.App{Name: fmt.Sprintf("%#p", i)}); err != nil {
-				b.Fatal("failed to insert app: ", err)
-			}
-		}
-
-		for i := 0; i < routes; i++ {
-			appName := fmt.Sprintf("%#p", i%apps)
-			path := generateRoute(uint64(i))
-
-			_, err := ds.InsertRoute(ctx, &models.Route{
-				AppName: appName,
-				Path:    path,
-			})
-			if err != nil {
-				b.Fatalf("failed to insert route i=%d %q: %s", i, path, err)
-			}
-
-			cases[i] = &models.Route{AppName: appName, Path: strings.Replace(path, ":", "", -1)}
-		}
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			c := cases[i%routes]
-			if _, err := ds.GetRoute(ctx, c.AppName, c.Path); err != nil {
-				b.Fatal("failed to get route:", err)
-			}
-		}
-	}
-}
-
-func benchmarkSegmentCount(ctx context.Context, cnt int, newDS func(*testing.B) (models.Datastore, func())) func(b *testing.B) {
-	return func(b *testing.B) {
-		ds, close := newDS(b)
-		defer close()
-
-		if _, err := ds.InsertApp(ctx, &models.App{Name: "test"}); err != nil {
-			b.Fatal("failed to insert app: ", err)
-		}
-
-		path := strings.Repeat("/test", cnt)
-		if _, err := ds.InsertRoute(ctx, &models.Route{AppName: "test", Path: path}); err != nil {
-			b.Fatalf("failed to insert route with %d segments: %s", cnt, err)
-		}
-
-		b.ResetTimer()
-		for i:=0;i<b.N;i++ {
-			if _, err := ds.GetRoute(ctx, "test", path); err != nil {
-				b.Fatal("failed to get route:", err)
-			}
-		}
-	}
-}
-
-func benchmarkBranchFactor(ctx context.Context, cnt int, newDS func(*testing.B) (models.Datastore, func())) func(b *testing.B) {
-	return func(b *testing.B) {
-		ds, close := newDS(b)
-		defer close()
-
-		if _, err := ds.InsertApp(ctx, &models.App{Name: "test"}); err != nil {
-			b.Fatal("failed to insert app: ", err)
-		}
-
-		paths := make([]string,cnt,cnt)
-		for i:=0;i<cnt;i++ {
-			paths[i] = fmt.Sprintf("%x", md5.Sum([]byte{byte(i>>16), byte(i), byte(i>>24), byte(i>>8)}))
-			if _, err := ds.InsertRoute(ctx, &models.Route{AppName: "test", Path: paths[i]}); err != nil {
-				b.Fatalf("failed to insert route #%d: %s", cnt, err)
-			}
-		}
-
-		b.ResetTimer()
-		for i:=0;i<b.N;i++ {
-			if _, err := ds.GetRoute(ctx, "test", paths[b.N % len(paths)]); err != nil {
-				b.Fatal("failed to get route:", err)
-			}
-		}
-	}
-}
-
-func benchmarkSegmentSize(ctx context.Context, size int, newDS func(*testing.B) (models.Datastore, func())) func(b *testing.B) {
-	return func(b *testing.B) {
-		ds, close := newDS(b)
-		defer close()
-
-		if _, err := ds.InsertApp(ctx, &models.App{Name: "test"}); err != nil {
-			b.Fatal("failed to insert app: ", err)
-		}
-
-		path := strings.Repeat("/" + strings.Repeat("a", size), 5)
-		if _, err := ds.InsertRoute(ctx, &models.Route{AppName: "test", Path: path}); err != nil {
-			b.Fatalf("failed to insert route with %d character segments: %s", size, err)
-		}
-
-		b.ResetTimer()
-		for i:=0;i<b.N;i++ {
-			if _, err := ds.GetRoute(ctx, "test", path); err != nil {
-				b.Fatal("failed to get route:", err)
-			}
-		}
-	}
-}
-
-// generateRoute generates a deterministic test route based on u.
-// Routes are 32 bytes printed as hex, and split into 1, 2, 4, or 8 parts.
-// ~1/5 of the parts after the first are parameters. ~1/2 of suffix parameters are catch all.
-// Example: /61aab75e6134555e/:e6e8d0fa3ed7de93/20c98ae9da239a03/*8cad52b84387e5d5
-// Verified conflict-free through u=10000.
-func generateRoute(u uint64) string {
-	s := make([]byte, 0, 32)
-	for _, b := range md5.Sum([]byte{byte(u >> 24), byte(u >> 8), byte(u), byte(u >> 16)}) {
-		s = append(s, b)
-	}
-	for _, b := range md5.Sum([]byte{byte(u), byte(u >> 16), byte(u >> 24), byte(u >> 8)}) {
-		s = append(s, b)
-	}
-
-	parts := 1 << (u % 4)  // [1,2,4,8]
-	each := len(s) / parts // [32,16,8,4]
-
-	var b bytes.Buffer
-	for i := 0; i < parts; i++ {
-		b.WriteRune('/')
-
-		name := s[i*each : (i+1)*each]
-
-		nameSum := 0
-		for j := 0; j < len(name); j++ {
-			nameSum += int(name[j])
-		}
-
-		// if not first, 1/5 chance of param
-		if i > 0 && nameSum%5 == 0 {
-			// if last, 1/2 chance of *
-			if i == parts-1 && u%2 == 0 {
-				b.WriteRune('*')
-			} else {
-				b.WriteRune(':')
-			}
-		}
-		fmt.Fprintf(&b, "%x", name)
-	}
-
-	return b.String()
 }
 
 var testApp = &models.App{

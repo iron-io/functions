@@ -11,7 +11,7 @@ import (
 
 const tmpBolt = "/tmp/func_test_bolt.db"
 
-func TestBolt(t *testing.T) {
+func TestDatastore(t *testing.T) {
 	os.Remove(tmpBolt)
 	u, err := url.Parse("bolt://" + tmpBolt)
 	if err != nil {
@@ -24,7 +24,7 @@ func TestBolt(t *testing.T) {
 	datastoretest.Test(t, ds)
 }
 
-func BenchmarkBolt(b *testing.B) {
+func BenchmarkDatastore(b *testing.B) {
 	u, err := url.Parse("bolt://" + tmpBolt)
 	if err != nil {
 		b.Fatalf("failed to parse url:", err)

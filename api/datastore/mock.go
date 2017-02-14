@@ -3,7 +3,6 @@ package datastore
 import (
 	"context"
 	"regexp"
-	"strings"
 
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
@@ -121,10 +120,19 @@ func (m *Mock) GetRoute(ctx context.Context, appName, routePath string) (*models
 
 	var r *models.Route
 
-	if p := strings.Split(routePath, "/"); len(p) == 0 {
-		r = n.Route
+	if parts, trailingSlash := datastoreutil.SplitPath(routePath); len(parts)==0 {
+		if trailingSlash {
+			r = n.trailingSlashRoute
+		} else {
+			r = n.route
+		}
 	} else {
-		r = n.match(p)
+		a := n.match(parts)
+		if trailingSlash {
+			r = a.trailingSlashRoute
+		} else {
+			r = a.route
+		}
 	}
 
 	if r == nil {
@@ -136,11 +144,7 @@ func (m *Mock) GetRoute(ctx context.Context, appName, routePath string) (*models
 
 func (m *Mock) GetRoutes(ctx context.Context, routeFilter *models.RouteFilter) (routes []*models.Route, err error) {
 	for _, n := range m.routesByAppName {
-		n.forAll(func(n *node) {
-			if n.Route == nil {
-				return
-			}
-			r := n.Route
+		n.forAll(func(r *models.Route) {
 			if (routeFilter.Path == "" || r.Path == routeFilter.Path) && (routeFilter.AppName == "" || r.AppName == routeFilter.AppName) {
 				routes = append(routes, r)
 			}
@@ -154,11 +158,7 @@ func (m *Mock) GetRoutesByApp(ctx context.Context, appName string, routeFilter *
 		return nil, models.ErrDatastoreEmptyAppName
 	}
 	n := m.routesByAppName[appName]
-	n.forAll(func(n *node) {
-		if n.Route == nil {
-			return
-		}
-		r := n.Route
+	n.forAll(func(r *models.Route) {
 		if r.AppName == appName && (routeFilter.Path == "" || r.Path == routeFilter.Path) && (routeFilter.AppName == "" || r.AppName == routeFilter.AppName) {
 			routes = append(routes, r)
 		}
@@ -177,16 +177,24 @@ func (m *Mock) InsertRoute(ctx context.Context, route *models.Route) (*models.Ro
 		return nil, models.ErrRoutesMissingNew
 	}
 
-	node, err := m.getOrCreateNode(ctx, route.AppName, route.Path)
+	namelessParts, trailingSlash := datastoreutil.SplitPath(datastoreutil.StripParamNames(route.Path))
+
+	node, err := m.getOrCreateNode(ctx, route.AppName, namelessParts)
 	if err != nil {
 		return nil, err
 	}
 
-	if node.Route != nil {
-		return nil, models.ErrRoutesAlreadyExists
+	if trailingSlash {
+		if node.trailingSlashRoute != nil {
+			return nil, models.ErrRoutesAlreadyExists
+		}
+		node.trailingSlashRoute = route.Clone()
+	} else {
+		if node.route != nil {
+			return nil, models.ErrRoutesAlreadyExists
+		}
+		node.route = route.Clone()
 	}
-
-	node.Route = route
 
 	return route, nil
 }
@@ -226,16 +234,16 @@ func (m *Mock) RemoveRoute(ctx context.Context, appName, routePath string) error
 		return models.ErrRoutesNotFound
 	}
 
-	nameless := datastoreutil.StripParamNames(routePath)
 	prune := func() {
 		delete(m.routesByAppName, appName)
 	}
-	for _, r := range strings.Split(nameless, "/") {
+	pathParts, trailingSlash := datastoreutil.SplitPath(datastoreutil.StripParamNames(routePath))
+	for _, r := range pathParts {
 		child := n.child(r)
 		if child == nil {
 			return models.ErrRoutesNotFound
 		}
-		if n.Route != nil || len(n.children) > 1 {
+		if n.route != nil || n.trailingSlashRoute != nil || len(n.children) > 1 {
 			// advance prune past n
 			prune = func() {
 				delete(n.children, r)
@@ -244,12 +252,18 @@ func (m *Mock) RemoveRoute(ctx context.Context, appName, routePath string) error
 		n = child
 	}
 
-	if n.Route == nil {
-		return models.ErrRoutesNotFound
+	if trailingSlash {
+		if n.trailingSlashRoute == nil {
+			return models.ErrRoutesNotFound
+		}
+		n.trailingSlashRoute = nil
+	} else {
+		if n.route == nil {
+			return models.ErrRoutesNotFound
+		}
+		n.route = nil
 	}
-
-	n.Route = nil
-	if len(n.children) == 0 {
+	if n.route == nil && n.trailingSlashRoute == nil && len(n.children) == 0 {
 		// node no longer in use, so prune back as far as possible
 		prune()
 	}
@@ -284,7 +298,9 @@ func (m *Mock) getRoute(ctx context.Context, appName, routePath string) (*models
 		return nil, models.ErrRoutesNotFound
 	}
 
-	for _, r := range strings.Split(nameless, "/") {
+	pathParts, trailingSlash := datastoreutil.SplitPath(nameless)
+
+	for _, r := range pathParts {
 		child := node.child(r)
 		if child == nil {
 			return nil, models.ErrRoutesNotFound
@@ -292,19 +308,24 @@ func (m *Mock) getRoute(ctx context.Context, appName, routePath string) (*models
 		node = child
 	}
 
-	if node.Route == nil {
+	var route *models.Route
+	if trailingSlash {
+		route = node.trailingSlashRoute
+	} else {
+		route = node.route
+	}
+
+	if route == nil {
 		return nil, models.ErrRoutesNotFound
 	}
 
-	return node.Route, nil
+	return route, nil
 }
 
-func (m *Mock) getOrCreateNode(ctx context.Context, appName, routePath string) (*node, error) {
+func (m *Mock) getOrCreateNode(ctx context.Context, appName string, pathParts []string) (*node, error) {
 	if _, ok := m.apps[appName]; !ok {
 		return nil, models.ErrAppsNotFound
 	}
-
-	nameless := datastoreutil.StripParamNames(routePath)
 
 	n := m.routesByAppName[appName]
 	if n == nil {
@@ -312,7 +333,7 @@ func (m *Mock) getOrCreateNode(ctx context.Context, appName, routePath string) (
 		m.routesByAppName[appName] = n
 	}
 
-	for _, r := range strings.Split(nameless, "/") {
+	for _, r := range pathParts {
 		child := n.child(r)
 		if child == nil {
 			if len(n.children) > 0 {
@@ -335,7 +356,8 @@ func (m *Mock) getOrCreateNode(ctx context.Context, appName, routePath string) (
 }
 
 type node struct {
-	*models.Route
+	route, trailingSlashRoute *models.Route
+
 	children map[string]*node
 }
 
@@ -353,20 +375,21 @@ func (n *node) addChild(k string, c *node) {
 	n.children[k] = c
 }
 
-func (n *node) forAll(f func(n *node)) {
-	f(n)
+func (n *node) forAll(f func(r *models.Route)) {
+	f(n.route)
+	f(n.trailingSlashRoute)
 	for _, child := range n.children {
 		child.forAll(f)
 	}
 }
 
-// match returns a route matching path, if one can be found among ancestors of n.
+// match returns an ancestor matching path
 // Required: len(path) > 0
-func (n *node) match(path []string) *models.Route {
+func (n *node) match(path []string) *node {
 	for _, m := range []string{path[0], ":", "*"} {
 		if child := n.child(m); child != nil {
 			if len(path) == 1 || m == "*" {
-				return child.Route
+				return child
 			}
 			return child.match(path[1:])
 		}

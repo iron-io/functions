@@ -1,12 +1,14 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/url"
 
+	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
 
 	"github.com/Sirupsen/logrus"
@@ -17,6 +19,7 @@ const routesTableCreate = `
 CREATE TABLE IF NOT EXISTS routes (
 	app_name character varying(256) NOT NULL,
 	path text NOT NULL,
+	nameless_path text NOT NULL,
 	image character varying(256) NOT NULL,
 	format character varying(16) NOT NULL,
 	maxc integer NOT NULL,
@@ -28,15 +31,22 @@ CREATE TABLE IF NOT EXISTS routes (
 	PRIMARY KEY (app_name, path)
 );`
 
+const routesTablePathIndex = `CREATE UNIQUE INDEX IF NOT EXISTS routes_path_idx ON routes (app_name, path);`
+const routesTableNamelessPathIndex = `CREATE UNIQUE INDEX IF NOT EXISTS routes_path_idx ON routes (app_name, nameless_path);`
+
 const appsTableCreate = `CREATE TABLE IF NOT EXISTS apps (
     name character varying(256) NOT NULL PRIMARY KEY,
 	config text NOT NULL
 );`
 
+const appTableNameIndex = `CREATE UNIQUE INDEX IF NOT EXISTS apps_name_idx ON apps (name);`
+
 const extrasTableCreate = `CREATE TABLE IF NOT EXISTS extras (
     key character varying(256) NOT NULL PRIMARY KEY,
 	value character varying(256) NOT NULL
 );`
+
+const extrasTableKeyIndex = `CREATE UNIQUE INDEX IF NOT EXISTS extras_key_idx ON extras (key);`
 
 const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, headers, config FROM routes`
 
@@ -71,7 +81,8 @@ func New(url *url.URL) (models.Datastore, error) {
 		db: db,
 	}
 
-	for _, v := range []string{routesTableCreate, appsTableCreate, extrasTableCreate} {
+	for _, v := range []string{routesTableCreate, appsTableCreate, extrasTableCreate,
+		routesTablePathIndex, routesTableNamelessPathIndex, appTableNameIndex, extrasTableKeyIndex} {
 		_, err = db.Exec(v)
 		if err != nil {
 			return nil, err
@@ -125,7 +136,7 @@ func (ds *PostgresDatastore) UpdateApp(ctx context.Context, app *models.App) (*m
 	if err != nil {
 		return nil, err
 	}
-
+	//TODO the mock impl adds the config values to the existing map
 	res, err := ds.db.Exec(`
 	  UPDATE apps SET
 		config = $2
@@ -212,9 +223,8 @@ func scanApp(scanner rowScanner, app *models.App) error {
 func (ds *PostgresDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
 	res := []*models.App{}
 
-	filterQuery := buildFilterAppQuery(filter)
-	rows, err := ds.db.Query(fmt.Sprintf("SELECT DISTINCT * FROM apps %s", filterQuery))
-
+	filterQuery, args := buildFilterAppQuery(filter)
+	rows, err := ds.db.Query(fmt.Sprintf("SELECT DISTINCT * FROM apps %s", filterQuery), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -253,11 +263,33 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 	if err != nil {
 		return nil, err
 	}
+	err = ds.Tx(ctx, func(tx *sql.Tx) error {
+		same, err := tx.QueryContext(ctx, `SELECT DISTINCT 1 FROM routes WHERE app_name=$1 AND path=$2`,
+			route.AppName, route.Path)
+		if err != nil {
+			return err
+		}
+		defer same.Close()
+		if same.Next() {
+			return models.ErrRoutesAlreadyExists
+		}
 
-	_, err = ds.db.Exec(`
+		namelessPath := datastoreutil.StripParamNames(route.Path)
+		conflicts, err := tx.QueryContext(ctx, `SELECT 1 FROM routes WHERE app_name=$1 AND nameless_path~$2 LIMIT 1`,
+			route.AppName, conflictRegexp(namelessPath))
+		if err != nil {
+			return err
+		}
+		defer conflicts.Close()
+		if conflicts.Next() {
+			return models.ErrRoutesCreate
+		}
+
+		_, err = tx.Exec(`
 		INSERT INTO routes (
 			app_name,
 			path,
+			nameless_path,
 			image,
 			format,
 			maxc,
@@ -267,27 +299,39 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			headers,
 			config
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
-		route.AppName,
-		route.Path,
-		route.Image,
-		route.Format,
-		route.MaxConcurrency,
-		route.Memory,
-		route.Type,
-		route.Timeout,
-		string(hbyte),
-		string(cbyte),
-	)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
+			route.AppName,
+			route.Path,
+			namelessPath,
+			route.Image,
+			route.Format,
+			route.MaxConcurrency,
+			route.Memory,
+			route.Type,
+			route.Timeout,
+			string(hbyte),
+			string(cbyte),
+		)
+		return err
+	})
 
 	if err != nil {
-		pqErr := err.(*pq.Error)
-		if pqErr.Code == "23505" {
-			return nil, models.ErrRoutesAlreadyExists
-		}
 		return nil, err
 	}
 	return route, nil
+}
+
+func (ds *PostgresDatastore) Tx(ctx context.Context, f func(*sql.Tx) error) error {
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	err = f(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
@@ -412,7 +456,7 @@ func (ds *PostgresDatastore) GetRoute(ctx context.Context, appName, routePath st
 
 	var route models.Route
 
-	row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=$1 AND path=$2", routeSelector), appName, routePath)
+	row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=$1 AND nameless_path~$2", routeSelector), appName, pathRegexp(routePath))
 	err := scanRoute(row, &route)
 
 	if err == sql.ErrNoRows {
@@ -423,10 +467,61 @@ func (ds *PostgresDatastore) GetRoute(ctx context.Context, appName, routePath st
 	return &route, nil
 }
 
+// The pathRegexp function returns a regexp to match namessless paths which accept path.
+func pathRegexp(path string) string {
+	if path == "/" {
+		return `^(/|/\*)$`
+	}
+	var b bytes.Buffer
+	b.WriteRune('^')
+	parts, trailingSlash := datastoreutil.SplitPath(path)
+	for _, p := range parts {
+		fmt.Fprintf(&b, `/(\*|((:|%s)`, p)
+	}
+	if trailingSlash {
+		b.WriteRune('/')
+	}
+	for range parts {
+		b.WriteString("))")
+	}
+	b.WriteRune('$')
+
+	return b.String()
+}
+
+// The pathRegexp function returns a regexp to match nameless paths with conflict with namelessPath.
+func conflictRegexp(namelessPath string) string {
+	if namelessPath == "/" {
+		return `^/$`
+	}
+	var b bytes.Buffer
+	b.WriteRune('^')
+	parts, trailingSlash := datastoreutil.SplitPath(namelessPath)
+	for _, p := range parts {
+		switch p {
+		case "*":
+			fmt.Fprint(&b, `/((.+`)
+		case ":":
+			fmt.Fprint(&b, `/(([^:](.*))|(:`)
+		default:
+			fmt.Fprintf(&b, `/(\*|:(.*)|((:|%s)`, p)
+		}
+	}
+	if trailingSlash {
+		b.WriteRune('/')
+	}
+	for range parts {
+		b.WriteString("))")
+	}
+	b.WriteRune('$')
+
+	return b.String()
+}
+
 func (ds *PostgresDatastore) GetRoutes(ctx context.Context, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
-	filterQuery := buildFilterRouteQuery(filter)
-	rows, err := ds.db.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery))
+	filterQuery, args := buildFilterRouteQuery(filter)
+	rows, err := ds.db.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery), args...)
 	// todo: check for no rows so we don't respond with a sql 500 err
 	if err != nil {
 		return nil, err
@@ -451,8 +546,8 @@ func (ds *PostgresDatastore) GetRoutes(ctx context.Context, filter *models.Route
 func (ds *PostgresDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
 	filter.AppName = appName
-	filterQuery := buildFilterRouteQuery(filter)
-	rows, err := ds.db.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery))
+	filterQuery, args := buildFilterRouteQuery(filter)
+	rows, err := ds.db.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery), args...)
 	// todo: check for no rows so we don't respond with a sql 500 err
 	if err != nil {
 		return nil, err
@@ -474,52 +569,41 @@ func (ds *PostgresDatastore) GetRoutesByApp(ctx context.Context, appName string,
 	return res, nil
 }
 
-func buildFilterAppQuery(filter *models.AppFilter) string {
-	filterQuery := ""
+func buildFilterAppQuery(filter *models.AppFilter) (string, []interface{}) {
+	if filter == nil {
+		return "", nil
+	}
 
-	if filter != nil {
-		filterQueries := []string{}
-		if filter.Name != "" {
-			filterQueries = append(filterQueries, fmt.Sprintf("name LIKE '%s'", filter.Name))
-		}
+	if filter.Name != "" {
+		return "WHERE name LIKE $1", []interface{}{filter.Name}
+	}
 
-		for i, field := range filterQueries {
-			if i == 0 {
-				filterQuery = fmt.Sprintf("WHERE %s ", field)
+	return "", nil
+}
+
+func buildFilterRouteQuery(filter *models.RouteFilter) (string, []interface{}) {
+	if filter == nil {
+		return "", nil
+	}
+	var b bytes.Buffer
+	var args []interface{}
+
+	where := func(colOp, val string) {
+		if val != "" {
+			args = append(args, val)
+			if len(args) == 1 {
+				fmt.Fprintf(&b, "WHERE %s $1", colOp)
 			} else {
-				filterQuery = fmt.Sprintf("%s AND %s", filterQuery, field)
+				fmt.Fprintf(&b, " AND %s $%d", colOp, len(args))
 			}
 		}
 	}
 
-	return filterQuery
-}
+	where("path =", filter.Path)
+	where("app_name =", filter.AppName)
+	where("image =", filter.Image)
 
-func buildFilterRouteQuery(filter *models.RouteFilter) string {
-	filterQuery := ""
-
-	filterQueries := []string{}
-	if filter.Path != "" {
-		filterQueries = append(filterQueries, fmt.Sprintf("path = '%s'", filter.Path))
-	}
-
-	if filter.AppName != "" {
-		filterQueries = append(filterQueries, fmt.Sprintf("app_name = '%s'", filter.AppName))
-	}
-
-	if filter.Image != "" {
-		filterQueries = append(filterQueries, fmt.Sprintf("image = '%s'", filter.Image))
-	}
-
-	for i, field := range filterQueries {
-		if i == 0 {
-			filterQuery = fmt.Sprintf("WHERE %s ", field)
-		} else {
-			filterQuery = fmt.Sprintf("%s AND %s", filterQuery, field)
-		}
-	}
-
-	return filterQuery
+	return b.String(), args
 }
 
 func (ds *PostgresDatastore) Put(ctx context.Context, key, value []byte) error {
@@ -549,7 +633,7 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 		return nil, models.ErrDatastoreEmptyKey
 	}
 
-	row := ds.db.QueryRow("SELECT value FROM extras WHERE key=$1", key)
+	row := ds.db.QueryRow("SELECT DISTINCT value FROM extras WHERE key=$1", key)
 
 	var value string
 	err := row.Scan(&value)
