@@ -129,14 +129,17 @@ and deploy it.
 fn init $USERNAME/hello
 # build the function
 fn build
-# test it
+# test it - you can pass data into it too by piping it in, eg: `cat hello.payload.json | fn run`
 fn run
-# push it to Docker Hub
-fn push
-# create an app
+# Once it's ready, bump, build and push it to Docker Hub
+fn bump && fn build && fn push
+# create an app - you only do this once per app
 fn apps create myapp
 # create a route that maps /hello to your new function
 fn routes create myapp /hello
+# to update a function with a new version run
+fn bump && fn build && fn push
+fn routes update myapp /hello
 ```
 
 Now you can call your function:
