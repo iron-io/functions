@@ -278,7 +278,8 @@ func envAsHeader(req *http.Request, selectedEnv []string) {
 }
 
 func (a *routesCmd) create(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
+	// todo: @pedro , why aren't you just checking the length here?
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
 		return errors.New("error: routes creation takes at least three arguments: app name, route path and image name")
 	}
 
@@ -291,6 +292,7 @@ func (a *routesCmd) create(c *cli.Context) error {
 		timeout time.Duration
 	)
 	if image == "" {
+		// todo: why do we only load the func file if image isn't set?  Don't we need to read the rest of these things regardless?
 		ff, err := loadFuncfile()
 		if err != nil {
 			if _, ok := err.(*notFoundError); ok {
@@ -460,12 +462,42 @@ func (a *routesCmd) update(c *cli.Context) error {
 
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
-
+	image := c.Args().Get(2)
 	var (
 		format  string
 		maxC    int
 		timeout time.Duration
 	)
+	if image == "" {
+		// todo: why do we only load the func file if image isn't set?  Don't we need to read the rest of these things regardless?
+		ff, err := loadFuncfile()
+		if err != nil {
+			if _, ok := err.(*notFoundError); ok {
+				return errors.New("error: image name is missing or no function file found")
+			}
+			return err
+		}
+		image = ff.FullName()
+		if ff.Format != nil {
+			format = *ff.Format
+		}
+		if ff.maxConcurrency != nil {
+			maxC = *ff.maxConcurrency
+		}
+		if ff.Timeout != nil {
+			timeout = *ff.Timeout
+		}
+		if route == "" && ff.path != nil {
+			route = *ff.path
+		}
+	}
+
+	if route == "" {
+		return errors.New("error: route path is missing")
+	}
+	// if image == "" {
+	// return errors.New("error: function image name is missing")
+	// }
 
 	if f := c.String("format"); f != "" {
 		format = f
@@ -485,7 +517,7 @@ func (a *routesCmd) update(c *cli.Context) error {
 
 	to := int64(timeout.Seconds())
 	patchRoute := &fnmodels.Route{
-		Image:          c.String("image"),
+		Image:          image,
 		Memory:         c.Int64("memory"),
 		Type:           c.String("type"),
 		Config:         extractEnvConfig(c.StringSlice("config")),
