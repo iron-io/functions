@@ -468,29 +468,29 @@ func (a *routesCmd) update(c *cli.Context) error {
 		maxC    int
 		timeout time.Duration
 	)
-	if image == "" {
-		// todo: why do we only load the func file if image isn't set?  Don't we need to read the rest of these things regardless?
-		ff, err := loadFuncfile()
-		if err != nil {
-			if _, ok := err.(*notFoundError); ok {
-				return errors.New("error: image name is missing or no function file found")
-			}
-			return err
+	// if image == "" {
+	// todo: why do we only load the func file if image isn't set?  Don't we need to read the rest of these things regardless?
+	ff, err := loadFuncfile()
+	if err != nil {
+		if _, ok := err.(*notFoundError); ok {
+			return errors.New("error: image name is missing or no function file found")
 		}
-		image = ff.FullName()
-		if ff.Format != nil {
-			format = *ff.Format
-		}
-		if ff.maxConcurrency != nil {
-			maxC = *ff.maxConcurrency
-		}
-		if ff.Timeout != nil {
-			timeout = *ff.Timeout
-		}
-		if route == "" && ff.path != nil {
-			route = *ff.path
-		}
+		return err
 	}
+	image = ff.FullName()
+	if ff.Format != nil {
+		format = *ff.Format
+	}
+	if ff.maxConcurrency != nil {
+		maxC = *ff.maxConcurrency
+	}
+	if ff.Timeout != nil {
+		timeout = *ff.Timeout
+	}
+	if route == "" && ff.path != nil {
+		route = *ff.path
+	}
+	// }
 
 	if route == "" {
 		return errors.New("error: route path is missing")
