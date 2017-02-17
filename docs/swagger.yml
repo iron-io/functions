@@ -6,7 +6,7 @@ swagger: '2.0'
 info:
   title: IronFunctions
   description: The open source serverless platform.
-  version: "0.1.29"
+  version: "0.1.30"
 # the domain of the service
 host: "127.0.0.1:8080"
 # array of all schemes that your API supports
@@ -333,6 +333,26 @@ paths:
           schema:
             $ref: '#/definitions/Error'
 
+  /docker/login:
+    post:
+      summary: Storing docker repo credentials
+      description: Storing docker repo credentials to database.
+      tags:
+        - Docker
+      parameters:
+        - name: body
+          in: body
+          description: Docker credentials.
+          required: true
+          schema:
+            $ref: '#/definitions/DockerCreds'
+      responses:
+        200:
+          description: Docker credentials succesfully stored
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
 
 definitions:
   Route:
@@ -539,3 +559,10 @@ definitions:
     properties:
       task:
         $ref: '#/definitions/Task'
+
+  DockerCreds:
+    type: object
+    properties:
+      auth:
+        type: string
+        description: Docker credentials in base64 encoding

@@ -260,6 +260,8 @@ func (s *Server) bindHandlers(ctx context.Context) {
 
 		v1.GET("/routes", s.handleRouteList)
 
+		v1.POST("docker/login", s.handleDockerLogin)
+
 		apps := v1.Group("/apps/:app")
 		{
 			apps.GET("/routes", s.handleRouteList)
