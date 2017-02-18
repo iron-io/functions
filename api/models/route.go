@@ -169,7 +169,7 @@ func (r *Route) Update(new *Route) {
 		}
 	}
 }
-
+//TODO are these sql LIKE queries? or strict matches?
 type RouteFilter struct {
 	Path    string
 	AppName string

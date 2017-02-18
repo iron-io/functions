@@ -204,7 +204,10 @@ func Test(t *testing.T, ds models.Datastore) {
 		if len(routes) == 0 {
 			t.Fatal("Test GetRoutes: expected result count to be greater than 0")
 		}
-		if routes[0].Path != testRoute.Path {
+		if routes[0] == nil {
+			t.Log(buf.String())
+			t.Fatalf("Test GetRoutes: expected non-nil route")
+		} else if routes[0].Path != testRoute.Path {
 			t.Log(buf.String())
 			t.Fatalf("Test GetRoutes: expected `app.Name` to be `%s` but it was `%s`", testRoute.Path, routes[0].Path)
 		}
@@ -242,6 +245,16 @@ func Test(t *testing.T, ds models.Datastore) {
 			t.Fatalf("Test RemoveApp: unexpected error: %v", err)
 		}
 
+		route, err = ds.GetRoute(ctx, testRoute.AppName, testRoute.Path)
+		if err != nil && err != models.ErrRoutesNotFound {
+			t.Log(buf.String())
+			t.Fatalf("Test GetRoute: expected error `%v`, but it was `%v`", models.ErrRoutesNotFound, err)
+		}
+		if route != nil {
+			t.Log(buf.String())
+			t.Fatalf("Test RemoveApp: failed to remove the route: %v", route)
+		}
+
 		_, err = ds.UpdateRoute(ctx, &models.Route{
 			AppName: testRoute.AppName,
 			Path:    testRoute.Path,
@@ -250,16 +263,6 @@ func Test(t *testing.T, ds models.Datastore) {
 		if err != models.ErrRoutesNotFound {
 			t.Log(buf.String())
 			t.Fatalf("Test UpdateRoute inexistent: expected error to be `%v`, but it was `%v`", models.ErrRoutesNotFound, err)
-		}
-
-		route, err = ds.GetRoute(ctx, testRoute.AppName, testRoute.Path)
-		if err != models.ErrRoutesNotFound {
-			t.Log(buf.String())
-			t.Fatalf("Test GetRoute: expected error `%v`, but it was `%v`", models.ErrRoutesNotFound, err)
-		}
-		if route != nil {
-			t.Log(buf.String())
-			t.Fatalf("Test RemoveApp: failed to remove the route")
 		}
 	})
 

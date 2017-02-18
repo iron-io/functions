@@ -1,8 +1,8 @@
 package datastoreutil
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
 
 func TestSplitPath(t *testing.T) {

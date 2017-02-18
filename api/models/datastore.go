@@ -5,11 +5,19 @@ import (
 	"errors"
 )
 
+//TODO what assumptions can be made about appName and routePath?
+// - are they sanitized/validated?
+// - leading slash?
+// - ./../ cleaned up?
+// - no illegal chars?
+// OR is it a public api as well...
+//
 type Datastore interface {
 	// GetApp returns the app called appName or nil if it doesn't exist
 	GetApp(ctx context.Context, appName string) (*App, error)
 	GetApps(ctx context.Context, filter *AppFilter) ([]*App, error)
 	InsertApp(ctx context.Context, app *App) (*App, error)
+	//TODO are app.Config's fields merged with or do they replace existing fields
 	UpdateApp(ctx context.Context, app *App) (*App, error)
 	RemoveApp(ctx context.Context, appName string) error
 
@@ -17,6 +25,7 @@ type Datastore interface {
 	GetRoutes(ctx context.Context, filter *RouteFilter) (routes []*Route, err error)
 	GetRoutesByApp(ctx context.Context, appName string, filter *RouteFilter) (routes []*Route, err error)
 	InsertRoute(ctx context.Context, route *Route) (*Route, error)
+	//TODO are route's .Config and .Header fields merged with or do they replace existing fields
 	UpdateRoute(ctx context.Context, route *Route) (*Route, error)
 	RemoveRoute(ctx context.Context, appName, routePath string) error
 

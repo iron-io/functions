@@ -53,6 +53,35 @@ func (a *App) Validate() error {
 	return nil
 }
 
+func (a *App) Clone() *App {
+	var c App
+	c.Name = a.Name
+	if a.Routes != nil {
+		for i := range a.Routes {
+			c.Routes = append(c.Routes, a.Routes[i].Clone())
+		}
+	}
+	if a.Config != nil {
+		c.Config = make(Config)
+		for k, v := range a.Config {
+			c.Config[k] = v
+		}
+	}
+	return &c
+}
+
+func (a *App) UpdateConfig(new *App) {
+	if new.Config != nil {
+		if a.Config == nil {
+			a.Config = make(Config)
+		}
+		for k, v := range new.Config {
+			a.Config[k] = v
+		}
+	}
+}
+
 type AppFilter struct {
+	//TODO note sql LIKE filter
 	Name string
 }

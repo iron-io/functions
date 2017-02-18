@@ -1,30 +1,29 @@
 package bolt
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
+	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
 
 	"github.com/boltdb/bolt"
 	"github.com/Sirupsen/logrus"
 )
 
-type BoltDatastore struct {
-	routesBucket []byte
-	appsBucket   []byte
-	logsBucket   []byte
-	extrasBucket []byte
+// A bolt backed datastoreutil.Datastore
+type datastore struct {
+	routesKey, appsKey, logsKey, extrasKey []byte
 	db           *bolt.DB
 	log          logrus.FieldLogger
 }
 
+// New returns a new bolt backed Datastore.
 func New(url *url.URL) (models.Datastore, error) {
 	dir := filepath.Dir(url.Path)
 	log := logrus.WithFields(logrus.Fields{"db": url.Scheme, "dir": dir})
@@ -63,32 +62,24 @@ func New(url *url.URL) (models.Datastore, error) {
 		return nil, err
 	}
 
-	ds := &BoltDatastore{
-		routesBucket: routesBucketName,
-		appsBucket:   appsBucketName,
-		logsBucket:   logsBucketName,
-		extrasBucket: extrasBucketName,
+	ds := &datastore{
+		routesKey: routesBucketName,
+		appsKey:   appsBucketName,
+		logsKey:   logsBucketName,
+		extrasKey: extrasBucketName,
 		db:           db,
 		log:          log,
 	}
 	log.WithFields(logrus.Fields{"prefix": bucketPrefix, "file": url.Path}).Debug("BoltDB initialized")
 
-	return ds, nil
+	return datastoreutil.NewLocalDatastore(ds), nil
 }
 
-func (ds *BoltDatastore) InsertApp(ctx context.Context, app *models.App) (*models.App, error) {
-	if app == nil {
-		return nil, models.ErrDatastoreEmptyApp
-	}
-
-	if app.Name == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
+func (ds *datastore) InsertApp(ctx context.Context, app *models.App) (*models.App, error) {
 	appname := []byte(app.Name)
 
 	err := ds.db.Update(func(tx *bolt.Tx) error {
-		bIm := tx.Bucket(ds.appsBucket)
+		bIm := tx.Bucket(ds.appsKey)
 
 		v := bIm.Get(appname)
 		if v != nil {
@@ -104,7 +95,7 @@ func (ds *BoltDatastore) InsertApp(ctx context.Context, app *models.App) (*model
 		if err != nil {
 			return err
 		}
-		bjParent := tx.Bucket(ds.routesBucket)
+		bjParent := tx.Bucket(ds.routesKey)
 		_, err = bjParent.CreateBucketIfNotExists([]byte(app.Name))
 		if err != nil {
 			return err
@@ -115,20 +106,12 @@ func (ds *BoltDatastore) InsertApp(ctx context.Context, app *models.App) (*model
 	return app, err
 }
 
-func (ds *BoltDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
-	if newapp == nil {
-		return nil, models.ErrDatastoreEmptyApp
-	}
-
-	if newapp.Name == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
+func (ds *datastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
 	var app *models.App
 	appname := []byte(newapp.Name)
 
 	err := ds.db.Update(func(tx *bolt.Tx) error {
-		bIm := tx.Bucket(ds.appsBucket)
+		bIm := tx.Bucket(ds.appsKey)
 
 		v := bIm.Get(appname)
 		if v == nil {
@@ -140,10 +123,8 @@ func (ds *BoltDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*mo
 			return err
 		}
 
-		// Update app fields
-		if newapp.Config != nil {
-			app.Config = newapp.Config
-		}
+		//TODO changed from set to add, correct?
+		app.UpdateConfig(newapp)
 
 		buf, err := json.Marshal(app)
 		if err != nil {
@@ -154,7 +135,7 @@ func (ds *BoltDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*mo
 		if err != nil {
 			return err
 		}
-		bjParent := tx.Bucket(ds.routesBucket)
+		bjParent := tx.Bucket(ds.routesKey)
 		_, err = bjParent.CreateBucketIfNotExists([]byte(app.Name))
 		if err != nil {
 			return err
@@ -164,20 +145,14 @@ func (ds *BoltDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*mo
 
 	return app, err
 }
-
-func (ds *BoltDatastore) RemoveApp(ctx context.Context, appName string) error {
-	if appName == "" {
-		return models.ErrDatastoreEmptyAppName
-	}
-
+//TODO test that routes are deleted as well
+func (ds *datastore) RemoveApp(ctx context.Context, appName string) error {
 	err := ds.db.Update(func(tx *bolt.Tx) error {
-		bIm := tx.Bucket(ds.appsBucket)
-		err := bIm.Delete([]byte(appName))
+		err := tx.Bucket(ds.appsKey).Delete([]byte(appName))
 		if err != nil {
 			return err
 		}
-		bjParent := tx.Bucket(ds.routesBucket)
-		err = bjParent.DeleteBucket([]byte(appName))
+		err = tx.Bucket(ds.routesKey).DeleteBucket([]byte(appName))
 		if err != nil {
 			return err
 		}
@@ -186,17 +161,17 @@ func (ds *BoltDatastore) RemoveApp(ctx context.Context, appName string) error {
 	return err
 }
 
-func (ds *BoltDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
+func (ds *datastore) MatchApps(ctx context.Context, matches func(*models.App) bool) ([]*models.App, error) {
 	res := []*models.App{}
 	err := ds.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(ds.appsBucket)
+		b := tx.Bucket(ds.appsKey)
 		err2 := b.ForEach(func(key, v []byte) error {
 			app := &models.App{}
 			err := json.Unmarshal(v, app)
 			if err != nil {
 				return err
 			}
-			if applyAppFilter(app, filter) {
+			if matches(app) {
 				res = append(res, app)
 			}
 			return nil
@@ -212,14 +187,10 @@ func (ds *BoltDatastore) GetApps(ctx context.Context, filter *models.AppFilter) 
 	return res, nil
 }
 
-func (ds *BoltDatastore) GetApp(ctx context.Context, name string) (*models.App, error) {
-	if name == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
+func (ds *datastore) GetApp(ctx context.Context, name string) (*models.App, error) {
 	var res *models.App
 	err := ds.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(ds.appsBucket)
+		b := tx.Bucket(ds.appsKey)
 		v := b.Get([]byte(name))
 		if v != nil {
 			app := &models.App{}
@@ -239,279 +210,243 @@ func (ds *BoltDatastore) GetApp(ctx context.Context, name string) (*models.App, 
 	return res, nil
 }
 
-func (ds *BoltDatastore) getRouteBucketForApp(tx *bolt.Tx, appName string) (*bolt.Bucket, error) {
-	// todo: should this be reversed?  Make a bucket for each app that contains sub buckets for routes, etc
-	bp := tx.Bucket(ds.routesBucket)
-	b := bp.Bucket([]byte(appName))
-	if b == nil {
-		return nil, models.ErrAppsNotFound
-	}
-	return b, nil
-}
-
-func (ds *BoltDatastore) InsertRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
-	if route == nil {
-		return nil, models.ErrDatastoreEmptyRoute
-	}
-
-	if route.AppName == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
-	if route.Path == "" {
-		return nil, models.ErrDatastoreEmptyRoutePath
-	}
-
-	routePath := []byte(route.Path)
-
-	err := ds.db.Update(func(tx *bolt.Tx) error {
-		b, err := ds.getRouteBucketForApp(tx, route.AppName)
-		if err != nil {
-			return err
-		}
-
-		v := b.Get(routePath)
-		if v != nil {
-			return models.ErrRoutesAlreadyExists
-		}
-
-		buf, err := json.Marshal(route)
-		if err != nil {
-			return err
-		}
-
-		err = b.Put(routePath, buf)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return route, nil
-}
-
-func (ds *BoltDatastore) UpdateRoute(ctx context.Context, newroute *models.Route) (*models.Route, error) {
-	if newroute == nil {
-		return nil, models.ErrDatastoreEmptyRoute
-	}
-
-	if newroute.AppName == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
-	if newroute.Path == "" {
-		return nil, models.ErrDatastoreEmptyRoutePath
-	}
-
-	routePath := []byte(newroute.Path)
-
-	var route *models.Route
-
-	err := ds.db.Update(func(tx *bolt.Tx) error {
-		b, err := ds.getRouteBucketForApp(tx, newroute.AppName)
-		if err != nil {
-			return err
-		}
-
-		v := b.Get(routePath)
-		if v == nil {
+func (ds *datastore) ViewAppNode(appName string, f func(datastoreutil.Node) error) error {
+	return ds.db.View(func(tx *bolt.Tx) error {
+		n := getNode(tx.Bucket(ds.routesKey), []byte(appName))
+		if n == nil {
 			return models.ErrRoutesNotFound
 		}
-
-		err = json.Unmarshal(v, &route)
-		if err != nil {
-			return err
-		}
-
-		route.Update(newroute)
-		if err := route.Validate(); err != nil {
-			return err
-		}
-
-		buf, err := json.Marshal(route)
-		if err != nil {
-			return err
-		}
-
-		err = b.Put(routePath, buf)
-		if err != nil {
-			return err
-		}
-		return nil
+		return f(n)
 	})
-	if err != nil {
-		return nil, err
-	}
-	return route, nil
 }
 
-func (ds *BoltDatastore) RemoveRoute(ctx context.Context, appName, routePath string) error {
-	if appName == "" {
-		return models.ErrDatastoreEmptyAppName
-	}
+func (ds *datastore) ViewAllAppNodes(f func(datastoreutil.Node) error) error {
+	return ds.db.View(func(tx *bolt.Tx) error {
+		rb := tx.Bucket(ds.routesKey)
 
-	if routePath == "" {
-		return models.ErrDatastoreEmptyRoutePath
-	}
-
-	err := ds.db.Update(func(tx *bolt.Tx) error {
-		b, err := ds.getRouteBucketForApp(tx, appName)
-		if err != nil {
-			return err
-		}
-
-		err = b.Delete([]byte(routePath))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ds *BoltDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
-	if appName == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
-	if routePath == "" {
-		return nil, models.ErrDatastoreEmptyRoutePath
-	}
-
-	var route *models.Route
-	err := ds.db.View(func(tx *bolt.Tx) error {
-		b, err := ds.getRouteBucketForApp(tx, appName)
-		if err != nil {
-			return err
-		}
-
-		v := b.Get([]byte(routePath))
-		if v == nil {
-			return models.ErrRoutesNotFound
-		}
-
-		if v != nil {
-			err = json.Unmarshal(v, &route)
-		}
-		return err
-	})
-	return route, err
-}
-
-func (ds *BoltDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
-	res := []*models.Route{}
-	err := ds.db.View(func(tx *bolt.Tx) error {
-		b, err := ds.getRouteBucketForApp(tx, appName)
-		if err != nil {
-			return err
-		}
-
-		i := 0
-		c := b.Cursor()
-
-		var k, v []byte
-		k, v = c.Last()
-
-		// Iterate backwards, newest first
-		for ; k != nil; k, v = c.Prev() {
-			var route models.Route
-			err := json.Unmarshal(v, &route)
-			if err != nil {
+		c := rb.Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			n := getNode(rb, k)
+			if n == nil {
+				return models.ErrRoutesNotFound
+			}
+			if err := f(n); err != nil {
 				return err
 			}
-			if applyRouteFilter(&route, filter) {
-				i++
-				res = append(res, &route)
-			}
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
 }
-
-func (ds *BoltDatastore) GetRoutes(ctx context.Context, filter *models.RouteFilter) ([]*models.Route, error) {
-	res := []*models.Route{}
-	err := ds.db.View(func(tx *bolt.Tx) error {
-		i := 0
-		rbucket := tx.Bucket(ds.routesBucket)
-
-		b := rbucket.Cursor()
-		var k, v []byte
-		k, v = b.First()
-
-		// Iterates all buckets
-		for ; k != nil && v == nil; k, v = b.Next() {
-			bucket := rbucket.Bucket(k)
-			r := bucket.Cursor()
-			var k2, v2 []byte
-			k2, v2 = r.Last()
-			// Iterate all routes
-			for ; k2 != nil; k2, v2 = r.Prev() {
-				var route models.Route
-				err := json.Unmarshal(v2, &route)
-				if err != nil {
-					return err
-				}
-				if applyRouteFilter(&route, filter) {
-					i++
-					res = append(res, &route)
-				}
-			}
+//TODO none of these do the app check first...
+func (ds *datastore) UpdateAppNode(appName string, f func(datastoreutil.Node) error) error {
+	return ds.db.Update(func(tx *bolt.Tx) error {
+		n := getNode(tx.Bucket(ds.routesKey), []byte(appName))
+		if n == nil {
+			return models.ErrRoutesNotFound
 		}
-		return nil
+
+		return f(n)
 	})
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
-func (ds *BoltDatastore) Put(ctx context.Context, key, value []byte) error {
-	if key == nil || len(key) == 0 {
-		return models.ErrDatastoreEmptyKey
-	}
+func (ds *datastore) CreateOrUpdateAppNode(appName string, f func(datastoreutil.Node) error) error {
+	return ds.db.Update(func(tx *bolt.Tx) error {
+		n, err := getOrCreateNode(tx.Bucket(ds.routesKey), []byte(appName))
+		if err != nil {
+			return err
+		}
 
+		return f(n)
+	})
+}
+
+func (ds *datastore) Put(ctx context.Context, key, value []byte) error {
 	ds.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(ds.extrasBucket) // todo: maybe namespace by app?
+		b := tx.Bucket(ds.extrasKey) // todo: maybe namespace by app?
 		err := b.Put(key, value)
 		return err
 	})
 	return nil
 }
 
-func (ds *BoltDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
-	if key == nil || len(key) == 0 {
-		return nil, models.ErrDatastoreEmptyKey
-	}
-
+func (ds *datastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	var ret []byte
 	ds.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(ds.extrasBucket)
+		b := tx.Bucket(ds.extrasKey)
 		ret = b.Get(key)
 		return nil
 	})
 	return ret, nil
 }
 
-func applyAppFilter(app *models.App, filter *models.AppFilter) bool {
-	if filter != nil && filter.Name != "" {
-		nameLike, err := regexp.MatchString(strings.Replace(filter.Name, "%", ".*", -1), app.Name)
-		return err == nil && nameLike
-	}
+var (
+	routeKey = []byte("route")
+	trailingSlashRouteKey = []byte("route/")
+	childrenKey = []byte("children")
+)
 
-	return true
+// A bolt.Bucket backed datastoreutil.Node.
+type node struct {
+	b *bolt.Bucket
+
+	remove func() error
 }
 
-func applyRouteFilter(route *models.Route, filter *models.RouteFilter) bool {
-	return filter == nil || (filter.Path == "" || route.Path == filter.Path) &&
-		(filter.AppName == "" || route.AppName == filter.AppName) &&
-		(filter.Image == "" || route.Image == filter.Image)
+// getNode gets the node key from parent, or returns nil if none exists.
+func getNode(parent *bolt.Bucket, key []byte) datastoreutil.Node {
+	b := parent.Bucket(key)
+	if b == nil {
+		return nil
+	}
+
+	return &node{b: b, remove: func() error {
+		return parent.DeleteBucket(key)
+	}}
+}
+
+// getOrCreateNode gets the node key from parent, creating the backing bucket if necessary.
+func getOrCreateNode(parent *bolt.Bucket, key []byte) (datastoreutil.Node, error) {
+	b, err := parent.CreateBucketIfNotExists(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return &node{b: b, remove: func() error {
+		return parent.DeleteBucket(key)
+	}}, nil
+}
+
+// createNode gets the node key from parent, after creating the backing bucket.
+func createNode(parent *bolt.Bucket, key []byte) (datastoreutil.Node, error) {
+	b, err := parent.CreateBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return &node{b: b, remove: func() error {
+		return parent.DeleteBucket(key)
+	}}, nil
+}
+
+func (n *node) getRoute(key []byte) (*models.Route, error) {
+	b := n.b.Get(key)
+	if b == nil {
+		return nil, nil
+	}
+	var r models.Route
+	if err := json.Unmarshal(b, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+func (n *node) setRoute(key []byte, r *models.Route) error {
+	if r == nil {
+		return n.b.Delete(key)
+	}
+	b, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	if err := n.b.Put(key, b); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (n *node) HasRoute() bool {
+	return n.b.Get(routeKey) != nil
+}
+
+func (n *node) Route() (*models.Route, error) {
+	return n.getRoute(routeKey)
+}
+
+func (n *node) SetRoute(r *models.Route) error {
+	return n.setRoute(routeKey, r)
+}
+
+func (n *node) HasTrailingSlashRoute() bool {
+	return n.b.Get(trailingSlashRouteKey) != nil
+}
+
+func (n *node) TrailingSlashRoute() (*models.Route, error) {
+	return n.getRoute(trailingSlashRouteKey)
+}
+
+func (n *node) SetTrailingSlashRoute(r *models.Route) error {
+	return n.setRoute(trailingSlashRouteKey, r)
+}
+
+func (n *node) Child(k string) datastoreutil.Node {
+	children := n.b.Bucket(childrenKey)
+	if children == nil {
+		return nil
+	}
+	return getNode(children, []byte(k))
+}
+
+func (n *node) ChildMore(k string) (datastoreutil.Node, bool) {
+	children := n.b.Bucket(childrenKey)
+	if children == nil {
+		return nil, false
+	}
+	key := []byte(k)
+
+	c := children.Cursor()
+	ck, _ := c.First()
+	if ck == nil {
+		return nil, false
+	} else if !bytes.Equal(ck, key) {
+		return getNode(children, key), true
+	}
+
+	child := getNode(children, key)
+	ck, _ = c.Next()
+	return child, len(ck) > 0
+}
+
+func (n *node) NewChild(k string) (datastoreutil.Node, error) {
+	children, err := n.b.CreateBucketIfNotExists(childrenKey)
+	if err != nil {
+		return nil, err
+	}
+	return createNode(children, []byte(k))
+}
+
+func (n *node) HasChildren() bool {
+	children := n.b.Bucket(childrenKey)
+	if children == nil {
+		return false
+	}
+	k, _ := children.Cursor().First()
+	return k != nil
+}
+
+func (n *node) ForAll(f func(*models.Route)) error {
+	if r, err := n.Route(); err != nil {
+		return err
+	} else if r != nil {
+		f(r)
+	}
+	if r, err := n.TrailingSlashRoute(); err != nil {
+		return err
+	} else if r != nil {
+		f(r)
+	}
+	children := n.b.Bucket(childrenKey)
+	if children != nil {
+		c := children.Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			n := getNode(children, k)
+			if err := n.ForAll(f); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (n *node) Remove() error {
+	return n.remove()
 }
