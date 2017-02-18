@@ -4,11 +4,11 @@ package server
 import (
 	"context"
 	"reflect"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	fcommon "github.com/iron-io/functions/api/common"
-	"time"
 )
 
 // Middleware is the interface required for implementing functions middlewar
