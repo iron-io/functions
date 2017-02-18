@@ -402,6 +402,8 @@ func Test(t *testing.T, ds models.Datastore) {
 			t.Fatalf("Test Get: expected value to be `%v`, but it was `%v`", "", string(val))
 		}
 	})
+
+	//TODO concurrency test? race?
 }
 
 var testApp = &models.App{

@@ -82,6 +82,6 @@ func (a *App) UpdateConfig(new *App) {
 }
 
 type AppFilter struct {
-	//TODO note sql LIKE filter
+	// An SQL LIKE query. Empty does not filter.
 	Name string
 }

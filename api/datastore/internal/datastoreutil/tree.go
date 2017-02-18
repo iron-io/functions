@@ -154,7 +154,6 @@ func (ds *localDatastore) GetRoutes(ctx context.Context, filter *models.RouteFil
 	return routes, nil
 }
 
-//TODO test image filter
 func (ds *localDatastore) GetRoutesByApp(ctx context.Context, appName string, routeFilter *models.RouteFilter) ([]*models.Route, error) {
 	var routes []*models.Route
 

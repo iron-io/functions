@@ -123,7 +123,6 @@ func (ds *datastore) UpdateApp(ctx context.Context, newapp *models.App) (*models
 			return err
 		}
 
-		//TODO changed from set to add, correct?
 		app.UpdateConfig(newapp)
 
 		buf, err := json.Marshal(app)
@@ -145,7 +144,7 @@ func (ds *datastore) UpdateApp(ctx context.Context, newapp *models.App) (*models
 
 	return app, err
 }
-//TODO test that routes are deleted as well
+
 func (ds *datastore) RemoveApp(ctx context.Context, appName string) error {
 	err := ds.db.Update(func(tx *bolt.Tx) error {
 		err := tx.Bucket(ds.appsKey).Delete([]byte(appName))

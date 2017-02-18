@@ -124,7 +124,7 @@ func (ds *PostgresDatastore) UpdateApp(ctx context.Context, app *models.App) (*m
 	if err != nil {
 		return nil, err
 	}
-	//TODO the mock impl adds the config values to the existing map
+
 	res, err := ds.db.Exec(`
 	  UPDATE apps SET
 		config = $2

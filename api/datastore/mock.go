@@ -13,17 +13,14 @@ type datastore struct {
 	routesByAppName map[string]datastoreutil.Node
 	metaData        map[string][]byte
 }
-//TODO we can't roll back, so double check that we definly have nil errors where we need them
 
 // NewMock returns an in-memory, mock models.Datastore implementation, which is NOT safe for concurrent use.
-//TODO make concurrent safe? (if RW mode leaks into interface defs anyways...)
 func NewMock() models.Datastore {
 	return datastoreutil.NewLocalDatastore(
 		&datastore{make(map[string]*models.App), make(map[string]datastoreutil.Node), make(map[string][]byte)})
 }
 
 func (ds *datastore) GetApp(ctx context.Context, appName string) (app *models.App, err error) {
-	//TODO read lock
 	a, ok := ds.apps[appName]
 	if ok {
 		return a, nil
@@ -33,7 +30,6 @@ func (ds *datastore) GetApp(ctx context.Context, appName string) (app *models.Ap
 }
 
 func (ds *datastore) MatchApps(ctx context.Context, match func(*models.App) bool) ([]*models.App, error) {
-	//TODO read lock
 	var apps []*models.App
 	for _, a := range ds.apps {
 		if match(a) {
@@ -50,9 +46,8 @@ func (ds *datastore) InsertApp(ctx context.Context, app *models.App) (*models.Ap
 	ds.apps[app.Name] = app
 	return app, nil
 }
-//TODO UpdateAppFunc instead
+
 func (ds *datastore) UpdateApp(ctx context.Context, app *models.App) (*models.App, error) {
-	//TODO lock
 	a, err := ds.GetApp(ctx, app.Name)
 	if err != nil {
 		return nil, err
@@ -61,9 +56,7 @@ func (ds *datastore) UpdateApp(ctx context.Context, app *models.App) (*models.Ap
 	return a.Clone(), nil
 }
 
-//TODO delete all routes? #528
 func (ds *datastore) RemoveApp(ctx context.Context, appName string) error {
-	//TODO lock
 	if _, ok := ds.apps[appName]; !ok {
 		return models.ErrAppsNotFound
 	}
@@ -85,8 +78,6 @@ func (ds *datastore) UpdateAppNode(appName string, f func(datastoreutil.Node) er
 }
 
 func (ds *datastore) CreateOrUpdateAppNode(appName string, f func(datastoreutil.Node) error) error {
-	//TODO write lock
-
 	if _, ok := ds.apps[appName]; !ok {
 		return models.ErrAppsNotFound
 	}
@@ -104,8 +95,6 @@ func (ds *datastore) CreateOrUpdateAppNode(appName string, f func(datastoreutil.
 }
 
 func (ds *datastore) ViewAppNode(appName string, f func(datastoreutil.Node) error) error {
-	//TODO read lock
-
 	if _, ok := ds.apps[appName]; !ok {
 		return models.ErrAppsNotFound
 	}
@@ -136,7 +125,7 @@ func (ds *datastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	return ds.metaData[string(key)], nil
 }
 
-//TODO doc
+// A node is a map backed datastoreutil.Node
 type node struct {
 	route, trailingSlashRoute *models.Route
 
