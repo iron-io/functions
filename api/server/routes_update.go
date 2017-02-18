@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"path"
 
@@ -9,12 +8,10 @@ import (
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleRouteUpdate(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+func (s *Server) handleRouteUpdate(c *gin.Context, r RequestController) {
+	log := r.Logger()
 
 	var wroute models.RouteWrapper
 
@@ -41,7 +38,7 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 	wroute.Route.Path = path.Clean(c.Param(api.CRoute))
 
 	if wroute.Route.Image != "" {
-		err = s.Runner.EnsureImageExists(ctx, &task.Config{
+		err = s.Runner.EnsureImageExists(c, &task.Config{
 			Image: wroute.Route.Image,
 		})
 		if err != nil {
@@ -51,9 +48,9 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 		}
 	}
 
-	route, err := s.Datastore.UpdateRoute(ctx, wroute.Route)
+	route, err := s.Datastore.UpdateRoute(c, wroute.Route)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 

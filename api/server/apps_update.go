@@ -1,18 +1,15 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppUpdate(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+func (s *Server) handleAppUpdate(c *gin.Context, r RequestController) {
+	log := r.Logger()
 
 	wapp := models.AppWrapper{}
 
@@ -37,20 +34,20 @@ func (s *Server) handleAppUpdate(c *gin.Context) {
 
 	wapp.App.Name = c.Param(api.CApp)
 
-	err = s.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppUpdate(c, wapp.App)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsUpdate)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	app, err := s.Datastore.UpdateApp(ctx, wapp.App)
+	app, err := s.Datastore.UpdateApp(c, wapp.App)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 
-	err = s.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppUpdate(c, wapp.App)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsUpdate)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))

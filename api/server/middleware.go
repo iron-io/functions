@@ -3,28 +3,47 @@ package server
 
 import (
 	"context"
-	"net/http"
 	"reflect"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	fcommon "github.com/iron-io/functions/api/common"
-	"github.com/iron-io/functions/api/models"
+	"time"
 )
 
 // Middleware is the interface required for implementing functions middlewar
 type Middleware interface {
 	// Serve is what the Middleware must implement. Can modify the request, write output, etc.
 	// todo: should we abstract the HTTP out of this?  In case we want to support other protocols.
-	Serve(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error
+	Serve(ctx MiddlewareContext, r RequestController) error
 }
 
 // MiddlewareFunc func form of Middleware
-type MiddlewareFunc func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error
+type MiddlewareFunc func(ctx MiddlewareContext, r RequestController) error
 
 // Serve wrapper
-func (f MiddlewareFunc) Serve(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
-	return f(ctx, w, r, app)
+func (f MiddlewareFunc) Serve(ctx MiddlewareContext, r RequestController) error {
+	return f(ctx, r)
+}
+
+// AddMiddleware adds middleware to all /v1/* routes
+func (s *Server) AddMiddleware(m Middleware) {
+	s.middlewares = append(s.middlewares, m)
+}
+
+// AddAppEndpoint adds middleware to all /v1/* routes
+func (s *Server) AddMiddlewareFunc(m func(ctx MiddlewareContext, r RequestController) error) {
+	s.AddMiddleware(MiddlewareFunc(m))
+}
+
+// AddRunMiddleware adds middleware to the user functions routes, not the API
+func (s *Server) AddRunMiddleware(m Middleware) {
+	s.runMiddlewares = append(s.runMiddlewares, m)
+}
+
+// AddRunMiddleware adds middleware to the user functions routes, not the API
+func (s *Server) AddRunMiddlewareFunc(m func(ctx MiddlewareContext, r RequestController) error) {
+	s.AddRunMiddleware(MiddlewareFunc(m))
 }
 
 // MiddlewareContext extends context.Context for Middleware
@@ -32,23 +51,61 @@ type MiddlewareContext interface {
 	context.Context
 
 	// Middleware can call Next() explicitly to call the next middleware in the chain. If Next() is not called and an error is not returned, Next() will automatically be called.
-	Next(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App)
+	Next(ctx MiddlewareContext, r RequestController)
 	// Index returns the index of where we're at in the chain
 	Index() int
 	// WithValue same behavior as context.WithValue, but returns MiddlewareContext
 	WithValue(key, val interface{}) MiddlewareContext
-	// Enables user to replace the context.Context instance, required if user calls context.WithValue so it can be replaced.
-	SetContext(ctx context.Context)
 }
 
 type middlewareContextImpl struct {
-	context.Context
+	ctx *gin.Context
 
-	ginContext  *gin.Context
 	nextCalled  bool
 	index       int
 	middlewares []Middleware
-	app         *models.App
+}
+
+func (c *middlewareContextImpl) Next(ctx MiddlewareContext, r RequestController) {
+	_, log := fcommon.LoggerWithStack(c, "Next")
+	log.Infoln("Next called", ctx.Index())
+	c2 := ctx.(*middlewareContextImpl)
+	c2.nextCalled = true
+	c2.index++
+	c2.ctx.Set("logger", log)
+	c2.serveNext(r)
+}
+
+func (c *middlewareContextImpl) serveNext(r RequestController) error {
+	_, log := fcommon.LoggerWithStack(c, "serveNext")
+	log.Infoln("serving middleware", c.Index())
+	if c.Index() >= len(c.middlewares) {
+		return nil
+	}
+	c.ctx.Set("logger", log)
+	// make shallow copy:
+	fctx2 := *c
+	fctx2.nextCalled = false
+	c.ctx.Request = c.ctx.Request.WithContext(&fctx2)
+	nextM := c.middlewares[c.Index()]
+	err := nextM.Serve(&fctx2, r)
+	if err != nil {
+		logrus.WithError(err).Warnln("Middleware error")
+		// todo: might be a good idea to check if anything has been written yet, and if not, output the error: simpleError(err)
+		// see: http://stackoverflow.com/questions/39415827/golang-http-check-if-responsewriter-has-been-written
+		return err
+	}
+	// this will be true if the user called Next() explicitly. If not, let's call it here.
+	// if !fctx2.nextCalled {
+	// 	// then we automatically call next
+	// 	fctx2.Next(c, c.ginContext.Writer, r, fctx2.app)
+	// }
+
+	return nil
+}
+
+func (c *middlewareContextImpl) Index() int {
+	return c.index
 }
 
 // WithValue is essentially the same as context.Context, but returns the MiddlewareContext
@@ -59,92 +116,29 @@ func (c *middlewareContextImpl) WithValue(key, val interface{}) MiddlewareContex
 	if !reflect.TypeOf(key).Comparable() {
 		panic("key is not comparable")
 	}
-	ct2 := context.WithValue(c, key, val)
-	mc2 := &middlewareContextImpl{Context: ct2, ginContext: c.ginContext, nextCalled: c.nextCalled, index: c.index, middlewares: c.middlewares}
-	return mc2
-}
-
-func (c *middlewareContextImpl) Next(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) {
-	c3, log := fcommon.LoggerWithStack(c, "Next")
-	ctx.SetContext(c3)
-	log.Infoln("Next called", ctx.Index())
-	c2 := ctx.(*middlewareContextImpl)
-	c2.app = app
-	c2.nextCalled = true
-	c2.index++
-	c2.serveNext()
-}
-func (c *middlewareContextImpl) SetContext(ctx context.Context) {
-	c.Context = ctx
-}
-
-func (c *middlewareContextImpl) serveNext() {
-	c2, log := fcommon.LoggerWithStack(c, "serveNext")
-	log.Infoln("serving middleware", c.Index())
-	if c.Index() >= len(c.middlewares) {
-		// pass onto gin when we're through functions middleware
-		c.ginContext.Set("ctx", c)
-		c.ginContext.Next()
-		return
+	if keyAsString, ok := key.(string); ok {
+		mc2 := &middlewareContextImpl{nextCalled: c.nextCalled, index: c.index, middlewares: c.middlewares}
+		newctx := *c.ctx
+		newctx.Set(keyAsString, val)
+		*mc2.ctx = newctx
+		return mc2
 	}
-	// make shallow copy:
-	fctx2 := *c
-	fctx2.Context = c2
-	fctx2.nextCalled = false
-	r := c.ginContext.Request.WithContext(fctx2)
-	nextM := c.middlewares[c.Index()]
-	err := nextM.Serve(&fctx2, c.ginContext.Writer, r, fctx2.app)
-	if err != nil {
-		logrus.WithError(err).Warnln("Middleware error")
-		// todo: might be a good idea to check if anything has been written yet, and if not, output the error: simpleError(err)
-		// see: http://stackoverflow.com/questions/39415827/golang-http-check-if-responsewriter-has-been-written
-		c.ginContext.Abort()
-		return
-	}
-	// this will be true if the user called Next() explicitly. If not, let's call it here.
-	// if !fctx2.nextCalled {
-	// 	// then we automatically call next
-	// 	fctx2.Next(c, c.ginContext.Writer, r, fctx2.app)
-	// }
+	return c
 }
 
-func (c *middlewareContextImpl) Index() int {
-	return c.index
+/** context.Context interface methods */
+func (c *middlewareContextImpl) Value(key interface{}) interface{} {
+	return c.ctx.Value(key)
 }
 
-// This is for Gin's middleware. Gin will call this and in turn, we'll call all the functions middleware.
-func (s *Server) middlewareWrapperFunc(ctx context.Context) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if len(s.middlewares) == 0 {
-			return
-		}
-		ctx = c.MustGet("ctx").(context.Context)
-		fctx := &middlewareContextImpl{Context: ctx}
-		fctx.app = &models.App{}
-		// fctx.index = -1
-		fctx.ginContext = c
-		fctx.middlewares = s.middlewares
-		// start the chain:
-		fctx.serveNext()
-	}
+func (c *middlewareContextImpl) Deadline() (deadline time.Time, ok bool) {
+	return
 }
 
-// AddMiddleware adds middleware to all /v1/* routes
-func (s *Server) AddMiddleware(m Middleware) {
-	s.middlewares = append(s.middlewares, m)
+func (c *middlewareContextImpl) Done() <-chan struct{} {
+	return nil
 }
 
-// AddAppEndpoint adds middleware to all /v1/* routes
-func (s *Server) AddMiddlewareFunc(m func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error) {
-	s.AddMiddleware(MiddlewareFunc(m))
-}
-
-// AddRunMiddleware adds middleware to the user functions routes, not the API
-func (s *Server) AddRunMiddleware(m Middleware) {
-	s.runMiddlewares = append(s.runMiddlewares, m)
-}
-
-// AddRunMiddleware adds middleware to the user functions routes, not the API
-func (s *Server) AddRunMiddlewareFunc(m func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error) {
-	s.AddRunMiddleware(MiddlewareFunc(m))
+func (c *middlewareContextImpl) Err() error {
+	return nil
 }

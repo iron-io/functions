@@ -1,11 +1,9 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
 	"net/http"
 )
 
@@ -22,9 +20,8 @@ var errStatusCode = map[error]int{
 	models.ErrRoutesAlreadyExists: http.StatusConflict,
 }
 
-func handleErrorResponse(c *gin.Context, err error) {
-	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+func handleErrorResponse(c *gin.Context, r RequestController, err error) {
+	log := r.Logger()
 	log.Error(err)
 
 	if code, ok := errStatusCode[err]; ok {

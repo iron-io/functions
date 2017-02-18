@@ -1,19 +1,16 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleRouteCreate(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+func (s *Server) handleRouteCreate(c *gin.Context, r RequestController) {
+	log := r.Logger()
 
 	var wroute models.RouteWrapper
 
@@ -44,7 +41,7 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	err = s.Runner.EnsureImageExists(ctx, &task.Config{
+	err = s.Runner.EnsureImageExists(c, &task.Config{
 		Image: wroute.Route.Image,
 	})
 	if err != nil {
@@ -52,7 +49,7 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	app, err := s.Datastore.GetApp(ctx, wroute.Route.AppName)
+	app, err := s.Datastore.GetApp(c, wroute.Route.AppName)
 	if err != nil && err != models.ErrAppsNotFound {
 		log.WithError(err).Error(models.ErrAppsGet)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsGet))
@@ -66,21 +63,21 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 			return
 		}
 
-		err = s.FireBeforeAppCreate(ctx, newapp)
+		err = s.FireBeforeAppCreate(c, newapp)
 		if err != nil {
 			log.WithError(err).Error(models.ErrAppsCreate)
 			c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 			return
 		}
 
-		_, err = s.Datastore.InsertApp(ctx, newapp)
+		_, err = s.Datastore.InsertApp(c, newapp)
 		if err != nil {
 			log.WithError(err).Error(models.ErrRoutesCreate)
 			c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 			return
 		}
 
-		err = s.FireAfterAppCreate(ctx, newapp)
+		err = s.FireAfterAppCreate(c, newapp)
 		if err != nil {
 			log.WithError(err).Error(models.ErrRoutesCreate)
 			c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
@@ -89,9 +86,9 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 
 	}
 
-	route, err := s.Datastore.InsertRoute(ctx, wroute.Route)
+	route, err := s.Datastore.InsertRoute(c, wroute.Route)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 

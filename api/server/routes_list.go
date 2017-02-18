@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,9 +8,7 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-func (s *Server) handleRouteList(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-
+func (s *Server) handleRouteList(c *gin.Context, r RequestController) {
 	filter := &models.RouteFilter{}
 
 	if img := c.Query("image"); img != "" {
@@ -22,13 +19,13 @@ func (s *Server) handleRouteList(c *gin.Context) {
 	var err error
 	appName := c.Param(api.CApp)
 	if appName != "" {
-		routes, err = s.Datastore.GetRoutesByApp(ctx, appName, filter)
+		routes, err = s.Datastore.GetRoutesByApp(c, appName, filter)
 	} else {
-		routes, err = s.Datastore.GetRoutes(ctx, filter)
+		routes, err = s.Datastore.GetRoutes(c, filter)
 	}
 
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 

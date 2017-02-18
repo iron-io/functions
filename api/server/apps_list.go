@@ -1,21 +1,18 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 )
 
-func (s *Server) handleAppList(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-
+func (s *Server) handleAppList(c *gin.Context, r RequestController) {
 	filter := &models.AppFilter{}
 
-	apps, err := s.Datastore.GetApps(ctx, filter)
+	apps, err := s.Datastore.GetApps(c, filter)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 

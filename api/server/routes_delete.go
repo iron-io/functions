@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"path"
 
@@ -9,14 +8,12 @@ import (
 	"github.com/iron-io/functions/api"
 )
 
-func (s *Server) handleRouteDelete(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-
+func (s *Server) handleRouteDelete(c *gin.Context, r RequestController) {
 	appName := c.Param(api.CApp)
 	routePath := path.Clean(c.Param(api.CRoute))
 
-	if err := s.Datastore.RemoveRoute(ctx, appName, routePath); err != nil {
-		handleErrorResponse(c, err)
+	if err := s.Datastore.RemoveRoute(c, appName, routePath); err != nil {
+		handleErrorResponse(c, r, err)
 		return
 	}
 

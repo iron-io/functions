@@ -1,22 +1,19 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppDelete(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+func (s *Server) handleAppDelete(c *gin.Context, r RequestController) {
+	log := r.Logger()
 
 	app := &models.App{Name: c.Param(api.CApp)}
 
-	routes, err := s.Datastore.GetRoutesByApp(ctx, app.Name, &models.RouteFilter{})
+	routes, err := s.Datastore.GetRoutesByApp(c, app.Name, &models.RouteFilter{})
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsRemoving)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
@@ -29,20 +26,20 @@ func (s *Server) handleAppDelete(c *gin.Context) {
 		return
 	}
 
-	err = s.FireBeforeAppDelete(ctx, app)
+	err = s.FireBeforeAppDelete(c, app)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsRemoving)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	err = s.Datastore.RemoveApp(ctx, app.Name)
+	err = s.Datastore.RemoveApp(c, app.Name)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 
-	err = s.FireAfterAppDelete(ctx, app)
+	err = s.FireAfterAppDelete(c, app)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsRemoving)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))

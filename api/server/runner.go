@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
@@ -26,48 +25,16 @@ type runnerResponse struct {
 	Error     *models.ErrorBody `json:"error,omitempty"`
 }
 
-func (s *Server) handleSpecial(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	ctx, log := fcommon.LoggerWithStack(ctx, "server.handleSpecial")
-	log.Infoln("handleSpecial called")
-
-	// middleware should pass this or a new one along to Next()
-	app := &models.App{}
-
-	fctx := &middlewareContextImpl{
-		Context: ctx,
-	}
-	fctx.app = app
-	// fctx.index = -1
-	fctx.ginContext = c
-	fctx.middlewares = s.runMiddlewares
-	fctx.middlewares = append(fctx.middlewares, MiddlewareFunc(func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
-		// now call the normal runner call
-		s.handleRequest(c, app, nil)
-		return nil
-	}))
-
-	// start the chain:
-	fctx.serveNext()
-
-	c.Set("ctx", ctx)
-}
-
 func toEnvName(envtype, name string) string {
 	name = strings.ToUpper(strings.Replace(name, "-", "_", -1))
 	return fmt.Sprintf("%s_%s", envtype, name)
 }
 
-func (s *Server) handleRequest(c *gin.Context, app *models.App, enqueue models.Enqueue) {
-	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-		c.Status(http.StatusNotFound)
-		return
-	}
-
-	ctx := c.MustGet("ctx").(context.Context)
-
+func (s *Server) handleRequest(c *gin.Context, r RequestController) {
 	reqID := uuid.NewV5(uuid.Nil, fmt.Sprintf("%s%s%d", c.Request.RemoteAddr, c.Request.URL.Path, time.Now().Unix())).String()
-	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": reqID})
+	ctx, log := fcommon.LoggerWithStack(c, "handleAppRequest")
+	_, log = common.LoggerWithFields(ctx, logrus.Fields{"call_id": reqID})
+	r.SetLogger(log)
 
 	var err error
 	var payload io.Reader
@@ -85,16 +52,28 @@ func (s *Server) handleRequest(c *gin.Context, app *models.App, enqueue models.E
 	}
 
 	reqRoute := &models.Route{
-		AppName: app.Name,
-		Path:    path.Clean(c.Request.URL.Path),
+		AppName: r.AppName(),
+		Path:    r.RoutePath(),
 	}
 
-	log.Infoln("reqRoute:", reqRoute)
+	s.FireBeforeDispatch(c, reqRoute)
 
-	s.FireBeforeDispatch(ctx, reqRoute)
+	if reqRoute.AppName == "" {
+		c.JSON(http.StatusNotFound, models.ErrAppsNotFound)
+		return
+	}
+
+	app, err := s.Datastore.GetApp(c, reqRoute.AppName)
+	if err != nil || app == nil {
+		if err != nil {
+			log.WithError(err).Error("error getting app from datastore")
+		}
+		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
+		return
+	}
 
 	log.WithFields(logrus.Fields{"app": reqRoute.AppName, "path": reqRoute.Path}).Debug("Finding route on datastore")
-	routes, err := s.loadroutes(ctx, models.RouteFilter{AppName: reqRoute.AppName, Path: reqRoute.Path})
+	routes, err := s.loadroutes(c, models.RouteFilter{AppName: reqRoute.AppName, Path: reqRoute.Path})
 	if err != nil {
 		log.WithError(err).Error(models.ErrRoutesList)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesList))
@@ -111,8 +90,8 @@ func (s *Server) handleRequest(c *gin.Context, app *models.App, enqueue models.E
 	route := routes[0]
 	log = log.WithFields(logrus.Fields{"app": reqRoute.AppName, "path": route.Path, "image": route.Image})
 
-	if s.serve(ctx, c, reqRoute.AppName, route, app, reqRoute.Path, reqID, payload, enqueue) {
-		s.FireAfterDispatch(ctx, reqRoute)
+	if s.serve(c, reqRoute.AppName, route, app, reqRoute.Path, reqID, payload, s.Enqueue) {
+		s.FireAfterDispatch(c, reqRoute)
 		return
 	}
 
@@ -134,9 +113,10 @@ func (s *Server) loadroutes(ctx context.Context, filter models.RouteFilter) ([]*
 }
 
 // TODO: Should remove *gin.Context from these functions, should use only context.Context
-func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
-	ctx, log := fcommon.LoggerWithStack(ctx, "serve")
-	ctx, log = common.LoggerWithFields(ctx, logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
+func (s *Server) serve(c *gin.Context, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+	ctx, log := fcommon.LoggerWithStack(c, "serve")
+	_, log = common.LoggerWithFields(ctx, logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
+	c.Set("log", log)
 	log.Infoln("serving ", appName, found.Path)
 
 	params, match := matchRoute(found.Path, route)

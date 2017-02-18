@@ -1,17 +1,14 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppCreate(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
+func (s *Server) handleAppCreate(c *gin.Context, r RequestController) {
+	log := r.Logger()
 
 	var wapp models.AppWrapper
 
@@ -34,20 +31,20 @@ func (s *Server) handleAppCreate(c *gin.Context) {
 		return
 	}
 
-	err = s.FireBeforeAppCreate(ctx, wapp.App)
+	err = s.FireBeforeAppCreate(c, wapp.App)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(err))
 		return
 	}
 
-	app, err := s.Datastore.InsertApp(ctx, wapp.App)
+	app, err := s.Datastore.InsertApp(c, wapp.App)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 
-	err = s.FireAfterAppCreate(ctx, wapp.App)
+	err = s.FireAfterAppCreate(c, wapp.App)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(err))
