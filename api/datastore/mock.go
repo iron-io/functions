@@ -20,6 +20,26 @@ func NewMock() models.Datastore {
 		&datastore{make(map[string]*models.App), make(map[string]datastoreutil.Node), make(map[string][]byte)})
 }
 
+// NewMockInit initializes a NewMock with apps and routes, and panics when initialization fails.
+func NewMockInit(apps []*models.App, routes []*models.Route) models.Datastore {
+	ds := NewMock()
+	ctx := context.Background()
+	for i := range apps {
+		_, err := ds.InsertApp(ctx, apps[i])
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	for i := range routes {
+		_, err := ds.InsertRoute(ctx, routes[i])
+		if err != nil {
+			panic(err)
+		}
+	}
+	return ds
+}
+
 func (ds *datastore) GetApp(ctx context.Context, appName string) (app *models.App, err error) {
 	a, ok := ds.apps[appName]
 	if ok {
