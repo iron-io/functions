@@ -6,10 +6,10 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-//TODO path name validation?
+// Datastore is a copy of models.Datastore, with additional comments on parameter guarantees.
 type Datastore interface {
 	// name will never be empty.
-	GetApp(ctx context.Context,name string) (*models.App, error)
+	GetApp(ctx context.Context, name string) (*models.App, error)
 
 	GetApps(ctx context.Context, appFilter *models.AppFilter) ([]*models.App, error)
 
@@ -38,7 +38,7 @@ type Datastore interface {
 	Get(ctx context.Context, key []byte) ([]byte, error)
 }
 
-// NewValidator returns a Datastore which validates certain arguments before delegating to ds.
+// NewValidator returns a models.Datastore which validates certain arguments before delegating to ds.
 func NewValidator(ds Datastore) models.Datastore {
 	return &validator{ds}
 }
@@ -113,7 +113,6 @@ func (v *validator) GetRoutesByApp(ctx context.Context, appName string, routeFil
 	return v.ds.GetRoutesByApp(ctx, appName, routeFilter)
 }
 
-
 func (v *validator) InsertRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
 	if route == nil {
 		return nil, models.ErrDatastoreEmptyRoute
@@ -122,7 +121,7 @@ func (v *validator) InsertRoute(ctx context.Context, route *models.Route) (*mode
 		return nil, models.ErrDatastoreEmptyAppName
 	}
 	if route.Path == "" {
-		return nil, models.ErrRoutesMissingNew
+		return nil, models.ErrDatastoreEmptyRoutePath
 	}
 
 	return v.ds.InsertRoute(ctx, route)
@@ -159,7 +158,6 @@ func (v *validator) Put(ctx context.Context, key, value []byte) error {
 
 	return v.ds.Put(ctx, key, value)
 }
-
 
 func (v *validator) Get(ctx context.Context, key []byte) ([]byte, error) {
 	if len(key) == 0 {

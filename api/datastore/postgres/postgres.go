@@ -169,18 +169,19 @@ func (ds *PostgresDatastore) GetApp(ctx context.Context, name string) (*models.A
 
 	var resName string
 	var config string
-	err := row.Scan(&resName, &config)
+	if err := row.Scan(&resName, &config); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, models.ErrAppsNotFound
+		}
+		return nil, err
+	}
 
 	res := &models.App{
 		Name: resName,
 	}
 
-	json.Unmarshal([]byte(config), &res.Config)
-
+	err := json.Unmarshal([]byte(config), &res.Config)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, models.ErrAppsNotFound
-		}
 		return nil, err
 	}
 
@@ -194,10 +195,11 @@ func scanApp(scanner rowScanner, app *models.App) error {
 		&app.Name,
 		&configStr,
 	)
+	if err != nil {
+		return err
+	}
 
-	json.Unmarshal([]byte(configStr), &app.Config)
-
-	return err
+	return json.Unmarshal([]byte(configStr), &app.Config)
 }
 
 func (ds *PostgresDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
@@ -240,7 +242,15 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 		return nil, err
 	}
 	err = ds.Tx(ctx, func(tx *sql.Tx) error {
-		same, err := tx.QueryContext(ctx, `SELECT DISTINCT 1 FROM routes WHERE app_name=$1 AND path=$2`,
+		r := tx.QueryRowContext(ctx, `SELECT 1 FROM apps WHERE name=$1`, route.AppName)
+		if err := r.Scan(new(int)); err != nil {
+			if err == sql.ErrNoRows {
+				return models.ErrAppsNotFound
+			}
+			return err
+		}
+
+		same, err := tx.QueryContext(ctx, `SELECT 1 FROM routes WHERE app_name=$1 AND path=$2`,
 			route.AppName, route.Path)
 		if err != nil {
 			return err
@@ -398,15 +408,18 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&headerStr,
 		&configStr,
 	)
+	if err != nil {
+		return err
+	}
 
 	if headerStr == "" {
 		return models.ErrRoutesNotFound
 	}
 
-	json.Unmarshal([]byte(headerStr), &route.Headers)
-	json.Unmarshal([]byte(configStr), &route.Config)
-
-	return err
+	if err := json.Unmarshal([]byte(headerStr), &route.Headers); err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(configStr), &route.Config)
 }
 
 func (ds *PostgresDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
@@ -501,27 +514,50 @@ func (ds *PostgresDatastore) GetRoutes(ctx context.Context, filter *models.Route
 
 func (ds *PostgresDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
-	filter.AppName = appName
-	filterQuery, args := buildFilterRouteQuery(filter)
-	rows, err := ds.db.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery), args...)
-	// todo: check for no rows so we don't respond with a sql 500 err
+
+	err := ds.Tx(ctx, func(tx *sql.Tx) error {
+		r := tx.QueryRowContext(ctx, `SELECT 1 FROM apps WHERE name=$1`, appName)
+		if err := r.Scan(new(int)); err != nil {
+			if err == sql.ErrNoRows {
+				return models.ErrAppsNotFound
+			}
+			return err
+		}
+
+		var filterQuery string
+		var args []interface{}
+		if filter == nil {
+			filterQuery = "WHERE app_name = $1"
+			args = []interface{}{appName}
+		} else {
+			filter.AppName = appName
+			filterQuery, args = buildFilterRouteQuery(filter)
+		}
+		rows, err := tx.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery), args...)
+		// todo: check for no rows so we don't respond with a sql 500 err
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var route models.Route
+			err := scanRoute(rows, &route)
+			if err != nil {
+				continue
+			}
+			res = append(res, &route)
+
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var route models.Route
-		err := scanRoute(rows, &route)
-		if err != nil {
-			continue
-		}
-		res = append(res, &route)
-
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
 	return res, nil
 }
 

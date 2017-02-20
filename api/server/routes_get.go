@@ -14,7 +14,10 @@ func (s *Server) handleRouteGet(c *gin.Context) {
 
 	appName := c.MustGet(api.AppName).(string)
 	routePath := path.Clean(c.MustGet(api.Path).(string))
-
+	//TODO does this validation make sense? move to validator?
+	// -removes trailing slash
+	// -permits non-rooted paths
+	// -permits '.', '..', ('../')*
 	route, err := s.Datastore.GetRoute(ctx, appName, routePath)
 	if err != nil {
 		handleErrorResponse(c, err)

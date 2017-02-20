@@ -154,6 +154,12 @@ func Test(t *testing.T, ds models.Datastore) {
 			t.Fatalf("Test InsertRoute(nil): expected error `%v`, but it was `%v`", models.ErrDatastoreEmptyRoute, err)
 		}
 
+		_, err = ds.InsertRoute(ctx, &models.Route{AppName: "notreal", Path: "/test"})
+		if err != models.ErrAppsNotFound {
+			t.Log(buf.String())
+			t.Fatalf("Test InsertRoute: expected error `%v`, but it was `%v`", models.ErrAppsNotFound, err)
+		}
+
 		_, err = ds.InsertRoute(ctx, testRoute)
 		if err != nil {
 			t.Log(buf.String())
@@ -210,6 +216,28 @@ func Test(t *testing.T, ds models.Datastore) {
 		} else if routes[0].Path != testRoute.Path {
 			t.Log(buf.String())
 			t.Fatalf("Test GetRoutes: expected `app.Name` to be `%s` but it was `%s`", testRoute.Path, routes[0].Path)
+		}
+
+		routes, err = ds.GetRoutesByApp(ctx, testApp.Name, &models.RouteFilter{Image: testRoute.Image})
+		if err != nil {
+			t.Log(buf.String())
+			t.Fatalf("Test GetRoutes: unexpected error %v", err)
+		}
+		if len(routes) == 0 {
+			t.Fatal("Test GetRoutes: expected result count to be greater than 0")
+		}
+		if routes[0] == nil {
+			t.Log(buf.String())
+			t.Fatalf("Test GetRoutes: expected non-nil route")
+		} else if routes[0].Path != testRoute.Path {
+			t.Log(buf.String())
+			t.Fatalf("Test GetRoutes: expected `app.Name` to be `%s` but it was `%s`", testRoute.Path, routes[0].Path)
+		}
+
+		_, err = ds.GetRoutesByApp(ctx, "notreal", nil)
+		if err != models.ErrAppsNotFound {
+			t.Log(buf.String())
+			t.Fatalf("Test GetRoutesByApp: expected error `%v`, but it was `%v`", models.ErrAppsNotFound, err)
 		}
 
 		// Testing list routes
@@ -402,8 +430,6 @@ func Test(t *testing.T, ds models.Datastore) {
 			t.Fatalf("Test Get: expected value to be `%v`, but it was `%v`", "", string(val))
 		}
 	})
-
-	//TODO concurrency test? race?
 }
 
 var testApp = &models.App{

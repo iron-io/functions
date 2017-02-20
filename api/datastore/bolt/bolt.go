@@ -211,7 +211,11 @@ func (ds *datastore) GetApp(ctx context.Context, name string) (*models.App, erro
 
 func (ds *datastore) ViewAppNode(appName string, f func(datastoreutil.Node) error) error {
 	return ds.db.View(func(tx *bolt.Tx) error {
-		n := getNode(tx.Bucket(ds.routesKey), []byte(appName))
+		key := []byte(appName)
+		if tx.Bucket(ds.appsKey).Get(key) == nil {
+			return models.ErrAppsNotFound
+		}
+		n := getNode(tx.Bucket(ds.routesKey), key)
 		if n == nil {
 			return models.ErrRoutesNotFound
 		}
@@ -236,10 +240,14 @@ func (ds *datastore) ViewAllAppNodes(f func(datastoreutil.Node) error) error {
 		return nil
 	})
 }
-//TODO none of these do the app check first...
+
 func (ds *datastore) UpdateAppNode(appName string, f func(datastoreutil.Node) error) error {
 	return ds.db.Update(func(tx *bolt.Tx) error {
-		n := getNode(tx.Bucket(ds.routesKey), []byte(appName))
+		key := []byte(appName)
+		if tx.Bucket(ds.appsKey).Get(key) == nil {
+			return models.ErrAppsNotFound
+		}
+		n := getNode(tx.Bucket(ds.routesKey), key)
 		if n == nil {
 			return models.ErrRoutesNotFound
 		}
@@ -250,7 +258,11 @@ func (ds *datastore) UpdateAppNode(appName string, f func(datastoreutil.Node) er
 
 func (ds *datastore) CreateOrUpdateAppNode(appName string, f func(datastoreutil.Node) error) error {
 	return ds.db.Update(func(tx *bolt.Tx) error {
-		n, err := getOrCreateNode(tx.Bucket(ds.routesKey), []byte(appName))
+		key := []byte(appName)
+		if tx.Bucket(ds.appsKey).Get(key) == nil {
+			return models.ErrAppsNotFound
+		}
+		n, err := getOrCreateNode(tx.Bucket(ds.routesKey), key)
 		if err != nil {
 			return err
 		}
@@ -278,11 +290,15 @@ func (ds *datastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	return ret, nil
 }
 
-var (
-	routeKey = []byte("route")
-	trailingSlashRouteKey = []byte("route/")
-	childrenKey = []byte("children")
+
+const (
+	nodeRoute byte = iota
+	nodeTrailingSlashRoute
+	nodeChildren
 )
+
+var nodeKeys = struct{route, trailingSlashRoute, children []byte} {
+		[]byte{nodeRoute}, []byte{nodeTrailingSlashRoute}, []byte{nodeChildren}}
 
 // A bolt.Bucket backed datastoreutil.Node.
 type node struct {
@@ -332,6 +348,7 @@ func (n *node) getRoute(key []byte) (*models.Route, error) {
 	if b == nil {
 		return nil, nil
 	}
+
 	var r models.Route
 	if err := json.Unmarshal(b, &r); err != nil {
 		return nil, err
@@ -340,45 +357,47 @@ func (n *node) getRoute(key []byte) (*models.Route, error) {
 }
 
 func (n *node) setRoute(key []byte, r *models.Route) error {
+	b := n.b.Get(key)
 	if r == nil {
+		if b == nil {
+			return nil
+		}
 		return n.b.Delete(key)
 	}
-	b, err := json.Marshal(r)
-	if err != nil {
+
+	if bs, err := json.Marshal(r); err != nil {
 		return err
+	} else {
+		return n.b.Put(key, bs)
 	}
-	if err := n.b.Put(key, b); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (n *node) HasRoute() bool {
-	return n.b.Get(routeKey) != nil
+	return n.b.Get(nodeKeys.route) != nil
 }
 
 func (n *node) Route() (*models.Route, error) {
-	return n.getRoute(routeKey)
+	return n.getRoute(nodeKeys.route)
 }
 
 func (n *node) SetRoute(r *models.Route) error {
-	return n.setRoute(routeKey, r)
+	return n.setRoute(nodeKeys.route, r)
 }
 
 func (n *node) HasTrailingSlashRoute() bool {
-	return n.b.Get(trailingSlashRouteKey) != nil
+	return n.b.Get(nodeKeys.trailingSlashRoute) != nil
 }
 
 func (n *node) TrailingSlashRoute() (*models.Route, error) {
-	return n.getRoute(trailingSlashRouteKey)
+	return n.getRoute(nodeKeys.trailingSlashRoute)
 }
 
 func (n *node) SetTrailingSlashRoute(r *models.Route) error {
-	return n.setRoute(trailingSlashRouteKey, r)
+	return n.setRoute(nodeKeys.trailingSlashRoute, r)
 }
 
 func (n *node) Child(k string) datastoreutil.Node {
-	children := n.b.Bucket(childrenKey)
+	children := n.b.Bucket(nodeKeys.children)
 	if children == nil {
 		return nil
 	}
@@ -386,7 +405,7 @@ func (n *node) Child(k string) datastoreutil.Node {
 }
 
 func (n *node) ChildMore(k string) (datastoreutil.Node, bool) {
-	children := n.b.Bucket(childrenKey)
+	children := n.b.Bucket(nodeKeys.children)
 	if children == nil {
 		return nil, false
 	}
@@ -406,7 +425,7 @@ func (n *node) ChildMore(k string) (datastoreutil.Node, bool) {
 }
 
 func (n *node) NewChild(k string) (datastoreutil.Node, error) {
-	children, err := n.b.CreateBucketIfNotExists(childrenKey)
+	children, err := n.b.CreateBucketIfNotExists(nodeKeys.children)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +433,7 @@ func (n *node) NewChild(k string) (datastoreutil.Node, error) {
 }
 
 func (n *node) HasChildren() bool {
-	children := n.b.Bucket(childrenKey)
+	children := n.b.Bucket(nodeKeys.children)
 	if children == nil {
 		return false
 	}
@@ -433,7 +452,7 @@ func (n *node) ForAll(f func(*models.Route)) error {
 	} else if r != nil {
 		f(r)
 	}
-	children := n.b.Bucket(childrenKey)
+	children := n.b.Bucket(nodeKeys.children)
 	if children != nil {
 		c := children.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
