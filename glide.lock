@@ -1,5 +1,5 @@
-hash: 78692441d2595a5a303c64d4884fd4d04eebfd6a382ddd166176548d9da02645
-updated: 2017-01-18T21:41:13.698052314+01:00
+hash: 338c748471712f0cf0c2a4c72490b519561644d91def69eec7febb68e5501c23
+updated: 2017-02-20T13:04:06.790136541-06:00
 imports:
 - name: github.com/amir/raidman
   version: c74861fe6a7bb8ede0a010ce4485bdbb4fc4c985
@@ -135,8 +135,12 @@ imports:
   version: 36d33bfe519efae5632669801b180bf1a245da3b
 - name: github.com/go-openapi/loads
   version: 315567415dfd74b651f7a62cabfc82a57ed7b9ad
+  subpackages:
+  - fmts
 - name: github.com/go-openapi/runtime
   version: 14b161b40ece9dac8e244ab2fde2d209e108c6f5
+  subpackages:
+  - client
 - name: github.com/go-openapi/spec
   version: f7ae86df5bc115a2744343016c789a89f065a4bd
 - name: github.com/go-openapi/strfmt
@@ -239,6 +243,8 @@ imports:
   version: 017119f7a78a0b5fc0ea39ef6be09f03acf3345d
 - name: github.com/pivotal-golang/bytefmt
   version: b12c1522f4cbb5f35861bd5dd2c39a4fa996441a
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/PuerkitoBio/purell
   version: 0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4
 - name: github.com/PuerkitoBio/urlesc
@@ -246,7 +252,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
-  version: d26492970760ca5d33129d2d799e34be5c4782eb
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
   subpackages:
   - hooks/syslog
 - name: github.com/spf13/afero
