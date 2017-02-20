@@ -241,8 +241,8 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 	if err != nil {
 		return nil, err
 	}
-	err = ds.Tx(ctx, func(tx *sql.Tx) error {
-		r := tx.QueryRowContext(ctx, `SELECT 1 FROM apps WHERE name=$1`, route.AppName)
+	err = ds.Tx(func(tx *sql.Tx) error {
+		r := tx.QueryRow(`SELECT 1 FROM apps WHERE name=$1`, route.AppName)
 		if err := r.Scan(new(int)); err != nil {
 			if err == sql.ErrNoRows {
 				return models.ErrAppsNotFound
@@ -250,7 +250,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			return err
 		}
 
-		same, err := tx.QueryContext(ctx, `SELECT 1 FROM routes WHERE app_name=$1 AND path=$2`,
+		same, err := tx.Query(`SELECT 1 FROM routes WHERE app_name=$1 AND path=$2`,
 			route.AppName, route.Path)
 		if err != nil {
 			return err
@@ -261,7 +261,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 		}
 
 		namelessPath := datastoreutil.StripParamNames(route.Path)
-		conflicts, err := tx.QueryContext(ctx, `SELECT 1 FROM routes WHERE app_name=$1 AND nameless_path~$2 LIMIT 1`,
+		conflicts, err := tx.Query(`SELECT 1 FROM routes WHERE app_name=$1 AND nameless_path~$2 LIMIT 1`,
 			route.AppName, conflictRegexp(namelessPath))
 		if err != nil {
 			return err
@@ -307,8 +307,8 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 	return route, nil
 }
 
-func (ds *PostgresDatastore) Tx(ctx context.Context, f func(*sql.Tx) error) error {
-	tx, err := ds.db.BeginTx(ctx, nil)
+func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
+	tx, err := ds.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -515,8 +515,8 @@ func (ds *PostgresDatastore) GetRoutes(ctx context.Context, filter *models.Route
 func (ds *PostgresDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
 
-	err := ds.Tx(ctx, func(tx *sql.Tx) error {
-		r := tx.QueryRowContext(ctx, `SELECT 1 FROM apps WHERE name=$1`, appName)
+	err := ds.Tx(func(tx *sql.Tx) error {
+		r := tx.QueryRow(`SELECT 1 FROM apps WHERE name=$1`, appName)
 		if err := r.Scan(new(int)); err != nil {
 			if err == sql.ErrNoRows {
 				return models.ErrAppsNotFound
