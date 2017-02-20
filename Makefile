@@ -19,7 +19,7 @@ test:
 	cd fn && $(MAKE) test
 
 test-datastore:
-	cd api/datastore && go test -v
+	cd api/datastore && go test -v ./...
 
 test-docker:
 	docker run -ti --privileged --rm -e LOG_LEVEL=debug \
