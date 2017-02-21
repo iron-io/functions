@@ -131,7 +131,7 @@ fn init $USERNAME/hello
 fn build
 # test it - you can pass data into it too by piping it in, eg: `cat hello.payload.json | fn run`
 fn run
-# Once it's ready, bump, build and push it to Docker Hub
+# Once it's ready, build and push it to Docker Hub
 fn build && fn push
 # create an app - you only do this once per app
 fn apps create myapp
