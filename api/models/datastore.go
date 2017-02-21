@@ -28,7 +28,6 @@ type Datastore interface {
 	// UpdateApp updates an App's Config. Returns ErrDatastoreEmptyApp when app is nil, and
 	// ErrDatastoreEmptyAppName when app.Name is empty.
 	// Returns ErrAppsNotFound if an App is not found.
-	//TODO are app.Config's fields added to the existing field or do they replace them?
 	UpdateApp(ctx context.Context, app *App) (*App, error)
 
 	// RemoveApp removes the App named appName. Returns ErrDatastoreEmptyAppName if appName is empty.
@@ -53,7 +52,6 @@ type Datastore interface {
 
 	// UpdateRoute updates route's Config and Header fields. Returns ErrDatastoreEmptyRoute when route is nil, and
 	// ErrDatastoreEmptyAppName or ErrDatastoreEmptyRoutePath for empty AppName or Path.
-	//TODO are route's .Config and .Header fields merged with or do they replace existing fields?
 	UpdateRoute(ctx context.Context, route *Route) (*Route, error)
 
 	// RemoveRoute removes a route. Returns ErrDatastoreEmptyAppName when appName is empty, and

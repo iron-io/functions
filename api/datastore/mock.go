@@ -72,7 +72,7 @@ func (ds *datastore) UpdateApp(ctx context.Context, app *models.App) (*models.Ap
 	if err != nil {
 		return nil, err
 	}
-	a.UpdateConfig(app)
+	a.UpdateConfig(app.Config)
 	return a.Clone(), nil
 }
 

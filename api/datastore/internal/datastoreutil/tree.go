@@ -255,9 +255,6 @@ func (ds *localDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 			return models.ErrRoutesNotFound
 		}
 		route.Update(newroute)
-		if err := route.Validate(); err != nil {
-			return err
-		}
 		newroute = route.Clone()
 		return setRoute(route)
 	})

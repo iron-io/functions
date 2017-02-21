@@ -123,7 +123,7 @@ func (ds *datastore) UpdateApp(ctx context.Context, newapp *models.App) (*models
 			return err
 		}
 
-		app.UpdateConfig(newapp)
+		app.UpdateConfig(newapp.Config)
 
 		buf, err := json.Marshal(app)
 		if err != nil {

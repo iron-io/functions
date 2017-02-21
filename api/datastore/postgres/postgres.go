@@ -54,10 +54,6 @@ type rowScanner interface {
 	Scan(dest ...interface{}) error
 }
 
-type rowQuerier interface {
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
 type PostgresDatastore struct {
 	db *sql.DB
 }
@@ -119,33 +115,48 @@ func (ds *PostgresDatastore) InsertApp(ctx context.Context, app *models.App) (*m
 	return app, nil
 }
 
-func (ds *PostgresDatastore) UpdateApp(ctx context.Context, app *models.App) (*models.App, error) {
-	cbyte, err := json.Marshal(app.Config)
+func (ds *PostgresDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
+	app := &models.App{Name: newapp.Name}
+	err := ds.Tx(func(tx *sql.Tx) error {
+		row := ds.db.QueryRow("SELECT config FROM apps WHERE name=$1", app.Name)
+
+		var config string
+		if err := row.Scan(&config); err != nil {
+			if err == sql.ErrNoRows {
+				return models.ErrAppsNotFound
+			}
+			return err
+		}
+
+		if config != "" {
+			err := json.Unmarshal([]byte(config), &app.Config)
+			if err != nil {
+				return err
+			}
+		}
+
+		app.UpdateConfig(newapp.Config)
+
+		cbyte, err := json.Marshal(app.Config)
+		if err != nil {
+			return err
+		}
+
+		res, err := ds.db.Exec(`UPDATE apps SET config = $2 WHERE name = $1;`, app.Name, string(cbyte))
+		if err != nil {
+			return err
+		}
+
+		if n, err := res.RowsAffected(); err != nil {
+			return err
+		} else if n == 0 {
+			return models.ErrAppsNotFound
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
-	}
-
-	res, err := ds.db.Exec(`
-	  UPDATE apps SET
-		config = $2
-	  WHERE name = $1
-	  RETURNING *;
-	`,
-		app.Name,
-		string(cbyte),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if n == 0 {
-		return nil, models.ErrAppsNotFound
 	}
 
 	return app, nil
@@ -320,54 +331,68 @@ func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
 	return tx.Commit()
 }
 
-func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
-	hbyte, err := json.Marshal(route.Headers)
-	if err != nil {
-		return nil, err
-	}
+func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, newroute *models.Route) (*models.Route, error) {
+	var route models.Route
+	err := ds.Tx(func(tx *sql.Tx) error {
+		row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=$1 AND path=$2", routeSelector), newroute.AppName, newroute.Path)
+		if err := scanRoute(row, &route); err == sql.ErrNoRows {
+			return models.ErrRoutesNotFound
+		} else if err != nil {
+			return err
+		}
 
-	cbyte, err := json.Marshal(route.Config)
-	if err != nil {
-		return nil, err
-	}
+		route.Update(newroute)
 
-	res, err := ds.db.Exec(`
+		hbyte, err := json.Marshal(route.Headers)
+		if err != nil {
+			return err
+		}
+
+		cbyte, err := json.Marshal(route.Config)
+		if err != nil {
+			return err
+		}
+
+		res, err := tx.Exec(`
 		UPDATE routes SET
 			image = $3,
 			format = $4,
-			memory = $5,
-			maxc = $6,
+			maxc = $5,
+			memory = $6,
 			type = $7,
 			timeout = $8,
 			headers = $9,
 			config = $10
 		WHERE app_name = $1 AND path = $2;`,
-		route.AppName,
-		route.Path,
-		route.Image,
-		route.Format,
-		route.Memory,
-		route.MaxConcurrency,
-		route.Type,
-		route.Timeout,
-		string(hbyte),
-		string(cbyte),
-	)
+			route.AppName,
+			route.Path,
+			route.Image,
+			route.Format,
+			route.MaxConcurrency,
+			route.Memory,
+			route.Type,
+			route.Timeout,
+			string(hbyte),
+			string(cbyte),
+		)
+
+		if err != nil {
+			return err
+		}
+
+		if n, err := res.RowsAffected(); err != nil {
+			return err
+		} else if n == 0 {
+			return models.ErrRoutesNotFound
+		}
+
+		return nil
+	})
 
 	if err != nil {
 		return nil, err
 	}
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if n == 0 {
-		return nil, models.ErrRoutesNotFound
-	}
-
-	return route, nil
+	return &route, nil
 }
 
 func (ds *PostgresDatastore) RemoveRoute(ctx context.Context, appName, routePath string) error {
@@ -401,8 +426,8 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&route.Path,
 		&route.Image,
 		&route.Format,
-		&route.Memory,
 		&route.MaxConcurrency,
+		&route.Memory,
 		&route.Type,
 		&route.Timeout,
 		&headerStr,
