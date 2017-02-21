@@ -40,7 +40,6 @@ type Datastore interface {
 	// Returns ErrDatastoreEmptyAppName when appName is empty, and ErrDatastoreEmptyRoutePath when
 	// routePath is empty.
 	// Returns ErrRoutesNotFound when no matching route is found.
-	//TODO should these return ErrAppsNotFound or RoutesNotFound? (or the unused 'ErrRoutesGet')
 	GetRoute(ctx context.Context, appName, routePath string) (*Route, error)
 
 	// GetRoutes gets a slice of Routes, optionally filtered by filter.

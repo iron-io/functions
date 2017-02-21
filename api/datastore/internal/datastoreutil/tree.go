@@ -34,7 +34,7 @@ type LocalRouter interface {
 	// rather than returning models.ErrRoutesNotFound.
 	// Note that models.ErrAppsNotFound may still be returned if the App itself is not found.
 	CreateOrUpdateAppNode(appName string, f func(Node) error) error
-	// ViewAppNode executes f for the appName App Node, or returns models.ErrRoutesNotFound if none exists.
+	// ViewAppNode executes f with the appName App Node, or nil if none exists.
 	// f must only read from the Node, not write.
 	ViewAppNode(appName string, f func(Node) error) error
 }
@@ -97,6 +97,9 @@ func (ds *localDatastore) GetApps(ctx context.Context, appFilter *models.AppFilt
 func (ds *localDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
 	var route *models.Route
 	err := ds.ViewAppNode(appName, func(n Node) error {
+		if n == nil {
+			return models.ErrRoutesNotFound
+		}
 		parts, trailingSlash := SplitPath(routePath)
 		n = match(n, parts)
 		if n == nil {
@@ -125,18 +128,21 @@ func (ds *localDatastore) GetRoute(ctx context.Context, appName, routePath strin
 	return route, nil
 }
 
+func matchFunc(filter *models.RouteFilter) func(*models.Route) bool {
+	if filter == nil {
+		return func(*models.Route) bool { return true}
+	}
+	return func(r *models.Route) bool {
+		return (filter.Path == "" || r.Path == filter.Path) &&
+			(filter.AppName == "" || r.AppName == filter.AppName) &&
+			(filter.Image == "" || r.Image == filter.Image)
+	}
+}
+
 func (ds *localDatastore) GetRoutes(ctx context.Context, filter *models.RouteFilter) ([]*models.Route, error) {
 	var routes []*models.Route
 
-	match := func(*models.Route) bool { return true }
-
-	if filter != nil {
-		match = func(r *models.Route) bool {
-			return (filter.Path == "" || r.Path == filter.Path) &&
-				(filter.AppName == "" || r.AppName == filter.AppName) &&
-				(filter.Image == "" || r.Image == filter.Image)
-		}
-	}
+	match := matchFunc(filter)
 
 	err := ds.ViewAllAppNodes(func(n Node) error {
 		n.ForAll(func(r *models.Route) {
@@ -157,25 +163,17 @@ func (ds *localDatastore) GetRoutes(ctx context.Context, filter *models.RouteFil
 func (ds *localDatastore) GetRoutesByApp(ctx context.Context, appName string, routeFilter *models.RouteFilter) ([]*models.Route, error) {
 	var routes []*models.Route
 
-	if routeFilter != nil && routeFilter.Path != "" {
-		r, err := ds.GetRoute(ctx, appName, routeFilter.Path)
-		if err != nil {
-			return nil, err
-		}
-		if routeFilter.Image == "" || r.Image == routeFilter.Image {
-			routes = append(routes, r)
-		}
-
-		return routes, nil
-	}
+	match := matchFunc(routeFilter)
 
 	err := ds.ViewAppNode(appName, func(n Node) error {
-		n.ForAll(func(r *models.Route) {
-			if routeFilter == nil || (routeFilter.Image == "" || r.Image == routeFilter.Image) {
+		if n == nil {
+			return nil
+		}
+		return n.ForAll(func(r *models.Route) {
+			if match(r) {
 				routes = append(routes, r)
 			}
 		})
-		return nil
 	})
 
 	if err != nil {

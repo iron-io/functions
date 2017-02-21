@@ -234,10 +234,13 @@ func Test(t *testing.T, ds models.Datastore) {
 			t.Fatalf("Test GetRoutes: expected `app.Name` to be `%s` but it was `%s`", testRoute.Path, routes[0].Path)
 		}
 
-		_, err = ds.GetRoutesByApp(ctx, "notreal", nil)
-		if err != models.ErrAppsNotFound {
+		routes, err = ds.GetRoutesByApp(ctx, "notreal", nil)
+		if err != nil {
 			t.Log(buf.String())
-			t.Fatalf("Test GetRoutesByApp: expected error `%v`, but it was `%v`", models.ErrAppsNotFound, err)
+			t.Fatalf("Test GetRoutes: error: %s", err)
+		}
+		if len(routes) != 0 {
+			t.Fatalf("Test GetRoutes: expected result count to be 0 but got %d", len(routes))
 		}
 
 		// Testing list routes

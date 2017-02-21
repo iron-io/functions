@@ -115,14 +115,7 @@ func (ds *datastore) CreateOrUpdateAppNode(appName string, f func(datastoreutil.
 }
 
 func (ds *datastore) ViewAppNode(appName string, f func(datastoreutil.Node) error) error {
-	if _, ok := ds.apps[appName]; !ok {
-		return models.ErrAppsNotFound
-	}
-
 	n := ds.routesByAppName[appName]
-	if n == nil {
-		return models.ErrRoutesNotFound
-	}
 
 	return f(n)
 }

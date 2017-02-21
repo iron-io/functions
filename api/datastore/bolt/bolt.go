@@ -146,18 +146,22 @@ func (ds *datastore) UpdateApp(ctx context.Context, newapp *models.App) (*models
 }
 
 func (ds *datastore) RemoveApp(ctx context.Context, appName string) error {
-	err := ds.db.Update(func(tx *bolt.Tx) error {
-		err := tx.Bucket(ds.appsKey).Delete([]byte(appName))
-		if err != nil {
+	return ds.db.Update(func(tx *bolt.Tx) error {
+		key := []byte(appName)
+
+		apps := tx.Bucket(ds.appsKey)
+		if apps.Get(key) == nil {
+			return models.ErrAppsNotFound
+		}
+		if err := apps.Delete(key); err != nil {
 			return err
 		}
-		err = tx.Bucket(ds.routesKey).DeleteBucket([]byte(appName))
-		if err != nil {
-			return err
+
+		if routes := tx.Bucket(ds.routesKey); routes.Bucket(key) != nil {
+			return routes.DeleteBucket(key)
 		}
 		return nil
 	})
-	return err
 }
 
 func (ds *datastore) MatchApps(ctx context.Context, matches func(*models.App) bool) ([]*models.App, error) {
@@ -191,17 +195,11 @@ func (ds *datastore) GetApp(ctx context.Context, name string) (*models.App, erro
 	err := ds.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(ds.appsKey)
 		v := b.Get([]byte(name))
-		if v != nil {
-			app := &models.App{}
-			err := json.Unmarshal(v, app)
-			if err != nil {
-				return err
-			}
-			res = app
-		} else {
+		if v == nil {
 			return models.ErrAppsNotFound
 		}
-		return nil
+		res = &models.App{}
+		return json.Unmarshal(v, res)
 	})
 	if err != nil {
 		return nil, err
@@ -211,14 +209,7 @@ func (ds *datastore) GetApp(ctx context.Context, name string) (*models.App, erro
 
 func (ds *datastore) ViewAppNode(appName string, f func(datastoreutil.Node) error) error {
 	return ds.db.View(func(tx *bolt.Tx) error {
-		key := []byte(appName)
-		if tx.Bucket(ds.appsKey).Get(key) == nil {
-			return models.ErrAppsNotFound
-		}
-		n := getNode(tx.Bucket(ds.routesKey), key)
-		if n == nil {
-			return models.ErrRoutesNotFound
-		}
+		n := getNode(tx.Bucket(ds.routesKey), []byte(appName))
 		return f(n)
 	})
 }

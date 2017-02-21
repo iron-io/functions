@@ -515,46 +515,32 @@ func (ds *PostgresDatastore) GetRoutes(ctx context.Context, filter *models.Route
 func (ds *PostgresDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
 
-	err := ds.Tx(func(tx *sql.Tx) error {
-		r := tx.QueryRow(`SELECT 1 FROM apps WHERE name=$1`, appName)
-		if err := r.Scan(new(int)); err != nil {
-			if err == sql.ErrNoRows {
-				return models.ErrAppsNotFound
-			}
-			return err
-		}
-
-		var filterQuery string
-		var args []interface{}
-		if filter == nil {
-			filterQuery = "WHERE app_name = $1"
-			args = []interface{}{appName}
-		} else {
-			filter.AppName = appName
-			filterQuery, args = buildFilterRouteQuery(filter)
-		}
-		rows, err := tx.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery), args...)
-		// todo: check for no rows so we don't respond with a sql 500 err
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			var route models.Route
-			err := scanRoute(rows, &route)
-			if err != nil {
-				continue
-			}
-			res = append(res, &route)
-
-		}
-		if err := rows.Err(); err != nil {
-			return err
-		}
-		return nil
-	})
+	var filterQuery string
+	var args []interface{}
+	if filter == nil {
+		filterQuery = "WHERE app_name = $1"
+		args = []interface{}{appName}
+	} else {
+		filter.AppName = appName
+		filterQuery, args = buildFilterRouteQuery(filter)
+	}
+	rows, err := ds.db.Query(fmt.Sprintf("%s %s", routeSelector, filterQuery), args...)
+	// todo: check for no rows so we don't respond with a sql 500 err
 	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var route models.Route
+		err := scanRoute(rows, &route)
+		if err != nil {
+			continue
+		}
+		res = append(res, &route)
+
+	}
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
