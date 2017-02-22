@@ -130,6 +130,8 @@ func (r *Route) Validate(skipZero bool) error {
 		res = append(res, ErrRoutesValidationNegativeTimeout)
 	}
 
+	//TODO negative concurrency?
+
 	if len(res) > 0 {
 		return apiErrors.CompositeValidationError(res...)
 	}

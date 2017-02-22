@@ -461,7 +461,7 @@ func (ds *PostgresDatastore) GetRoute(ctx context.Context, appName, routePath st
 	return &route, nil
 }
 
-// The pathRegexp function returns a regexp to match namessless paths which accept path.
+// The pathRegexp function returns a regexp to match nameless paths which accept path.
 func pathRegexp(path string) string {
 	if path == "/" {
 		return `^(/|/\*)$`
@@ -483,7 +483,7 @@ func pathRegexp(path string) string {
 	return b.String()
 }
 
-// The pathRegexp function returns a regexp to match nameless paths with conflict with namelessPath.
+// The pathRegexp function returns a regexp to match nameless paths which conflict with namelessPath.
 func conflictRegexp(namelessPath string) string {
 	if namelessPath == "/" {
 		return `^/$`

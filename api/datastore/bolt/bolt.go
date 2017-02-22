@@ -167,8 +167,7 @@ func (ds *datastore) RemoveApp(ctx context.Context, appName string) error {
 func (ds *datastore) MatchApps(ctx context.Context, matches func(*models.App) bool) ([]*models.App, error) {
 	res := []*models.App{}
 	err := ds.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(ds.appsKey)
-		err2 := b.ForEach(func(key, v []byte) error {
+		return tx.Bucket(ds.appsKey).ForEach(func(key, v []byte) error {
 			app := &models.App{}
 			err := json.Unmarshal(v, app)
 			if err != nil {
@@ -179,10 +178,6 @@ func (ds *datastore) MatchApps(ctx context.Context, matches func(*models.App) bo
 			}
 			return nil
 		})
-		if err2 != nil {
-			logrus.WithError(err2).Errorln("Couldn't get apps!")
-		}
-		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -193,8 +188,7 @@ func (ds *datastore) MatchApps(ctx context.Context, matches func(*models.App) bo
 func (ds *datastore) GetApp(ctx context.Context, name string) (*models.App, error) {
 	var res *models.App
 	err := ds.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(ds.appsKey)
-		v := b.Get([]byte(name))
+		v := tx.Bucket(ds.appsKey).Get([]byte(name))
 		if v == nil {
 			return models.ErrAppsNotFound
 		}

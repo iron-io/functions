@@ -21,6 +21,7 @@ func SplitPath(path string) (parts []string, trailingSlash bool) {
 }
 
 // SqlLikeToRegExp converts an sql 'LIKE' query into an equivalent regular expression.
+//TODO currently only naively replaces '%', with no '_' or '\'-escape support.
 func SqlLikeToRegExp(l string) string {
 	return "^" + strings.Replace(l, "%", ".*?", -1) + "$"
 }
