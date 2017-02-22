@@ -14,6 +14,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	fnclient "github.com/iron-io/functions_go/client"
 	apiroutes "github.com/iron-io/functions_go/client/routes"
 	"github.com/iron-io/functions_go/models"
@@ -53,7 +54,7 @@ func routes() cli.Command {
 				Name:      "create",
 				Aliases:   []string{"c"},
 				Usage:     "create a route in an `app`",
-				ArgsUsage: "`app` /path image/name",
+				ArgsUsage: "`app` /path [image]",
 				Action:    r.create,
 				Flags: []cli.Flag{
 					cli.Int64Flag{
@@ -91,7 +92,7 @@ func routes() cli.Command {
 				Name:      "update",
 				Aliases:   []string{"u"},
 				Usage:     "update a route in an `app`",
-				ArgsUsage: "`app` /path",
+				ArgsUsage: "`app` /path [image]",
 				Action:    r.update,
 				Flags: []cli.Flag{
 					cli.StringFlag{
@@ -468,16 +469,21 @@ func (a *routesCmd) update(c *cli.Context) error {
 		maxC    int
 		timeout time.Duration
 	)
-	// if image == "" {
-	// todo: why do we only load the func file if image isn't set?  Don't we need to read the rest of these things regardless?
 	ff, err := loadFuncfile()
 	if err != nil {
 		if _, ok := err.(*notFoundError); ok {
-			return errors.New("error: image name is missing or no function file found")
+			if image == "" {
+				// the no image flag or func file
+				return errors.New("error: image name is missing or no function file found")
+			}
+			logrus.Warnln("func file not found, continuing...")
+		} else {
+			return err
 		}
-		return err
 	}
-	image = ff.FullName()
+	if image != "" { // flags take precedence
+		image = ff.FullName()
+	}
 	if ff.Format != nil {
 		format = *ff.Format
 	}
@@ -490,7 +496,6 @@ func (a *routesCmd) update(c *cli.Context) error {
 	if route == "" && ff.path != nil {
 		route = *ff.path
 	}
-	// }
 
 	if route == "" {
 		return errors.New("error: route path is missing")
