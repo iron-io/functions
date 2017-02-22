@@ -70,38 +70,18 @@ See examples of this in [/examples/extensions/main.go](/examples/extensions/main
 Middleware enables you to add functionality to every API request. For every request, the chain of Middleware will be called 
 in order allowing you to modify or reject requests, as well as write output and cancel the chain. 
 
+There are two separate sets of middleware, one for the IronFunctions API and one that wraps requests to user created endpoints. 
+
+```go
+// this adds to the API
+funcServer.AddMiddleware()
+// this adds to user created routes/functions, ie: everything but the API
+```
+
 NOTES:
 
 * middleware is responsible for writing output if it's going to cancel the chain.
 * cancel the chain by returning an error from your Middleware's Serve method.
+* continue the chain by calling ctx.Next(ctx)
 
-## Special Handlers
-
-To understand how **Special Handlers** works you need to understand what are **Special Routes**.
-
-**Special Routes** are routes that doesn't match any other API route. 
-
-With **Special Handlers** you can change the behavior of special routes in order to define which function is going to be executed.
-
-For example, let's use special handlers to define `mydomain` as the `appname` for any request for `mydomain.com`.
-
-```
-type SpecialHandler struct{}
-
-func (h *SpecialHandler) Handle(c server.HandlerContext) error {
-    host := c.Request().Host
-    if host == "mydomain.com" {
-        c.Set("app", "mydomain")
-    }
-}
-
-func main () {
-    sh := &SpecialHandler{}
-
-    srv := server.New(/* Here all required parameters to initialize the server */)
-    srv.AddSpecialHandler(sh)
-    srv.Run()
-}
-``` 
-
-With the code above, a request to `http://mydomain.com/hello` will trigger the function `/mydomain/hello`
+See examples of this in [/examples/middleware/main.go](/examples/middleware/main.go). 

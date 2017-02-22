@@ -29,7 +29,7 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	wroute.Route.AppName = c.MustGet(api.AppName).(string)
+	wroute.Route.AppName = c.Param(api.CApp)
 
 	if err := wroute.Validate(); err != nil {
 		log.WithError(err).Debug(models.ErrRoutesCreate)

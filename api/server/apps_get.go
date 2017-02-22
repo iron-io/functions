@@ -11,7 +11,7 @@ import (
 func (s *Server) handleAppGet(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 
-	appName := c.MustGet(api.AppName).(string)
+	appName := c.Param(api.CApp)
 	app, err := s.Datastore.GetApp(ctx, appName)
 	if err != nil {
 		handleErrorResponse(c, err)

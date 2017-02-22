@@ -14,7 +14,7 @@ func (s *Server) handleAppDelete(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
-	app := &models.App{Name: c.MustGet(api.AppName).(string)}
+	app := &models.App{Name: c.Param(api.CApp)}
 
 	routes, err := s.Datastore.GetRoutesByApp(ctx, app.Name, &models.RouteFilter{})
 	if err != nil {

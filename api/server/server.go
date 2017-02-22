@@ -15,6 +15,7 @@ import (
 	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
+	fcommon "github.com/iron-io/functions/api/common"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -42,9 +43,9 @@ type Server struct {
 
 	apiURL string
 
-	specialHandlers []SpecialHandler
 	appListeners    []AppListener
 	middlewares     []Middleware
+	runMiddlewares  []Middleware
 	runnerListeners []RunnerListener
 
 	mu           sync.Mutex // protects hotroutes
@@ -109,14 +110,6 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
 
-		if appName := c.Param(api.CApp); appName != "" {
-			c.Set(api.AppName, appName)
-		}
-
-		if routePath := c.Param(api.CRoute); routePath != "" {
-			c.Set(api.Path, routePath)
-		}
-
 		// todo: can probably replace the "ctx" value with the Go 1.7 context on the http.Request
 		c.Set("ctx", ctx)
 		c.Request = c.Request.WithContext(ctx)
@@ -151,8 +144,24 @@ func (s *Server) cachedelete(appname, path string) {
 	s.hotroutes.Delete(appname, path)
 }
 
-func (s *Server) handleRunnerRequest(c *gin.Context) {
-	s.handleRequest(c, s.Enqueue)
+// Called for /r/:app/:path
+func (s *Server) handleAppRequest(c *gin.Context) {
+	ctx := c.MustGet("ctx").(context.Context)
+	ctx, log := fcommon.LoggerWithStack(ctx, "handleAppRequest")
+	appName := c.Param(api.CApp)
+	if appName == "" {
+		c.JSON(http.StatusNotFound, models.ErrAppsNotFound)
+		return
+	}
+	app, err := s.Datastore.GetApp(ctx, appName)
+	if err != nil || app == nil {
+		if err != nil {
+			log.WithError(err).Error("error getting app from datastore")
+		}
+		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
+		return
+	}
+	s.handleRequest(c, app, s.Enqueue)
 }
 
 func (s *Server) handleTaskRequest(c *gin.Context) {
@@ -272,7 +281,7 @@ func (s *Server) bindHandlers(ctx context.Context) {
 
 	engine.DELETE("/tasks", s.handleTaskRequest)
 	engine.GET("/tasks", s.handleTaskRequest)
-	engine.Any("/r/:app/*route", s.handleRunnerRequest)
+	engine.Any("/r/:app/*route", s.handleAppRequest)
 
 	// This final route is used for extensions, see Server.Add
 	engine.NoRoute(s.handleSpecial)

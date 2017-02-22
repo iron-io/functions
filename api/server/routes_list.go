@@ -20,7 +20,8 @@ func (s *Server) handleRouteList(c *gin.Context) {
 
 	var routes []*models.Route
 	var err error
-	if appName, ok := c.MustGet(api.AppName).(string); ok && appName != "" {
+	appName := c.Param(api.CApp)
+	if appName != "" {
 		routes, err = s.Datastore.GetRoutesByApp(ctx, appName, filter)
 	} else {
 		routes, err = s.Datastore.GetRoutes(ctx, filter)

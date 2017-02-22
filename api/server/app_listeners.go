@@ -6,6 +6,7 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
+// AppListener is the interface to use to listen to App related events
 type AppListener interface {
 	// BeforeAppCreate called right before creating App in the database
 	BeforeAppCreate(ctx context.Context, app *models.App) error
@@ -21,7 +22,7 @@ type AppListener interface {
 	AfterAppDelete(ctx context.Context, app *models.App) error
 }
 
-// AddAppCreateListener adds a listener that will be notified on App created.
+// AddAppListener adds a listener that will be notified on App modifications.
 func (s *Server) AddAppListener(listener AppListener) {
 	s.appListeners = append(s.appListeners, listener)
 }

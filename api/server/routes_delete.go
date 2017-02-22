@@ -12,8 +12,8 @@ import (
 func (s *Server) handleRouteDelete(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 
-	appName := c.MustGet(api.AppName).(string)
-	routePath := path.Clean(c.MustGet(api.Path).(string))
+	appName := c.Param(api.CApp)
+	routePath := path.Clean(c.Param(api.CRoute))
 
 	if err := s.Datastore.RemoveRoute(ctx, appName, routePath); err != nil {
 		handleErrorResponse(c, err)
