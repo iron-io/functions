@@ -76,7 +76,7 @@ This guide will get you up and running in a few minutes.
 To get started quickly with IronFunctions, just fire up an `iron/functions` container:
 
 ```sh
-docker run --rm -it --name functions --privileged -v ${PWD}/data:/app/data -p 8080:8080 iron/functions
+docker run --rm -it --name functions -v ${PWD}/data:/app/data -v /var/run/docker.sock:/var/run/docker.sock -p 8080:8080 iron/functions
 ```
 
 *where ${PWD}/data is the directory where the functions application data files will be stored*
@@ -200,7 +200,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 
 ### Calling your Function
 
-Calling your function is as simple as requesting a URL. Each app has it's own namespace and each route mapped to the app.
+Calling your function is as simple as requesting a URL. Each app has its own namespace and each route mapped to the app.
 The app `myapp` that we created above along with the `/hello` route we added would be called via the following
 URL: http://localhost:8080/r/myapp/hello
 

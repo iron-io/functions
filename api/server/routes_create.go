@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 )
 
@@ -45,13 +44,13 @@ func (s *Server) handleRouteCreate(ctx context.Context, r RequestController) {
 		return
 	}
 
-	err = s.Runner.EnsureImageExists(c, &task.Config{
-		Image: wroute.Route.Image,
-	})
-	if err != nil {
-		c.JSON(http.StatusBadRequest, simpleError(models.ErrUsableImage))
-		return
-	}
+	// err = s.Runner.EnsureImageExists(ctx, &task.Config{
+	// 	Image: wroute.Route.Image,
+	// })
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, simpleError(models.ErrUsableImage))
+	// 	return
+	// }
 
 	app, err := s.Datastore.GetApp(c, wroute.Route.AppName)
 	if err != nil && err != models.ErrAppsNotFound {
