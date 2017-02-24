@@ -1,14 +1,17 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppCreate(c *gin.Context, r RequestController) {
-	log := r.Logger()
+func (s *Server) handleAppCreate(ctx context.Context, r RequestController) {
+	log := common.Logger(ctx)
+	c := ctx.(*gin.Context)
 
 	var wapp models.AppWrapper
 

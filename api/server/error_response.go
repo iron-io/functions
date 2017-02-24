@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/runner/common"
 	"net/http"
 )
 
@@ -21,7 +22,7 @@ var errStatusCode = map[error]int{
 }
 
 func handleErrorResponse(c *gin.Context, r RequestController, err error) {
-	log := r.Logger()
+	log := common.Logger(c)
 	log.Error(err)
 
 	if code, ok := errStatusCode[err]; ok {

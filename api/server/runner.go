@@ -30,11 +30,11 @@ func toEnvName(envtype, name string) string {
 	return fmt.Sprintf("%s_%s", envtype, name)
 }
 
-func (s *Server) handleRequest(c *gin.Context, r RequestController) {
-	reqID := uuid.NewV5(uuid.Nil, fmt.Sprintf("%s%s%d", c.Request.RemoteAddr, c.Request.URL.Path, time.Now().Unix())).String()
-	ctx, log := fcommon.LoggerWithStack(c, "handleAppRequest")
+func (s *Server) handleRequest(ctx context.Context, r RequestController) {
+	c := ctx.(*gin.Context)
+	reqID := uuid.NewV5(uuid.Nil, fmt.Sprintf("%s%s%d", r.Request().RemoteAddr, r.Request().URL.Path, time.Now().Unix())).String()
+	_, log := fcommon.LoggerWithStack(ctx, "handleAppRequest")
 	_, log = common.LoggerWithFields(ctx, logrus.Fields{"call_id": reqID})
-	r.SetLogger(log)
 
 	var err error
 	var payload io.Reader
@@ -51,20 +51,17 @@ func (s *Server) handleRequest(c *gin.Context, r RequestController) {
 		payload = strings.NewReader(reqPayload)
 	}
 
-	reqRoute := &models.Route{
-		AppName: r.AppName(),
-		Path:    r.RoutePath(),
-	}
-
+	reqRoute := r.Route()
 	s.FireBeforeDispatch(c, reqRoute)
 
 	if reqRoute.AppName == "" {
-		c.JSON(http.StatusNotFound, models.ErrAppsNotFound)
+		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
 		return
 	}
 
-	app, err := s.Datastore.GetApp(c, reqRoute.AppName)
-	if err != nil || app == nil {
+	app := r.App()
+	err = r.Error()
+	if err != nil {
 		if err != nil {
 			log.WithError(err).Error("error getting app from datastore")
 		}

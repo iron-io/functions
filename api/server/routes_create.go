@@ -1,20 +1,24 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner/task"
+	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleRouteCreate(c *gin.Context, r RequestController) {
-	log := r.Logger()
+func (s *Server) handleRouteCreate(ctx context.Context, r RequestController) {
+	log := common.Logger(ctx)
+	c := ctx.(*gin.Context)
 
 	var wroute models.RouteWrapper
+	wroute.Route = r.Route()
 
-	err := c.BindJSON(&wroute)
+	err := r.Error()
 	if err != nil {
 		log.WithError(err).Debug(models.ErrInvalidJSON)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))

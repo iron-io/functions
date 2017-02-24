@@ -1,19 +1,23 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppUpdate(c *gin.Context, r RequestController) {
-	log := r.Logger()
+func (s *Server) handleAppUpdate(ctx context.Context, r RequestController) {
+	log := common.Logger(ctx)
+	c := ctx.(*gin.Context)
 
 	wapp := models.AppWrapper{}
+	wapp.App = r.App()
 
-	err := c.BindJSON(&wapp)
+	err := r.Error()
 	if err != nil {
 		log.WithError(err).Debug(models.ErrInvalidJSON)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))

@@ -1,17 +1,19 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppDelete(c *gin.Context, r RequestController) {
-	log := r.Logger()
+func (s *Server) handleAppDelete(ctx context.Context, r RequestController) {
+	log := common.Logger(ctx)
+	c := ctx.(*gin.Context)
 
-	app := &models.App{Name: c.Param(api.CApp)}
+	app := r.App()
 
 	routes, err := s.Datastore.GetRoutesByApp(c, app.Name, &models.RouteFilter{})
 	if err != nil {

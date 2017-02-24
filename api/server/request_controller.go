@@ -1,27 +1,36 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
+	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 )
 
 type RequestController interface {
-	AppName() string
-	SetAppName(string)
-	RoutePath() string
-	SetRoutePath(string)
+	App() *models.App
+	SetApp(models.App)
+	Route() *models.Route
+	SetRoute(models.Route)
 	Request() *http.Request
 	Response() http.ResponseWriter
-	Logger() logrus.FieldLogger
-	SetLogger(logrus.FieldLogger)
+	Error() error
 }
 
 type requestInfo struct {
-	ctx *gin.Context
+	ctx   *gin.Context
+	app   *models.App
+	route *models.Route
+	err   error
+
+	appOnce       sync.Once
+	lazyLoadApp   func() (*models.App, error)
+	routeOnce     sync.Once
+	lazyLoadRoute func() (*models.Route, error)
 }
 
 func (r *requestInfo) Response() http.ResponseWriter {
@@ -32,52 +41,82 @@ func (r *requestInfo) Request() *http.Request {
 	return r.ctx.Request
 }
 
-func (r requestInfo) AppName() string {
-	val, _ := r.ctx.Get(api.AppName)
-	if v, ok := val.(string); ok {
-		return v
+func (r *requestInfo) App() *models.App {
+	var app *models.App
+
+	if r.app == nil {
+		r.appOnce.Do(func() {
+			r.app, r.err = r.lazyLoadApp()
+		})
 	}
-	return ""
-}
 
-func (r requestInfo) RoutePath() string {
-	val, _ := r.ctx.Get(api.Path)
-	if v, ok := val.(string); ok {
-		return v
+	if r.app != nil {
+		a := *r.app
+		app = &a
 	}
-	return ""
+
+	return app
 }
 
-func (r *requestInfo) SetAppName(appname string) {
-	r.ctx.Set(api.AppName, appname)
-}
+func (r *requestInfo) Route() *models.Route {
+	var route *models.Route
 
-func (r *requestInfo) SetRoutePath(routepath string) {
-	r.ctx.Set(api.Path, routepath)
-}
-
-func (r requestInfo) SetLogger(logger logrus.FieldLogger) {
-	r.ctx.Set("logger", logger)
-}
-
-func (r requestInfo) Logger() logrus.FieldLogger {
-	log, _ := r.ctx.Get("logger")
-	if l, ok := log.(logrus.FieldLogger); ok {
-		return l
+	if r.route == nil {
+		r.routeOnce.Do(func() {
+			r.route, r.err = r.lazyLoadRoute()
+		})
 	}
-	return nil
+
+	if r.route != nil {
+		rt := *r.route
+		route = &rt
+	}
+
+	return route
 }
 
-func (s *Server) wrapHandler(f func(*gin.Context, RequestController)) gin.HandlerFunc {
+func (r *requestInfo) SetApp(app models.App) {
+	r.app = &app
+}
+
+func (r *requestInfo) SetRoute(route models.Route) {
+	r.route = &route
+}
+
+func (r *requestInfo) Error() error {
+	return r.err
+}
+
+func (s *Server) wrapHandler(f func(context.Context, RequestController)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log := common.Logger(c)
 
-		c.Set(api.AppName, c.Param(api.CApp))
-		c.Set(api.Path, c.Param(api.CRoute))
 		c.Set("logger", log.WithFields(extractFields(c)))
+		appName := c.Param(api.CApp)
+		routePath := c.Param(api.CRoute)
 
 		info := &requestInfo{
 			ctx: c,
+			lazyLoadApp: func() (*models.App, error) {
+				if c.Request.Method == "GET" {
+					return s.Datastore.GetApp(c, appName)
+				} else if c.Request.Method == "POST" || c.Request.Method == "PATCH" {
+					var wapp models.AppWrapper
+					err := c.BindJSON(&wapp)
+					return wapp.App, err
+				}
+				return &models.App{Name: appName}, nil
+			},
+			lazyLoadRoute: func() (*models.Route, error) {
+				if c.Request.Method == "GET" {
+					return s.Datastore.GetRoute(c, appName, routePath)
+				} else if c.Request.Method == "POST" || c.Request.Method == "PATCH" {
+					var wroute models.RouteWrapper
+					err := c.BindJSON(&wroute)
+					return wroute.Route, err
+				}
+				return &models.Route{Path: routePath, AppName: appName}, nil
+			},
 		}
 		fctx := &middlewareContextImpl{ctx: c}
 		fctx.middlewares = append(s.middlewares, Middleware(MiddlewareFunc(func(ctx MiddlewareContext, r RequestController) error {
@@ -92,16 +131,22 @@ func (s *Server) wrapHandler(f func(*gin.Context, RequestController)) gin.Handle
 	}
 }
 
-func (s *Server) wrapRunHandler(f func(*gin.Context, RequestController)) gin.HandlerFunc {
+func (s *Server) wrapRunHandler(f func(context.Context, RequestController)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log := common.Logger(c)
 
-		c.Set(api.AppName, c.Param(api.CApp))
-		c.Set(api.Path, c.Param(api.CRoute))
 		c.Set("logger", log.WithFields(extractFields(c)))
+		appName := c.Param(api.CApp)
+		routePath := c.Param(api.CRoute)
 
 		info := &requestInfo{
 			ctx: c,
+			lazyLoadApp: func() (*models.App, error) {
+				return s.Datastore.GetApp(c, appName)
+			},
+			lazyLoadRoute: func() (*models.Route, error) {
+				return &models.Route{Path: routePath, AppName: appName}, nil
+			},
 		}
 		fctx := &middlewareContextImpl{ctx: c}
 		fctx.middlewares = append(s.middlewares, Middleware(MiddlewareFunc(func(ctx MiddlewareContext, r RequestController) error {
