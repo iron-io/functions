@@ -24,7 +24,7 @@ test-docker:
 run:
 	./functions
 
-docker:
+docker-dep:
 	docker run --rm -it -v ${CURDIR}:/go/src/github.com/iron-io/functions -w /go/src/github.com/iron-io/functions treeder/glide install -v
 
 docker-build:
