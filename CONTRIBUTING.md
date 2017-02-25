@@ -65,7 +65,7 @@ will start IronFunctions inside a Docker container.
 ## Tests in Docker
 
 ```sh
-make test-docker
+make docker-test
 
 ```
 
