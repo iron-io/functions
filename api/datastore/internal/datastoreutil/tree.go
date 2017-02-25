@@ -21,7 +21,22 @@ type LocalDatastore interface {
 	Get(context.Context, []byte) ([]byte, error)
 }
 
-// A LocalRouter is a local, tree based router, exposed through Nodes.
+// NewLocalDatastore adapts ds into a models.Datastore.
+func NewLocalDatastore(ds LocalDatastore) models.Datastore {
+	return NewValidator(&localDatastore{ds})
+}
+
+// A LocalRouter exposes a (nameless) path hierarchy for each App as a tree of Nodes.
+// Example:
+// [app]
+//   |--[about]
+//   |
+//   |--[blog]
+//   |     |---[:]
+//   |     |    |
+//  ...   ...  ...
+
+//TODO resolve glide conflicts
 type LocalRouter interface {
 	// MatchApps returns Apps for which match returns true.
 	MatchApps(ctx context.Context, match func(*models.App) bool) ([]*models.App, error)
@@ -39,13 +54,7 @@ type LocalRouter interface {
 	ViewAppNode(appName string, f func(Node) error) error
 }
 
-// NewLocalDatastore adapts ds into a models.Datastore.
-func NewLocalDatastore(ds LocalDatastore) models.Datastore {
-	return NewValidator(&localDatastore{ds})
-}
-
 // A router Node corresponding to a path segment.
-// Example /test/path -> [test]->[path]
 type Node interface {
 	// /node
 	Route() (*models.Route, error)
@@ -186,6 +195,7 @@ func (ds *localDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 	err := ds.CreateOrUpdateAppNode(route.AppName, func(n Node) error {
 		parts, trailingSlash := SplitPath(StripParamNames(route.Path))
 
+		// Walk the path, creating Nodes as necessary and aborting on conflicts.
 		for _, p := range parts {
 			child := n.Child(p)
 			if child == nil {
@@ -207,6 +217,7 @@ func (ds *localDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 			n = child
 		}
 
+		// Set the route.
 		if trailingSlash {
 			if n.HasTrailingSlashRoute() {
 				return models.ErrRoutesAlreadyExists
@@ -237,26 +248,29 @@ func (ds *localDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 			n = child
 		}
 
-		var getRoute func() (*models.Route, error)
-		var setRoute func(*models.Route) error
+		var route *models.Route
+		var err error
 		if trailingSlash {
-			getRoute = n.TrailingSlashRoute
-			setRoute = n.SetTrailingSlashRoute
+			route, err = n.TrailingSlashRoute()
 		} else {
-			getRoute = n.Route
-			setRoute = n.SetRoute
+			route, err = n.Route()
 		}
 
-		route, err := getRoute()
 		if err != nil {
 			return err
 		}
 		if route == nil {
 			return models.ErrRoutesNotFound
 		}
+
 		route.Update(newroute)
 		newroute = route.Clone()
-		return setRoute(route)
+
+		if trailingSlash {
+			return n.SetTrailingSlashRoute(route)
+		} else {
+			return n.SetRoute(route)
+		}
 	})
 	if err != nil {
 		return nil, err
@@ -268,6 +282,7 @@ func (ds *localDatastore) RemoveRoute(ctx context.Context, appName, routePath st
 	return ds.UpdateAppNode(appName, func(n Node) error {
 		var prune Node
 		parts, trailingSlash := SplitPath(StripParamNames(routePath))
+		// Walk the path, noting how far back we can prune unused nodes at the end.
 		for _, r := range parts {
 			child, more := n.ChildMore(r)
 			if child == nil {
@@ -283,6 +298,7 @@ func (ds *localDatastore) RemoveRoute(ctx context.Context, appName, routePath st
 			n = child
 		}
 
+		// Remove route.
 		if trailingSlash {
 			if !n.HasTrailingSlashRoute() {
 				return models.ErrRoutesNotFound
@@ -298,16 +314,20 @@ func (ds *localDatastore) RemoveRoute(ctx context.Context, appName, routePath st
 				return err
 			}
 		}
-		if !n.HasRoute() && !n.HasTrailingSlashRoute() && !n.HasChildren() {
-			// n no longer in use, so prune back as far as possible
-			if prune == nil {
-				prune = n
-			}
-			prune.Remove()
+
+		if n.HasRoute() || n.HasTrailingSlashRoute() || n.HasChildren()  {
+			// Node still in use.
+			return nil
 		}
-		return nil
+
+		// Clean up tree.
+		if prune == nil {
+			prune = n
+		}
+		return prune.Remove()
 	})
 }
+
 // match follows path through the tree rooted at n, and returns a matching Node, or nil if none is found.
 // An empty path returns n.
 func match(n Node, path []string) Node {

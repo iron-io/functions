@@ -12,15 +12,15 @@ import (
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
 
-	"github.com/boltdb/bolt"
 	"github.com/Sirupsen/logrus"
+	"github.com/boltdb/bolt"
 )
 
 // A bolt backed datastoreutil.Datastore
 type datastore struct {
 	routesKey, appsKey, logsKey, extrasKey []byte
-	db           *bolt.DB
-	log          logrus.FieldLogger
+	db                                     *bolt.DB
+	log                                    logrus.FieldLogger
 }
 
 // New returns a new bolt backed Datastore.
@@ -67,8 +67,8 @@ func New(url *url.URL) (models.Datastore, error) {
 		appsKey:   appsBucketName,
 		logsKey:   logsBucketName,
 		extrasKey: extrasBucketName,
-		db:           db,
-		log:          log,
+		db:        db,
+		log:       log,
 	}
 	log.WithFields(logrus.Fields{"prefix": bucketPrefix, "file": url.Path}).Debug("BoltDB initialized")
 
@@ -275,15 +275,14 @@ func (ds *datastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	return ret, nil
 }
 
-
 const (
 	nodeRoute byte = iota
 	nodeTrailingSlashRoute
 	nodeChildren
 )
 
-var nodeKeys = struct{route, trailingSlashRoute, children []byte} {
-		[]byte{nodeRoute}, []byte{nodeTrailingSlashRoute}, []byte{nodeChildren}}
+var nodeKeys = struct{ route, trailingSlashRoute, children []byte }{
+	[]byte{nodeRoute}, []byte{nodeTrailingSlashRoute}, []byte{nodeChildren}}
 
 // A bolt.Bucket backed datastoreutil.Node.
 type node struct {
@@ -438,16 +437,12 @@ func (n *node) ForAll(f func(*models.Route)) error {
 		f(r)
 	}
 	children := n.b.Bucket(nodeKeys.children)
-	if children != nil {
-		c := children.Cursor()
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			n := getNode(children, k)
-			if err := n.ForAll(f); err != nil {
-				return err
-			}
-		}
+	if children == nil {
+		return nil
 	}
-	return nil
+	return children.ForEach(func(k, _ []byte) error {
+		return getNode(children, k).ForAll(f)
+	})
 }
 
 func (n *node) Remove() error {

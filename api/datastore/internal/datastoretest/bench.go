@@ -183,7 +183,8 @@ func segmentSize(ctx context.Context, size int, ds models.Datastore) func(b *tes
 // Routes are 32 bytes printed as hex, and split into 1, 2, 4, or 8 parts.
 // ~1/5 of the parts after the first are parameters. ~1/2 of suffix parameters are catch all.
 // Example: /61aab75e6134555e/:e6e8d0fa3ed7de93/20c98ae9da239a03/*8cad52b84387e5d5
-// Verified conflict-free up to u=10000.
+// Verified conflict-free up to u=100000.
+// TODO consider http://www.jandrewrogers.com/2015/05/27/metrohash/
 func generateRoute(u uint64) string {
 	s := make([]byte, 0, 32)
 	for _, b := range md5.Sum([]byte{byte(u >> 24), byte(u >> 8), byte(u), byte(u >> 16)}) {
