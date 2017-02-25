@@ -57,7 +57,7 @@ make test
 #### Run in Docker
 
 ```sh
-make run-docker
+make docker-run
 ```
 
 will start IronFunctions inside a Docker container.
