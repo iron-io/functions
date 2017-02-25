@@ -35,8 +35,6 @@ func NewLocalDatastore(ds LocalDatastore) models.Datastore {
 //   |     |---[:]
 //   |     |    |
 //  ...   ...  ...
-
-//TODO resolve glide conflicts
 type LocalRouter interface {
 	// MatchApps returns Apps for which match returns true.
 	MatchApps(ctx context.Context, match func(*models.App) bool) ([]*models.App, error)
