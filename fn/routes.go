@@ -14,6 +14,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	fnclient "github.com/iron-io/functions_go/client"
 	apiroutes "github.com/iron-io/functions_go/client/routes"
 	"github.com/iron-io/functions_go/models"
@@ -282,66 +283,13 @@ func (a *routesCmd) create(c *cli.Context) error {
 		return errors.New("error: routes creation takes at least three arguments: app name, route path and image name")
 	}
 
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	image := c.Args().Get(2)
-	var (
-		format  string
-		maxC    int
-		timeout time.Duration
-	)
-	if image == "" {
-		ff, err := loadFuncfile()
-		if err != nil {
-			if _, ok := err.(*notFoundError); ok {
-				return errors.New("error: image name is missing or no function file found")
-			}
-			return err
-		}
-		image = ff.FullName()
-		if ff.Format != nil {
-			format = *ff.Format
-		}
-		if ff.maxConcurrency != nil {
-			maxC = *ff.maxConcurrency
-		}
-		if ff.Timeout != nil {
-			timeout = *ff.Timeout
-		}
-		if route == "" && ff.path != nil {
-			route = *ff.path
-		}
+	appName, _, patchRoute, err := a.parseRouteInfo(c)
+	if err != nil {
+		return err
 	}
 
-	if route == "" {
-		return errors.New("error: route path is missing")
-	}
-	if image == "" {
-		return errors.New("error: function image name is missing")
-	}
-
-	if f := c.String("format"); f != "" {
-		format = f
-	}
-	if m := c.Int("max-concurrency"); m > 0 {
-		maxC = m
-	}
-	if t := c.Duration("timeout"); t > 0 {
-		timeout = t
-	}
-
-	to := int64(timeout.Seconds())
 	body := &models.RouteWrapper{
-		Route: &models.Route{
-			Path:           route,
-			Image:          image,
-			Memory:         c.Int64("memory"),
-			Type:           c.String("type"),
-			Config:         extractEnvConfig(c.StringSlice("config")),
-			Format:         format,
-			MaxConcurrency: int32(maxC),
-			Timeout:        &to,
-		},
+		Route: patchRoute,
 	}
 
 	resp, err := a.client.Routes.PostAppsAppRoutes(&apiroutes.PostAppsAppRoutesParams{
@@ -458,24 +406,24 @@ func (a *routesCmd) update(c *cli.Context) error {
 		return errors.New("error: route configuration description takes two arguments: an app name and a route")
 	}
 
+	appName, route, patchRoute, err := a.parseRouteInfo(c)
+	if err != nil {
+		return err
+	}
+
+	err = a.patchRoute(appName, route, patchRoute)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(appName, route, "updated")
+	return nil
+}
+
+func (a *routesCmd) parseRouteInfo(c *cli.Context) (string, string, *fnmodels.Route, error) {
+
 	appName := c.Args().Get(0)
 	route := c.Args().Get(1)
-
-	var (
-		format  string
-		maxC    int
-		timeout time.Duration
-	)
-
-	if f := c.String("format"); f != "" {
-		format = f
-	}
-	if m := c.Int("max-concurrency"); m > 0 {
-		maxC = m
-	}
-	if t := c.Duration("timeout"); t > 0 {
-		timeout = t
-	}
 
 	headers := map[string][]string{}
 	for _, header := range c.StringSlice("headers") {
@@ -483,25 +431,53 @@ func (a *routesCmd) update(c *cli.Context) error {
 		headers[parts[0]] = strings.Split(parts[1], ";")
 	}
 
-	to := int64(timeout.Seconds())
+	timeout := int64(c.Duration("timeout").Seconds())
 	patchRoute := &fnmodels.Route{
-		Image:          c.String("image"),
+		Path:           route,
+		Image:          c.Args().Get(2),
 		Memory:         c.Int64("memory"),
 		Type:           c.String("type"),
 		Config:         extractEnvConfig(c.StringSlice("config")),
 		Headers:        headers,
-		Format:         format,
-		MaxConcurrency: int32(maxC),
-		Timeout:        &to,
+		Format:         c.String("format"),
+		MaxConcurrency: int32(c.Int("max-concurrency")),
+		Timeout:        &timeout,
 	}
 
-	err := a.patchRoute(appName, route, patchRoute)
+	ff, err := loadFuncfile()
 	if err != nil {
-		return err
+		if _, ok := err.(*notFoundError); ok {
+			if patchRoute.Image == "" {
+				// the no image flag or func file
+				return appName, route, nil, errors.New("error: image name is missing or no function file found")
+			}
+			logrus.Warnln("func file not found, continuing...")
+		} else {
+			return appName, route, nil, err
+		}
+	}
+	if patchRoute.Image == "" { // flags take precedence
+		patchRoute.Image = ff.FullName()
+	}
+	// todo: why is Format an interface{} ?? Need to fix this in swagger I think
+	if patchRoute.Format == nil {
+		patchRoute.Format = *ff.Format
+	}
+	if patchRoute.MaxConcurrency <= 0 && ff.maxConcurrency != nil {
+		patchRoute.MaxConcurrency = int32(*ff.maxConcurrency)
+	}
+	if patchRoute.Timeout == nil {
+		to := int64(ff.Timeout.Seconds())
+		patchRoute.Timeout = &to
+	}
+	if route == "" && ff.path != nil {
+		route = *ff.path
 	}
 
-	fmt.Println(appName, route, "updated")
-	return nil
+	if route == "" {
+		return appName, route, patchRoute, errors.New("error: route path is missing")
+	}
+	return appName, route, patchRoute, nil
 }
 
 func (a *routesCmd) configSet(c *cli.Context) error {
