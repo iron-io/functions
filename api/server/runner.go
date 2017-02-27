@@ -231,6 +231,7 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 					Message: err.Error(),
 				},
 			})
+			log.WithError(err).Error("Failed to run task")
 			break
 		}
 		for k, v := range found.Headers {
