@@ -225,6 +225,12 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	default:
 		result, err := runner.RunTask(s.tasks, ctx, cfg)
 		if err != nil {
+			c.JSON(http.StatusInternalServerError, runnerResponse{
+				RequestID: cfg.ID,
+				Error: &models.ErrorBody{
+					Message: err.Error(),
+				},
+			})
 			break
 		}
 		for k, v := range found.Headers {
