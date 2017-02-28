@@ -5,16 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
 )
 
-func (s *Server) handleAppGet(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
+func (s *Server) handleAppGet(ctx context.Context, r RequestController) {
+	c := ctx.(*gin.Context)
 
-	appName := c.Param(api.CApp)
-	app, err := s.Datastore.GetApp(ctx, appName)
-	if err != nil {
-		handleErrorResponse(c, err)
+	app := r.App()
+	if r.Error() != nil {
+		handleErrorResponse(c, r, r.Error())
 		return
 	}
 

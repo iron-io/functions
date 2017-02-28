@@ -3,22 +3,21 @@ package server
 import (
 	"context"
 	"net/http"
-	"path"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleRouteUpdate(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
+func (s *Server) handleRouteUpdate(ctx context.Context, r RequestController) {
 	log := common.Logger(ctx)
+	c := ctx.(*gin.Context)
 
 	var wroute models.RouteWrapper
 
-	err := c.BindJSON(&wroute)
+	wroute.Route = r.Route()
+	err := r.Error()
 	if err != nil {
 		log.WithError(err).Debug(models.ErrInvalidJSON)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))
@@ -31,29 +30,30 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 		return
 	}
 
+	wroute.Route.AppName = c.Param(api.CApp)
+
 	if wroute.Route.Path != "" {
 		log.Debug(models.ErrRoutesPathImmutable)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrRoutesPathImmutable))
 		return
 	}
 
-	wroute.Route.AppName = c.Param(api.CApp)
-	wroute.Route.Path = path.Clean(c.Param(api.CRoute))
+	wroute.Route.Path = c.Param(api.CRoute)
 
 	if wroute.Route.Image != "" {
-		err = s.Runner.EnsureImageExists(ctx, &task.Config{
-			Image: wroute.Route.Image,
-		})
-		if err != nil {
-			log.WithError(err).Debug(models.ErrRoutesUpdate)
-			c.JSON(http.StatusBadRequest, simpleError(models.ErrUsableImage))
-			return
-		}
+		// err = s.Runner.EnsureImageExists(ctx, &task.Config{
+		// 	Image: wroute.Route.Image,
+		// })
+		// if err != nil {
+		// 	log.WithError(err).Debug(models.ErrRoutesUpdate)
+		// 	c.JSON(http.StatusBadRequest, simpleError(models.ErrUsableImage))
+		// 	return
+		// }
 	}
 
-	route, err := s.Datastore.UpdateRoute(ctx, wroute.Route)
+	route, err := s.Datastore.UpdateRoute(c, wroute.Route)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 

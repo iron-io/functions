@@ -6,17 +6,17 @@ import (
 	"path"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
 )
 
-func (s *Server) handleRouteDelete(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
+func (s *Server) handleRouteDelete(ctx context.Context, r RequestController) {
+	c := ctx.(*gin.Context)
 
-	appName := c.Param(api.CApp)
-	routePath := path.Clean(c.Param(api.CRoute))
+	route := r.Route()
+	appName := route.AppName
+	routePath := path.Clean(route.Path)
 
-	if err := s.Datastore.RemoveRoute(ctx, appName, routePath); err != nil {
-		handleErrorResponse(c, err)
+	if err := s.Datastore.RemoveRoute(c, appName, routePath); err != nil {
+		handleErrorResponse(c, r, err)
 		return
 	}
 

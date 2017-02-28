@@ -32,8 +32,6 @@ func testRouterAsync(ds models.Datastore, mq models.MessageQueue, rnr *runner.Ru
 
 	r := s.Router
 	r.Use(gin.Logger())
-
-	r.Use(prepareMiddleware(ctx))
 	s.bindHandlers(ctx)
 	return r
 }
@@ -83,6 +81,7 @@ func TestRouteRunnerAsyncExecution(t *testing.T) {
 		fmt.Println("About to start router")
 		rnr, cancel := testRunner(t)
 		router := testRouterAsync(ds, mq, rnr, tasks, func(_ context.Context, _ models.MessageQueue, task *models.Task) (*models.Task, error) {
+			fmt.Println("enter enqueuer")
 			if test.body != task.Payload {
 				t.Errorf("Test %d: Expected task Payload to be the same as the test body", i)
 			}

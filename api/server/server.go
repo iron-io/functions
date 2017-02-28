@@ -14,8 +14,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
-	fcommon "github.com/iron-io/functions/api/common"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -96,25 +94,12 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 		apiURL:    apiURL,
 	}
 
-	s.Router.Use(prepareMiddleware(ctx))
 	s.bindHandlers(ctx)
 
 	for _, opt := range opts {
 		opt(s)
 	}
 	return s
-}
-
-// todo: remove this or change name
-func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx, _ := common.LoggerWithFields(ctx, extractFields(c))
-
-		// todo: can probably replace the "ctx" value with the Go 1.7 context on the http.Request
-		c.Set("ctx", ctx)
-		c.Request = c.Request.WithContext(ctx)
-		c.Next()
-	}
 }
 
 func DefaultEnqueue(ctx context.Context, mq models.MessageQueue, task *models.Task) (*models.Task, error) {
@@ -142,26 +127,6 @@ func (s *Server) cachedelete(appname, path string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.hotroutes.Delete(appname, path)
-}
-
-// Called for /r/:app/:path
-func (s *Server) handleAppRequest(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
-	ctx, log := fcommon.LoggerWithStack(ctx, "handleAppRequest")
-	appName := c.Param(api.CApp)
-	if appName == "" {
-		c.JSON(http.StatusNotFound, models.ErrAppsNotFound)
-		return
-	}
-	app, err := s.Datastore.GetApp(ctx, appName)
-	if err != nil || app == nil {
-		if err != nil {
-			log.WithError(err).Error("error getting app from datastore")
-		}
-		c.JSON(http.StatusNotFound, simpleError(models.ErrAppsNotFound))
-		return
-	}
-	s.handleRequest(c, app, s.Enqueue)
 }
 
 func (s *Server) handleTaskRequest(c *gin.Context) {
@@ -258,33 +223,32 @@ func (s *Server) bindHandlers(ctx context.Context) {
 	engine.GET("/stats", s.handleStats)
 
 	v1 := engine.Group("/v1")
-	v1.Use(s.middlewareWrapperFunc(ctx))
 	{
-		v1.GET("/apps", s.handleAppList)
-		v1.POST("/apps", s.handleAppCreate)
+		v1.GET("/apps", s.wrapHandler(s.handleAppList))
+		v1.POST("/apps", s.wrapHandler(s.handleAppCreate))
 
-		v1.GET("/apps/:app", s.handleAppGet)
-		v1.PATCH("/apps/:app", s.handleAppUpdate)
-		v1.DELETE("/apps/:app", s.handleAppDelete)
+		v1.GET("/apps/:app", s.wrapHandler(s.handleAppGet))
+		v1.PATCH("/apps/:app", s.wrapHandler(s.handleAppUpdate))
+		v1.DELETE("/apps/:app", s.wrapHandler(s.handleAppDelete))
 
-		v1.GET("/routes", s.handleRouteList)
+		v1.GET("/routes", s.wrapHandler(s.handleRouteList))
 
 		apps := v1.Group("/apps/:app")
 		{
-			apps.GET("/routes", s.handleRouteList)
-			apps.POST("/routes", s.handleRouteCreate)
-			apps.GET("/routes/*route", s.handleRouteGet)
-			apps.PATCH("/routes/*route", s.handleRouteUpdate)
-			apps.DELETE("/routes/*route", s.handleRouteDelete)
+			apps.GET("/routes", s.wrapHandler(s.handleRouteList))
+			apps.POST("/routes", s.wrapHandler(s.handleRouteCreate))
+			apps.GET("/routes/*route", s.wrapHandler(s.handleRouteGet))
+			apps.PATCH("/routes/*route", s.wrapHandler(s.handleRouteUpdate))
+			apps.DELETE("/routes/*route", s.wrapHandler(s.handleRouteDelete))
 		}
 	}
 
 	engine.DELETE("/tasks", s.handleTaskRequest)
 	engine.GET("/tasks", s.handleTaskRequest)
-	engine.Any("/r/:app/*route", s.handleAppRequest)
+	engine.Any("/r/:app/*route", s.wrapRunHandler(s.handleRequest))
 
 	// This final route is used for extensions, see Server.Add
-	engine.NoRoute(s.handleSpecial)
+	engine.NoRoute(s.wrapRunHandler(s.handleRequest))
 }
 
 type appResponse struct {

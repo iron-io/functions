@@ -10,13 +10,14 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-func (s *Server) handleAppUpdate(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
+func (s *Server) handleAppUpdate(ctx context.Context, r RequestController) {
 	log := common.Logger(ctx)
+	c := ctx.(*gin.Context)
 
 	wapp := models.AppWrapper{}
+	wapp.App = r.App()
 
-	err := c.BindJSON(&wapp)
+	err := r.Error()
 	if err != nil {
 		log.WithError(err).Debug(models.ErrInvalidJSON)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))
@@ -37,20 +38,20 @@ func (s *Server) handleAppUpdate(c *gin.Context) {
 
 	wapp.App.Name = c.Param(api.CApp)
 
-	err = s.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppUpdate(c, wapp.App)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsUpdate)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
 		return
 	}
 
-	app, err := s.Datastore.UpdateApp(ctx, wapp.App)
+	app, err := s.Datastore.UpdateApp(c, wapp.App)
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 
-	err = s.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppUpdate(c, wapp.App)
 	if err != nil {
 		log.WithError(err).Error(models.ErrAppsUpdate)
 		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))

@@ -4,6 +4,7 @@ package server
 import (
 	"net/http"
 
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
@@ -61,7 +62,9 @@ func (s *Server) apiAppHandlerWrapperFunc(apiHandler ApiAppHandler) gin.HandlerF
 func (s *Server) AddEndpoint(method, path string, handler ApiHandler) {
 	v1 := s.Router.Group("/v1")
 	// v1.GET("/apps/:app/log", logHandler(cfg))
-	v1.Handle(method, path, s.apiHandlerWrapperFunc(handler))
+	v1.Handle(method, path, s.wrapHandler(func(ctx context.Context, r RequestController) {
+		s.apiHandlerWrapperFunc(handler)(ctx.(*gin.Context))
+	}))
 }
 
 // AddEndpoint adds an endpoint to /v1/x
@@ -72,7 +75,9 @@ func (s *Server) AddEndpointFunc(method, path string, handler func(w http.Respon
 // AddAppEndpoint adds an endpoints to /v1/apps/:app/x
 func (s *Server) AddAppEndpoint(method, path string, handler ApiAppHandler) {
 	v1 := s.Router.Group("/v1")
-	v1.Handle(method, "/apps/:app"+path, s.apiAppHandlerWrapperFunc(handler))
+	v1.Handle(method, "/apps/:app"+path, s.wrapHandler(func(ctx context.Context, r RequestController) {
+		s.apiAppHandlerWrapperFunc(handler)(ctx.(*gin.Context))
+	}))
 }
 
 // AddAppEndpoint adds an endpoints to /v1/apps/:app/x

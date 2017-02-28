@@ -3,21 +3,17 @@ package server
 import (
 	"context"
 	"net/http"
-	"path"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
 )
 
-func (s *Server) handleRouteGet(c *gin.Context) {
-	ctx := c.MustGet("ctx").(context.Context)
+func (s *Server) handleRouteGet(ctx context.Context, r RequestController) {
+	c := ctx.(*gin.Context)
 
-	appName := c.Param(api.CApp)
-	routePath := path.Clean(c.Param(api.CRoute))
-
-	route, err := s.Datastore.GetRoute(ctx, appName, routePath)
+	route := r.Route()
+	err := r.Error()
 	if err != nil {
-		handleErrorResponse(c, err)
+		handleErrorResponse(c, r, err)
 		return
 	}
 

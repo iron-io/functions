@@ -110,7 +110,11 @@ func TestRouteList(t *testing.T) {
 
 	rnr, cancel := testRunner(t)
 	defer cancel()
-	srv := testServer(&datastore.Mock{}, &mqs.Mock{}, rnr, tasks)
+	srv := testServer(&datastore.Mock{
+		Apps: []*models.App{
+			{Name: "myapp"},
+		},
+	}, &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -118,7 +122,8 @@ func TestRouteList(t *testing.T) {
 		expectedCode  int
 		expectedError error
 	}{
-		{"/v1/apps/a/routes", "", http.StatusOK, nil},
+		{"/v1/apps/a/routes", "", http.StatusNotFound, models.ErrAppsNotFound},
+		{"/v1/apps/myapp/routes", "", http.StatusOK, nil},
 	} {
 		_, rec := routerRequest(t, srv.Router, "GET", test.path, nil)
 
