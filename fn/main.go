@@ -58,6 +58,7 @@ ALIASES:
      run      (images run)
      call     (routes call)
      push     (images push)
+     docker   (docker
 
 GLOBAL OPTIONS:
    {{range $index, $option := .VisibleFlags}}{{if $index}}

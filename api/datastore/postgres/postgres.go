@@ -562,3 +562,26 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 
 	return []byte(value), nil
 }
+
+func (ds *PostgresDatastore) SaveDockerCredentials(ctx context.Context, dockerLogin models.DockerCreds) error {
+
+	val, err := json.Marshal(dockerLogin)
+	if err != nil {
+		return err
+	}
+
+	return ds.Put(ctx, []byte("dockerLogin"), val)
+}
+
+func (ds *PostgresDatastore) GetDockerCredentials(ctx context.Context) (*models.DockerCreds, error) {
+	data, err := ds.Get(ctx, []byte("dockerLogin"))
+	if err != nil {
+		return nil, err
+	}
+	val := &models.DockerCreds{}
+	err = json.Unmarshal(data, val)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
+}

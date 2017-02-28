@@ -41,9 +41,18 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 	wroute.Route.Path = path.Clean(c.MustGet(api.Path).(string))
 
 	if wroute.Route.Image != "" {
+		authCfg, err := getAuthConfiguration(s, ctx)
+		if err != nil {
+			log.WithError(err).Error(models.ErrInvalidDockerCreds)
+			c.JSON(http.StatusInternalServerError, simpleError(models.ErrInvalidDockerCreds))
+			return
+		}
+
 		err = s.Runner.EnsureImageExists(ctx, &task.Config{
-			Image: wroute.Route.Image,
+			Image:             wroute.Route.Image,
+			AuthConfiguration: *authCfg,
 		})
+
 		if err != nil {
 			log.WithError(err).Debug(models.ErrRoutesUpdate)
 			c.JSON(http.StatusBadRequest, simpleError(models.ErrUsableImage))

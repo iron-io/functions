@@ -1,12 +1,14 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 	"net/http"
-	"github.com/iron-io/functions/api/models"
-	"encoding/json"
 )
 
 func (s *Server) handleDockerLogin(c *gin.Context) {
@@ -14,7 +16,7 @@ func (s *Server) handleDockerLogin(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
-	dockerLogin := models.DockerLogin{}
+	dockerLogin := models.DockerCreds{}
 
 	err := c.BindJSON(&dockerLogin)
 	if err != nil {
@@ -22,18 +24,28 @@ func (s *Server) handleDockerLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))
 		return
 	}
+	log.Infoln(dockerLogin)
 
-	err = saveDockerCreds(ctx, s.Datastore, dockerLogin)
+	err = s.Datastore.SaveDockerCredentials(ctx, dockerLogin)
 
 	c.JSON(http.StatusOK, nil)
 }
 
-func saveDockerCreds(ctx context.Context, ds models.Datastore, dockerLogin models.DockerLogin) error {
-
-	val, err := json.Marshal(dockerLogin)
+func getAuthConfiguration(s *Server, ctx context.Context) (*docker.AuthConfiguration, error) {
+	creds, err := s.Datastore.GetDockerCredentials(ctx)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if creds == nil {
+		return &docker.AuthConfiguration{}, nil
 	}
 
-	return ds.Put(ctx, []byte("dockerLogin"), val)
+	authCfg := &docker.AuthConfiguration{}
+	data, err := base64.StdEncoding.DecodeString(creds.Auth)
+
+	err = json.Unmarshal(data, authCfg)
+	if err != nil {
+		return nil, err
+	}
+	return authCfg, nil
 }

@@ -5,19 +5,21 @@ import (
 	"io"
 	"time"
 
+	"github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/runner/drivers"
 )
 
 type Config struct {
-	ID             string
-	Path           string
-	Image          string
-	Timeout        time.Duration
-	AppName        string
-	Memory         uint64
-	Env            map[string]string
-	Format         string
-	MaxConcurrency int
+	ID                string
+	Path              string
+	Image             string
+	Timeout           time.Duration
+	AppName           string
+	Memory            uint64
+	Env               map[string]string
+	Format            string
+	MaxConcurrency    int
+	AuthConfiguration docker.AuthConfiguration
 
 	Stdin  io.Reader
 	Stdout io.Writer

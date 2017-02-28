@@ -36,7 +36,7 @@ func runflags() []cli.Flag {
 			Usage: "select container links for the function",
 		},
 		cli.StringFlag{
-			Name: "method",
+			Name:  "method",
 			Usage: "http method for function",
 		},
 	}

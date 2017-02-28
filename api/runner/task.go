@@ -43,4 +43,4 @@ func (t *containerTask) Close()                 {}
 func (t *containerTask) WriteStat(drivers.Stat) {}
 
 // FIXME: for now just use empty creds => public docker hub image
-func (t *containerTask) DockerAuth() docker.AuthConfiguration { return docker.AuthConfiguration{} }
+func (t *containerTask) DockerAuth() docker.AuthConfiguration { return t.cfg.AuthConfiguration }

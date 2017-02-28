@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
@@ -125,7 +126,14 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	route := routes[0]
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
-	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
+	authCfg, err := getAuthConfiguration(s, ctx)
+	if err != nil {
+		log.WithError(err).Error(models.ErrInvalidDockerCreds)
+		c.JSON(http.StatusInternalServerError, simpleError(models.ErrInvalidDockerCreds))
+		return
+	}
+
+	if s.serve(ctx, c, appName, route, app, path, reqID, *authCfg, payload, enqueue) {
 		s.FireAfterDispatch(ctx, reqRoute)
 		return
 	}
@@ -148,7 +156,7 @@ func (s *Server) loadroutes(ctx context.Context, filter models.RouteFilter) ([]*
 }
 
 // TODO: Should remove *gin.Context from these functions, should use only context.Context
-func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, found *models.Route, app *models.App, route, reqID string, payload io.Reader, enqueue models.Enqueue) (ok bool) {
+func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, found *models.Route, app *models.App, route, reqID string, authCfg docker.AuthConfiguration, payload io.Reader, enqueue models.Enqueue) (ok bool) {
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"app": appName, "route": found.Path, "image": found.Image})
 
 	params, match := matchRoute(found.Path, route)
@@ -183,17 +191,18 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	}
 
 	cfg := &task.Config{
-		AppName:        appName,
-		Path:           found.Path,
-		Env:            envVars,
-		Format:         found.Format,
-		ID:             reqID,
-		Image:          found.Image,
-		MaxConcurrency: found.MaxConcurrency,
-		Memory:         found.Memory,
-		Stdin:          payload,
-		Stdout:         &stdout,
-		Timeout:        time.Duration(found.Timeout) * time.Second,
+		AppName:           appName,
+		Path:              found.Path,
+		Env:               envVars,
+		Format:            found.Format,
+		ID:                reqID,
+		Image:             found.Image,
+		MaxConcurrency:    found.MaxConcurrency,
+		Memory:            found.Memory,
+		Stdin:             payload,
+		Stdout:            &stdout,
+		Timeout:           time.Duration(found.Timeout) * time.Second,
+		AuthConfiguration: authCfg,
 	}
 
 	s.Runner.Enqueue()

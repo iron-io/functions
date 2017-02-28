@@ -540,3 +540,26 @@ func applyRouteFilter(route *models.Route, filter *models.RouteFilter) bool {
 		(filter.AppName == "" || route.AppName == filter.AppName) &&
 		(filter.Image == "" || route.Image == filter.Image)
 }
+
+func (ds *BoltDatastore) SaveDockerCredentials(ctx context.Context, dockerLogin models.DockerCreds) error {
+
+	val, err := json.Marshal(dockerLogin)
+	if err != nil {
+		return err
+	}
+
+	return ds.Put(ctx, []byte("dockerLogin"), val)
+}
+
+func (ds *BoltDatastore) GetDockerCredentials(ctx context.Context) (*models.DockerCreds, error) {
+	data, err := ds.Get(ctx, []byte("dockerLogin"))
+	if err != nil {
+		return nil, err
+	}
+	val := &models.DockerCreds{}
+	err = json.Unmarshal(data, val)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
+}

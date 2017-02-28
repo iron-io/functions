@@ -24,12 +24,16 @@ type Datastore interface {
 	// todo: should we namespace these by app? Then when an app is deleted, it can delete any of this extra data too.
 	Put(context.Context, []byte, []byte) error
 	Get(context.Context, []byte) ([]byte, error)
+
+	SaveDockerCredentials(ctx context.Context, dockerLogin DockerCreds) error
+	GetDockerCredentials(ctx context.Context) (*DockerCreds, error)
 }
 
 var (
-	ErrDatastoreEmptyAppName   = errors.New("Missing app name")
-	ErrDatastoreEmptyRoutePath = errors.New("Missing route name")
-	ErrDatastoreEmptyApp       = errors.New("Missing app")
-	ErrDatastoreEmptyRoute     = errors.New("Missing route")
-	ErrDatastoreEmptyKey       = errors.New("Missing key")
+	ErrDatastoreEmptyAppName     = errors.New("Missing app name")
+	ErrDatastoreEmptyRoutePath   = errors.New("Missing route name")
+	ErrDatastoreEmptyApp         = errors.New("Missing app")
+	ErrDatastoreEmptyRoute       = errors.New("Missing route")
+	ErrDatastoreEmptyKey         = errors.New("Missing key")
+	ErrDatastoreEmptyDockerCreds = errors.New("Missing docker creds")
 )
