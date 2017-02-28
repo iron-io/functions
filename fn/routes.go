@@ -178,6 +178,14 @@ func call() cli.Command {
 	}
 }
 
+func cleanRoutePath(p string) string {
+	p = path.Clean(p)
+	if !path.IsAbs(p) {
+		p = "/" + p
+	}
+	return p
+}
+
 func (a *routesCmd) list(c *cli.Context) error {
 	if c.Args().First() == "" {
 		return errors.New("error: routes listing takes one argument, an app name")
@@ -222,7 +230,7 @@ func (a *routesCmd) call(c *cli.Context) error {
 	}
 
 	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
+	route := cleanRoutePath(c.Args().Get(1))
 
 	u := url.URL{
 		Scheme: "http",
@@ -277,48 +285,12 @@ func envAsHeader(req *http.Request, selectedEnv []string) {
 	}
 }
 
-func (a *routesCmd) create(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: routes creation takes at least three arguments: app name, route path and image name")
-	}
-
-	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
-	image := c.Args().Get(2)
+func routeFromFlags(c *cli.Context) *models.Route {
 	var (
 		format  string
 		maxC    int
 		timeout time.Duration
 	)
-	if image == "" {
-		ff, err := loadFuncfile()
-		if err != nil {
-			if _, ok := err.(*notFoundError); ok {
-				return errors.New("error: image name is missing or no function file found")
-			}
-			return err
-		}
-		image = ff.FullName()
-		if ff.Format != nil {
-			format = *ff.Format
-		}
-		if ff.maxConcurrency != nil {
-			maxC = *ff.maxConcurrency
-		}
-		if ff.Timeout != nil {
-			timeout = *ff.Timeout
-		}
-		if route == "" && ff.path != nil {
-			route = *ff.path
-		}
-	}
-
-	if route == "" {
-		return errors.New("error: route path is missing")
-	}
-	if image == "" {
-		return errors.New("error: function image name is missing")
-	}
 
 	if f := c.String("format"); f != "" {
 		format = f
@@ -330,18 +302,72 @@ func (a *routesCmd) create(c *cli.Context) error {
 		timeout = t
 	}
 
+	headers := map[string][]string{}
+	for _, header := range c.StringSlice("headers") {
+		parts := strings.Split(header, "=")
+		headers[parts[0]] = strings.Split(parts[1], ";")
+	}
+
 	to := int64(timeout.Seconds())
+	return &models.Route{
+		Image:          c.String("image"),
+		Memory:         c.Int64("memory"),
+		Type:           c.String("type"),
+		Config:         extractEnvConfig(c.StringSlice("config")),
+		Headers:        headers,
+		Format:         format,
+		MaxConcurrency: int32(maxC),
+		Timeout:        &to,
+	}
+}
+
+func (a *routesCmd) create(c *cli.Context) error {
+	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
+		return errors.New("error: routes creation takes at least three arguments: app name, route path and image name")
+	}
+
+	appName := c.Args().Get(0)
+	route := cleanRoutePath(c.Args().Get(1))
+	image := c.Args().Get(2)
+	fmt.Println(route)
+
+	rt := routeFromFlags(c)
+	rt.Path = route
+	rt.Image = image
+
+	if rt.Image == "" {
+		ff, err := loadFuncfile()
+		if err != nil {
+			if _, ok := err.(*notFoundError); ok {
+				return errors.New("error: image name is missing or no function file found")
+			}
+			return err
+		}
+		rt.Image = ff.FullName()
+		if ff.Format != nil {
+			rt.Format = *ff.Format
+		}
+		if ff.maxConcurrency != nil {
+			rt.MaxConcurrency = int32(*ff.maxConcurrency)
+		}
+		if ff.Timeout != nil {
+			to := int64(ff.Timeout.Seconds())
+			rt.Timeout = &to
+		}
+		if route == "" && ff.path != nil {
+			rt.Path = *ff.path
+		}
+	}
+
+	if rt.Path == "" {
+		return errors.New("error: route path is missing")
+	}
+	if rt.Image == "" {
+		return errors.New("error: function image name is missing")
+	}
+
 	body := &models.RouteWrapper{
-		Route: &models.Route{
-			Path:           route,
-			Image:          image,
-			Memory:         c.Int64("memory"),
-			Type:           c.String("type"),
-			Config:         extractEnvConfig(c.StringSlice("config")),
-			Format:         format,
-			MaxConcurrency: int32(maxC),
-			Timeout:        &to,
-		},
+		Route: rt,
 	}
 
 	resp, err := a.client.Routes.PostAppsAppRoutes(&apiroutes.PostAppsAppRoutesParams{
@@ -459,43 +485,11 @@ func (a *routesCmd) update(c *cli.Context) error {
 	}
 
 	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
+	route := cleanRoutePath(c.Args().Get(1))
 
-	var (
-		format  string
-		maxC    int
-		timeout time.Duration
-	)
+	rt := routeFromFlags(c)
 
-	if f := c.String("format"); f != "" {
-		format = f
-	}
-	if m := c.Int("max-concurrency"); m > 0 {
-		maxC = m
-	}
-	if t := c.Duration("timeout"); t > 0 {
-		timeout = t
-	}
-
-	headers := map[string][]string{}
-	for _, header := range c.StringSlice("headers") {
-		parts := strings.Split(header, "=")
-		headers[parts[0]] = strings.Split(parts[1], ";")
-	}
-
-	to := int64(timeout.Seconds())
-	patchRoute := &fnmodels.Route{
-		Image:          c.String("image"),
-		Memory:         c.Int64("memory"),
-		Type:           c.String("type"),
-		Config:         extractEnvConfig(c.StringSlice("config")),
-		Headers:        headers,
-		Format:         format,
-		MaxConcurrency: int32(maxC),
-		Timeout:        &to,
-	}
-
-	err := a.patchRoute(appName, route, patchRoute)
+	err := a.patchRoute(appName, route, rt)
 	if err != nil {
 		return err
 	}
@@ -510,7 +504,7 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 	}
 
 	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
+	route := cleanRoutePath(c.Args().Get(1))
 	key := c.Args().Get(2)
 	value := c.Args().Get(3)
 
@@ -535,7 +529,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 	}
 
 	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
+	route := cleanRoutePath(c.Args().Get(1))
 	key := c.Args().Get(2)
 
 	patchRoute := fnmodels.Route{
@@ -559,7 +553,7 @@ func (a *routesCmd) inspect(c *cli.Context) error {
 	}
 
 	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
+	route := cleanRoutePath(c.Args().Get(1))
 	prop := c.Args().Get(2)
 
 	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
@@ -612,7 +606,7 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	}
 
 	appName := c.Args().Get(0)
-	route := c.Args().Get(1)
+	route := cleanRoutePath(c.Args().Get(1))
 
 	_, err := a.client.Routes.DeleteAppsAppRoutesRoute(&apiroutes.DeleteAppsAppRoutesRouteParams{
 		Context: context.Background(),
