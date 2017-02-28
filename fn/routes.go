@@ -53,7 +53,7 @@ func routes() cli.Command {
 				Name:      "create",
 				Aliases:   []string{"c"},
 				Usage:     "create a route in an `app`",
-				ArgsUsage: "`app` /path image/name",
+				ArgsUsage: "`app` /path [image]",
 				Action:    r.create,
 				Flags: []cli.Flag{
 					cli.Int64Flag{
@@ -91,7 +91,7 @@ func routes() cli.Command {
 				Name:      "update",
 				Aliases:   []string{"u"},
 				Usage:     "update a route in an `app`",
-				ArgsUsage: "`app` /path",
+				ArgsUsage: "`app` /path [image]",
 				Action:    r.update,
 				Flags: []cli.Flag{
 					cli.StringFlag{
@@ -187,8 +187,8 @@ func cleanRoutePath(p string) string {
 }
 
 func (a *routesCmd) list(c *cli.Context) error {
-	if c.Args().First() == "" {
-		return errors.New("error: routes listing takes one argument, an app name")
+	if len(c.Args()) < 1 {
+		return errors.New("error: routes listing takes one argument: an app name")
 	}
 
 	appName := c.Args().Get(0)
@@ -225,8 +225,8 @@ func (a *routesCmd) list(c *cli.Context) error {
 }
 
 func (a *routesCmd) call(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: routes listing takes three arguments: an app name and a route")
+	if len(c.Args()) < 2 {
+		return errors.New("error: routes listing takes three arguments: an app name and a path")
 	}
 
 	appName := c.Args().Get(0)
@@ -285,64 +285,52 @@ func envAsHeader(req *http.Request, selectedEnv []string) {
 	}
 }
 
-func routeFromFlags(c *cli.Context) *models.Route {
-	var (
-		format  string
-		maxC    int
-		timeout time.Duration
-	)
+func routeWithFlags(c *cli.Context, rt *models.Route) {
+	if i := c.String("image"); i != "" {
+		rt.Image = i
+	}
 
 	if f := c.String("format"); f != "" {
-		format = f
+		rt.Format = f
 	}
+
+	if t := c.String("type"); t != "" {
+		rt.Type = t
+	}
+
 	if m := c.Int("max-concurrency"); m > 0 {
-		maxC = m
+		rt.MaxConcurrency = int32(m)
 	}
+
+	if m := c.Int64("memory"); m > 0 {
+		rt.Memory = m
+	}
+
 	if t := c.Duration("timeout"); t > 0 {
-		timeout = t
+		to := int64(t.Seconds())
+		rt.Timeout = &to
 	}
 
-	headers := map[string][]string{}
-	for _, header := range c.StringSlice("headers") {
-		parts := strings.Split(header, "=")
-		headers[parts[0]] = strings.Split(parts[1], ";")
+	if len(c.StringSlice("headers")) > 0 {
+		headers := map[string][]string{}
+		for _, header := range c.StringSlice("headers") {
+			parts := strings.Split(header, "=")
+			headers[parts[0]] = strings.Split(parts[1], ";")
+		}
+		rt.Headers = headers
 	}
 
-	to := int64(timeout.Seconds())
-	return &models.Route{
-		Image:          c.String("image"),
-		Memory:         c.Int64("memory"),
-		Type:           c.String("type"),
-		Config:         extractEnvConfig(c.StringSlice("config")),
-		Headers:        headers,
-		Format:         format,
-		MaxConcurrency: int32(maxC),
-		Timeout:        &to,
+	if len(c.StringSlice("config")) > 0 {
+		rt.Config = extractEnvConfig(c.StringSlice("config"))
 	}
 }
 
-func (a *routesCmd) create(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: routes creation takes at least three arguments: app name, route path and image name")
-	}
-
-	appName := c.Args().Get(0)
-	route := cleanRoutePath(c.Args().Get(1))
-	image := c.Args().Get(2)
-
-	rt := routeFromFlags(c)
-	rt.Path = route
-	rt.Image = image
-
-	if rt.Image == "" {
-		ff, err := loadFuncfile()
-		if err != nil {
-			if _, ok := err.(*notFoundError); ok {
-				return errors.New("error: image name is missing or no function file found")
-			}
-			return err
+func routeWithFuncFile(c *cli.Context, rt *models.Route) {
+	ff, err := loadFuncfile()
+	if err == nil {
+		if rt.Image != "" { // flags take precedence
+			rt.Image = ff.FullName()
 		}
-		rt.Image = ff.FullName()
 		if ff.Format != nil {
 			rt.Format = *ff.Format
 		}
@@ -353,10 +341,28 @@ func (a *routesCmd) create(c *cli.Context) error {
 			to := int64(ff.Timeout.Seconds())
 			rt.Timeout = &to
 		}
-		if route == "" && ff.path != nil {
+		if rt.Path == "" && ff.path != nil {
 			rt.Path = *ff.path
 		}
 	}
+}
+
+func (a *routesCmd) create(c *cli.Context) error {
+	// todo: @pedro , why aren't you just checking the length here?
+	if len(c.Args()) < 2 {
+		return errors.New("error: routes listing takes at least two arguments: an app name and a path")
+	}
+
+	appName := c.Args().Get(0)
+	route := cleanRoutePath(c.Args().Get(1))
+	image := c.Args().Get(2)
+
+	rt := &models.Route{}
+	rt.Path = route
+	rt.Image = image
+
+	routeWithFuncFile(c, rt)
+	routeWithFlags(c, rt)
 
 	if rt.Path == "" {
 		return errors.New("error: route path is missing")
@@ -479,14 +485,16 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *fnmodels.Route) err
 }
 
 func (a *routesCmd) update(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: route configuration description takes two arguments: an app name and a route")
+	if len(c.Args()) < 2 {
+		return errors.New("error: route update takes at least two arguments: an app name and a path")
 	}
 
 	appName := c.Args().Get(0)
 	route := cleanRoutePath(c.Args().Get(1))
 
-	rt := routeFromFlags(c)
+	rt := &models.Route{}
+	routeWithFuncFile(c, rt)
+	routeWithFlags(c, rt)
 
 	err := a.patchRoute(appName, route, rt)
 	if err != nil {
@@ -498,8 +506,8 @@ func (a *routesCmd) update(c *cli.Context) error {
 }
 
 func (a *routesCmd) configSet(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route, a key and a value")
+	if len(c.Args()) < 4 {
+		return errors.New("error: route configuration updates tak four arguments: an app name, a path, a key and a value")
 	}
 
 	appName := c.Args().Get(0)
@@ -523,8 +531,8 @@ func (a *routesCmd) configSet(c *cli.Context) error {
 }
 
 func (a *routesCmd) configUnset(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" || c.Args().Get(2) == "" {
-		return errors.New("error: route configuration setting takes four arguments: an app name, a route and a key")
+	if len(c.Args()) < 3 {
+		return errors.New("error: route configuration updates take three arguments: an app name, a path and a key")
 	}
 
 	appName := c.Args().Get(0)
@@ -547,7 +555,7 @@ func (a *routesCmd) configUnset(c *cli.Context) error {
 }
 
 func (a *routesCmd) inspect(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
+	if len(c.Args()) < 2 {
 		return errors.New("error: routes listing takes three arguments: an app name and a path")
 	}
 
@@ -600,8 +608,8 @@ func (a *routesCmd) inspect(c *cli.Context) error {
 }
 
 func (a *routesCmd) delete(c *cli.Context) error {
-	if c.Args().Get(0) == "" || c.Args().Get(1) == "" {
-		return errors.New("error: routes listing takes three arguments: an app name and a path")
+	if len(c.Args()) < 2 {
+		return errors.New("error: routes delete takes two arguments: an app name and a path")
 	}
 
 	appName := c.Args().Get(0)
