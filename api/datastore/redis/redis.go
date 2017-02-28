@@ -168,10 +168,6 @@ func (ds *RedisDataStore) setRoute(set string, route *models.Route) (*models.Rou
 		return nil, err
 	}
 
-	if _, err := ds.conn.Do("SADD", "routes", set); err != nil {
-		return nil, err
-	}
-
 	return route, nil
 }
 
@@ -247,9 +243,6 @@ func (ds *RedisDataStore) RemoveRoute(ctx context.Context, appName, routePath st
 		return models.ErrRoutesRemoving
 	}
 
-	if _, err := ds.conn.Do("SREM", "routes", hset); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -281,7 +274,7 @@ func (ds *RedisDataStore) GetRoute(ctx context.Context, appName, routePath strin
 func (ds *RedisDataStore) GetRoutes(ctx context.Context, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
 
-	reply, err := ds.conn.Do("SMEMBERS", "routes")
+	reply, err := ds.conn.Do("HKEYS", "apps")
 	if err != nil {
 		return nil, err
 	} else if reply == nil {
@@ -290,7 +283,8 @@ func (ds *RedisDataStore) GetRoutes(ctx context.Context, filter *models.RouteFil
 	paths, err := redis.Strings(reply, err)
 
 	for _, path := range paths {
-		reply, err := ds.conn.Do("HGETALL", path)
+		hset := fmt.Sprintf("routes:%s", path)
+		reply, err := ds.conn.Do("HGETALL", hset)
 		if err != nil {
 			return nil, err
 		} else if reply == nil {
