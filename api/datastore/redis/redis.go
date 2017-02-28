@@ -67,9 +67,13 @@ func (ds *RedisDataStore) InsertApp(ctx context.Context, app *models.App) (*mode
 		return nil, models.ErrDatastoreEmptyAppName
 	}
 
-	if reply, err := ds.conn.Do("HGET", "apps", app.Name); err != nil {
+	reply, err := ds.conn.Do("HEXISTS", "apps", app.Name)
+	if err != nil {
 		return nil, err
-	} else if reply != nil {
+	}
+	if exists, err := redis.Bool(reply, err); err != nil {
+		return nil, err
+	} else if exists {
 		return nil, models.ErrAppsAlreadyExists
 	}
 
@@ -84,9 +88,13 @@ func (ds *RedisDataStore) UpdateApp(ctx context.Context, app *models.App) (*mode
 		return nil, models.ErrDatastoreEmptyAppName
 	}
 
-	if reply, err := ds.conn.Do("HGET", "apps", app.Name); err != nil {
+	reply, err := ds.conn.Do("HEXISTS", "apps", app.Name)
+	if err != nil {
 		return nil, err
-	} else if reply == nil {
+	}
+	if exists, err := redis.Bool(reply, err); err != nil {
+		return nil, err
+	} else if !exists {
 		return nil, models.ErrAppsNotFound
 	}
 
@@ -181,9 +189,14 @@ func (ds *RedisDataStore) InsertRoute(ctx context.Context, route *models.Route) 
 	}
 	hset := fmt.Sprintf("routes:%s", route.AppName)
 
-	if reply, err := ds.conn.Do("HGET", hset, route.Path); err != nil {
+	reply, err := ds.conn.Do("HEXISTS", hset, route.Path)
+	if err != nil {
 		return nil, err
-	} else if reply != nil {
+	}
+
+	if exists, err := redis.Bool(reply, err); err != nil {
+		return nil, err
+	} else if exists {
 		return nil, models.ErrRoutesAlreadyExists
 	}
 
@@ -204,9 +217,14 @@ func (ds *RedisDataStore) UpdateRoute(ctx context.Context, route *models.Route) 
 	}
 
 	hset := fmt.Sprintf("routes:%s", route.AppName)
-	if reply, err := ds.conn.Do("HGET", hset, route.Path); err != nil {
+	reply, err := ds.conn.Do("HEXISTS", hset, route.Path)
+	if err != nil {
 		return nil, err
-	} else if reply == nil {
+	}
+
+	if exists, err := redis.Bool(reply, err); err != nil {
+		return nil, err
+	} else if !exists {
 		return nil, models.ErrRoutesNotFound
 	}
 
