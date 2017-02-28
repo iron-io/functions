@@ -76,7 +76,7 @@ This guide will get you up and running in a few minutes.
 To get started quickly with IronFunctions, just fire up an `iron/functions` container:
 
 ```sh
-docker run --rm -it --name functions --privileged -v ${PWD}/data:/app/data -p 8080:8080 iron/functions
+docker run --rm -it --name functions -v ${PWD}/data:/app/data -v /var/run/docker.sock:/var/run/docker.sock -p 8080:8080 iron/functions
 ```
 
 *where ${PWD}/data is the directory where the functions application data files will be stored*
@@ -129,11 +129,11 @@ and deploy it.
 fn init $USERNAME/hello
 # build the function
 fn build
-# test it
+# test it - you can pass data into it too by piping it in, eg: `cat hello.payload.json | fn run`
 fn run
-# push it to Docker Hub
-fn push
-# create an app
+# Once it's ready, build and push it to Docker Hub
+fn build && fn push
+# create an app - you only do this once per app
 fn apps create myapp
 # create a route that maps /hello to your new function
 fn routes create myapp /hello
@@ -146,6 +146,15 @@ curl http://localhost:8080/r/myapp/hello
 ```
 
 Or surf to it: http://localhost:8080/r/myapp/hello
+
+To update your function:
+
+```sh
+# update a function with a new version and push it
+fn bump && fn build && fn push
+# then update the route
+fn routes update myapp /hello
+```
 
 See below for more details. And you can find a bunch of examples in various languages in the [examples](examples/) directory. You can also
 write your functions in AWS's [Lambda format](docs/lambda/README.md).
@@ -200,7 +209,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 
 ### Calling your Function
 
-Calling your function is as simple as requesting a URL. Each app has it's own namespace and each route mapped to the app.
+Calling your function is as simple as requesting a URL. Each app has its own namespace and each route mapped to the app.
 The app `myapp` that we created above along with the `/hello` route we added would be called via the following
 URL: http://localhost:8080/r/myapp/hello
 
