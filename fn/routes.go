@@ -329,7 +329,6 @@ func (a *routesCmd) create(c *cli.Context) error {
 	appName := c.Args().Get(0)
 	route := cleanRoutePath(c.Args().Get(1))
 	image := c.Args().Get(2)
-	fmt.Println(route)
 
 	rt := routeFromFlags(c)
 	rt.Path = route
