@@ -137,3 +137,13 @@ func (m *Mock) Get(ctx context.Context, key []byte) ([]byte, error) {
 	// TODO: improve this mock method
 	return []byte{}, nil
 }
+
+func (ds *Mock) SaveDockerCredentials(ctx context.Context, dockerLogin models.DockerCreds) error {
+	// TODO: improve this mock method
+	return nil
+}
+
+func (ds *Mock) GetDockerCredentials(ctx context.Context) (*models.DockerCreds, error) {
+	// TODO: improve this mock method
+	return &models.DockerCreds{}, nil
+}
