@@ -312,12 +312,14 @@ func (ds *RedisDataStore) GetRoutes(ctx context.Context, filter *models.RouteFil
 }
 
 func (ds *RedisDataStore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
-	res := []*models.Route{}
-	filter.AppName = appName
-
 	if appName == "" {
 		return nil, models.ErrDatastoreEmptyAppName
 	}
+	if filter == nil {
+		filter = new(models.RouteFilter)
+	}
+	filter.AppName = appName
+	res := []*models.Route{}
 
 	hset := fmt.Sprintf("routes:%s", appName)
 	reply, err := ds.conn.Do("HGETALL", hset)
