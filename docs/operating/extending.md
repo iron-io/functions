@@ -2,16 +2,16 @@
 
 IronFunctions is extensible so you can add custom functionality and extend the project without needing to modify the core.
 
-There are 4 different ways to extend the functionality of IronFunctions. 
+There are 4 different ways to extend the functionality of IronFunctions.
 
 1. Listeners - listen to API events such as a route getting updated and react accordingly.
 1. Middleware - a chain of middleware is executed before an API handler is called.
-1. Add API Endpoints - extend the default IronFunctions API. 
+1. Add API Endpoints - extend the default IronFunctions API.
 1. Special Handlers - TODO: DO WE NEED THIS ANYMORE??
 
 ## Listeners
 
-Listeners are the main way to extend IronFunctions. 
+Listeners are the main way to extend IronFunctions.
 
 You can easily use listeners basically creating a struct with [valid methods](#Listener Requirements) and adding it to the `IronFunctions API`.
 
@@ -42,7 +42,7 @@ function main () {
     srv := server.New(/* Here all required parameters to initialize the server */)
 
     srv.AddAppListener(myCustomListener)
-    
+
     srv.Run()
 }
 ```
@@ -61,7 +61,7 @@ See the godoc for RunnerListner [in this file](/iron-io/functions/blob/master/ap
 
 ## Adding API Endpoints
 
-You can add API endpoints by using the `AddEndpoint` and `AddEndpointFunc` methods to the IronFunctions server. 
+You can add API endpoints by using the `AddEndpoint` and `AddEndpointFunc` methods to the IronFunctions server.
 
 See examples of this in [/examples/extensions/main.go](/examples/extensions/main.go). 
 
@@ -75,13 +75,13 @@ NOTES:
 * middleware is responsible for writing output if it's going to cancel the chain.
 * cancel the chain by returning an error from your Middleware's Serve method.
 
-See examples of this in [/examples/Middleware/main.go](/examples/middleware/main.go).
+See examples of this in [/examples/Middleware/main.go](examples/middleware/main.go).
 
 ## Special Handlers
 
 To understand how **Special Handlers** works you need to understand what are **Special Routes**.
 
-**Special Routes** are routes that doesn't match any other API route. 
+**Special Routes** are routes that doesn't match any other API route.
 
 With **Special Handlers** you can change the behavior of special routes in order to define which function is going to be executed.
 
