@@ -79,23 +79,20 @@ func (ds *RedisDataStore) InsertApp(ctx context.Context, app *models.App) (*mode
 	return ds.setApp(app)
 }
 
-func (ds *RedisDataStore) UpdateApp(ctx context.Context, app *models.App) (*models.App, error) {
-	if app == nil {
+func (ds *RedisDataStore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
+	if newapp == nil {
 		return nil, models.ErrDatastoreEmptyApp
 	}
-	if app.Name == "" {
+	if newapp.Name == "" {
 		return nil, models.ErrDatastoreEmptyAppName
 	}
 
-	reply, err := ds.conn.Do("HEXISTS", "apps", app.Name)
+	app, err := ds.GetApp(ctx, newapp.Name)
 	if err != nil {
 		return nil, err
 	}
-	if exists, err := redis.Bool(reply, err); err != nil {
-		return nil, err
-	} else if !exists {
-		return nil, models.ErrAppsNotFound
-	}
+
+	app.UpdateConfig(newapp.Config)
 
 	return ds.setApp(app)
 }
@@ -198,30 +195,28 @@ func (ds *RedisDataStore) InsertRoute(ctx context.Context, route *models.Route) 
 	return ds.setRoute(hset, route)
 }
 
-func (ds *RedisDataStore) UpdateRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
-	if route == nil {
+func (ds *RedisDataStore) UpdateRoute(ctx context.Context, newroute *models.Route) (*models.Route, error) {
+	if newroute == nil {
 		return nil, models.ErrDatastoreEmptyRoute
 	}
 
-	if route.AppName == "" {
+	if newroute.AppName == "" {
 		return nil, models.ErrDatastoreEmptyAppName
 	}
 
-	if route.Path == "" {
+	if newroute.Path == "" {
 		return nil, models.ErrDatastoreEmptyRoutePath
 	}
 
-	hset := fmt.Sprintf("routes:%s", route.AppName)
-	reply, err := ds.conn.Do("HEXISTS", hset, route.Path)
+	route, err := ds.GetRoute(ctx, newroute.AppName, newroute.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	if exists, err := redis.Bool(reply, err); err != nil {
-		return nil, err
-	} else if !exists {
-		return nil, models.ErrRoutesNotFound
-	}
+	route.Update(newroute)
+
+
+	hset := fmt.Sprintf("routes:%s", route.AppName)
 
 	return ds.setRoute(hset, route)
 }
