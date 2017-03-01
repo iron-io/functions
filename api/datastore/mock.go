@@ -145,5 +145,5 @@ func (ds *Mock) SaveDockerCredentials(ctx context.Context, dockerLogin models.Do
 
 func (ds *Mock) GetDockerCredentials(ctx context.Context) (*models.DockerCreds, error) {
 	// TODO: improve this mock method
-	return &models.DockerCreds{}, nil
+	return nil, nil
 }

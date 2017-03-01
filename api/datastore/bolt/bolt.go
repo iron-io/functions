@@ -556,6 +556,9 @@ func (ds *BoltDatastore) GetDockerCredentials(ctx context.Context) (*models.Dock
 	if err != nil {
 		return nil, err
 	}
+	if data == nil {
+		return nil, nil
+	}
 	val := &models.DockerCreds{}
 	err = json.Unmarshal(data, val)
 	if err != nil {

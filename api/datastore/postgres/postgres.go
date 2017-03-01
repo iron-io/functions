@@ -578,6 +578,9 @@ func (ds *PostgresDatastore) GetDockerCredentials(ctx context.Context) (*models.
 	if err != nil {
 		return nil, err
 	}
+	if data == nil {
+		return nil, nil
+	}
 	val := &models.DockerCreds{}
 	err = json.Unmarshal(data, val)
 	if err != nil {
