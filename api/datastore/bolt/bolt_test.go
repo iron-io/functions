@@ -1,12 +1,10 @@
 package bolt
 
 import (
-	"context"
+	"net/url"
 	"os"
 	"testing"
 
-	"github.com/iron-io/functions/api/models"
-	"net/url"
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
 )
 

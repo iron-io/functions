@@ -116,38 +116,53 @@ func (ds *PostgresDatastore) InsertApp(ctx context.Context, app *models.App) (*m
 
 	return app, nil
 }
-
-func (ds *PostgresDatastore) UpdateApp(ctx context.Context, app *models.App) (*models.App, error) {
-	if app == nil {
+//TODO fix this to patch
+func (ds *PostgresDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
+	if newapp == nil {
 		return nil, models.ErrAppsNotFound
 	}
 
-	cbyte, err := json.Marshal(app.Config)
+	app := &models.App{Name: newapp.Name}
+	err := ds.Tx(func(tx *sql.Tx) error {
+		row := ds.db.QueryRow("SELECT config FROM apps WHERE name=$1", app.Name)
+
+		var config string
+		if err := row.Scan(&config); err != nil {
+			if err == sql.ErrNoRows {
+				return models.ErrAppsNotFound
+			}
+			return err
+		}
+
+		if config != "" {
+			err := json.Unmarshal([]byte(config), &app.Config)
+			if err != nil {
+				return err
+			}
+		}
+
+		app.UpdateConfig(newapp.Config)
+
+		cbyte, err := json.Marshal(app.Config)
+		if err != nil {
+			return err
+		}
+
+		res, err := ds.db.Exec(`UPDATE apps SET config = $2 WHERE name = $1;`, app.Name, string(cbyte))
+		if err != nil {
+			return err
+		}
+
+		if n, err := res.RowsAffected(); err != nil {
+			return err
+		} else if n == 0 {
+			return models.ErrAppsNotFound
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
-	}
-
-	res, err := ds.db.Exec(`
-	  UPDATE apps SET
-		config = $2
-	  WHERE name = $1
-	  RETURNING *;
-	`,
-		app.Name,
-		string(cbyte),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if n == 0 {
-		return nil, models.ErrAppsNotFound
 	}
 
 	return app, nil
@@ -561,4 +576,18 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 	}
 
 	return []byte(value), nil
+}
+
+
+func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
+	tx, err := ds.db.Begin()
+	if err != nil {
+		return err
+	}
+	err = f(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }

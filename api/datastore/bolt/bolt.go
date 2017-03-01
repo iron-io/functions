@@ -141,10 +141,7 @@ func (ds *BoltDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*mo
 			return err
 		}
 
-		// Update app fields
-		if newapp.Config != nil {
-			app.Config = newapp.Config
-		}
+		app.UpdateConfig(newapp.Config)
 
 		buf, err := json.Marshal(app)
 		if err != nil {
