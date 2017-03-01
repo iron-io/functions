@@ -281,7 +281,7 @@ func Test(t *testing.T, ds models.Datastore) {
 			}
 			if !reflect.DeepEqual(*updated, *expected) {
 				t.Log(buf.String())
-				t.Fatalf("Test UpdateApp: expected updated `%v` but got `%v`", expected, updated)
+				t.Fatalf("Test UpdateRoute: expected updated `%v` but got `%v`", expected, updated)
 			}
 
 			// Update a config var, remove another. Add one Header, remove another.
@@ -322,7 +322,7 @@ func Test(t *testing.T, ds models.Datastore) {
 			}
 			if !reflect.DeepEqual(*updated, *expected) {
 				t.Log(buf.String())
-				t.Fatalf("Test UpdateApp: expected updated:\n`%v`\nbut got:\n`%v`", expected, updated)
+				t.Fatalf("Test UpdateRoute: expected updated:\n`%v`\nbut got:\n`%v`", expected, updated)
 			}
 		}
 
@@ -330,10 +330,10 @@ func Test(t *testing.T, ds models.Datastore) {
 		routes, err := ds.GetRoutesByApp(ctx, testApp.Name, &models.RouteFilter{})
 		if err != nil {
 			t.Log(buf.String())
-			t.Fatalf("Test GetRoutes: unexpected error %v", err)
+			t.Fatalf("Test GetRoutesByApp: unexpected error %v", err)
 		}
 		if len(routes) == 0 {
-			t.Fatal("Test GetRoutes: expected result count to be greater than 0")
+			t.Fatal("Test GetRoutesByApp: expected result count to be greater than 0")
 		}
 		if routes[0] == nil {
 			t.Log(buf.String())
@@ -346,10 +346,10 @@ func Test(t *testing.T, ds models.Datastore) {
 		routes, err = ds.GetRoutesByApp(ctx, testApp.Name, &models.RouteFilter{Image: testRoute.Image})
 		if err != nil {
 			t.Log(buf.String())
-			t.Fatalf("Test GetRoutes: unexpected error %v", err)
+			t.Fatalf("Test GetRoutesByApp: unexpected error %v", err)
 		}
 		if len(routes) == 0 {
-			t.Fatal("Test GetRoutes: expected result count to be greater than 0")
+			t.Fatal("Test GetRoutesByApp: expected result count to be greater than 0")
 		}
 		if routes[0] == nil {
 			t.Log(buf.String())
@@ -362,10 +362,10 @@ func Test(t *testing.T, ds models.Datastore) {
 		routes, err = ds.GetRoutesByApp(ctx, "notreal", nil)
 		if err != nil {
 			t.Log(buf.String())
-			t.Fatalf("Test GetRoutes: error: %s", err)
+			t.Fatalf("Test GetRoutesByApp: error: %s", err)
 		}
 		if len(routes) != 0 {
-			t.Fatalf("Test GetRoutes: expected result count to be 0 but got %d", len(routes))
+			t.Fatalf("Test GetRoutesByApp: expected result count to be 0 but got %d", len(routes))
 		}
 
 		// Testing list routes
