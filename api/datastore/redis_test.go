@@ -23,12 +23,11 @@ func prepareRedisTest() func() {
 		c, err := redis.DialURL(tmpRedis)
 		if err == nil {
 			_, err = c.Do("PING")
+			c.Close()
 			if err == nil {
-				c.Close()
 				break
 			}
 		}
-		c.Close()
 		fmt.Println("failed to PING redis:", err)
 		select {
 		case <-timeout:
