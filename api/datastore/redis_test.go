@@ -9,12 +9,12 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-const tmpRedis = "redis://127.0.0.1:32768/"
+const tmpRedis = "redis://127.0.0.1:6301/"
 
 func prepareRedisTest() func() {
 	fmt.Println("initializing redis for test")
 	exec.Command("docker", "rm", "-f", "iron-redis-test").Run()
-	exec.Command("docker", "run", "--name", "iron-redis-test", "-p", "32768:6379", "-d", "redis").Run()
+	exec.Command("docker", "run", "--name", "iron-redis-test", "-p", "6301:6379", "-d", "redis").Run()
 	fmt.Println("redis for test ready")
 	return func() {
 		exec.Command("docker", "rm", "-f", "iron-redis-test").Run()
