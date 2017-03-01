@@ -18,7 +18,7 @@ const tmpRedis = "redis://127.0.0.1:6301/"
 func prepareRedisTest(logf, fatalf func(string, ...interface{})) (func(), func()) {
 	fmt.Println("initializing redis for test")
 	tryRun(logf, "remove old redis container", exec.Command("docker", "rm", "-f", "iron-redis-test"))
-	mustRun(fatalf, "start postgres container", exec.Command("docker", "run", "--name", "iron-redis-test", "-p", "6301:6379", "-d", "redis"))
+	mustRun(fatalf, "start redis container", exec.Command("docker", "run", "--name", "iron-redis-test", "-p", "6301:6379", "-d", "redis"))
 	timeout := time.After(20 * time.Second)
 
 	for {
@@ -55,7 +55,7 @@ func TestDatastore(t *testing.T) {
 	}
 	ds, err := New(u)
 	if err != nil {
-		t.Fatal("failed to create postgres datastore:", err)
+		t.Fatal("failed to create redis datastore:", err)
 	}
 
 	datastoretest.Test(t, ds)
