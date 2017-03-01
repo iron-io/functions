@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/iron-io/functions/api/models"
 )
@@ -16,6 +17,7 @@ func prepareRedisTest() func() {
 	exec.Command("docker", "rm", "-f", "iron-redis-test").Run()
 	exec.Command("docker", "run", "--name", "iron-redis-test", "-p", "6301:6379", "-d", "redis").Run()
 	fmt.Println("redis for test ready")
+	time.Sleep(time.Second)
 	return func() {
 		exec.Command("docker", "rm", "-f", "iron-redis-test").Run()
 	}
