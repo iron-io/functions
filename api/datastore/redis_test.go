@@ -3,11 +3,13 @@ package datastore
 import (
 	"context"
 	"fmt"
+	"log"
 	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/iron-io/functions/api/models"
+	"github.com/garyburd/redigo/redis"
 )
 
 const tmpRedis = "redis://127.0.0.1:6301/"
@@ -16,8 +18,26 @@ func prepareRedisTest() func() {
 	fmt.Println("initializing redis for test")
 	exec.Command("docker", "rm", "-f", "iron-redis-test").Run()
 	exec.Command("docker", "run", "--name", "iron-redis-test", "-p", "6301:6379", "-d", "redis").Run()
+	timeout := time.After(20*time.Second)
+	for {
+		c, err := redis.DialURL(tmpRedis)
+		if err == nil {
+			_, err = c.Do("PING")
+			if err == nil {
+				c.Close()
+				break
+			}
+		}
+		c.Close()
+		fmt.Println("failed to PING redis:", err)
+		select {
+		case <-timeout:
+			log.Fatal("timed out waiting for redis")
+		case <-time.After(500*time.Millisecond):
+			continue
+		}
+	}
 	fmt.Println("redis for test ready")
-	time.Sleep(time.Second)
 	return func() {
 		exec.Command("docker", "rm", "-f", "iron-redis-test").Run()
 	}
