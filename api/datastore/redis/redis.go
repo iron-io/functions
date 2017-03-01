@@ -179,9 +179,20 @@ func (ds *RedisDataStore) InsertRoute(ctx context.Context, route *models.Route) 
 	if route.Path == "" {
 		return nil, models.ErrDatastoreEmptyRoutePath
 	}
+
+	reply, err := ds.conn.Do("HEXISTS", "apps", route.AppName)
+	if err != nil {
+		return nil, err
+	}
+	if exists, err := redis.Bool(reply, err); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, models.ErrAppsNotFound
+	}
+
 	hset := fmt.Sprintf("routes:%s", route.AppName)
 
-	reply, err := ds.conn.Do("HEXISTS", hset, route.Path)
+	reply, err = ds.conn.Do("HEXISTS", hset, route.Path)
 	if err != nil {
 		return nil, err
 	}
