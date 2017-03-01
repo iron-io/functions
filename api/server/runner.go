@@ -73,7 +73,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	ctx := c.MustGet("ctx").(context.Context)
 
 	reqID := uuid.NewV5(uuid.Nil, fmt.Sprintf("%s%s%d", c.Request.RemoteAddr, c.Request.URL.Path, time.Now().Unix())).String()
-	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": reqID})
+	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"task_id": reqID})
 
 	var err error
 	var payload io.Reader
@@ -220,7 +220,7 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 		// Push to queue
 		enqueue(c, s.MQ, task)
 		log.Info("Added new task to queue")
-		c.JSON(http.StatusAccepted, map[string]string{"call_id": task.ID})
+		c.JSON(http.StatusAccepted, map[string]string{"task_id": task.ID})
 
 	default:
 		result, err := runner.RunTask(s.tasks, ctx, cfg)

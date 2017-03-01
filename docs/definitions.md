@@ -119,7 +119,7 @@ Options: `sync` and `async`
 
 `type` is defines how the function will be executed. If type is `sync` the request will be hold until the result is ready and flushed.
 
-In `async` functions the request will be ended with a `call_id` and the function will be executed in the background.
+In `async` functions the request will be ended with a `task_id` and the function will be executed in the background.
 
 #### memory (number)
 

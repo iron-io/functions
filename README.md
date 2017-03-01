@@ -275,10 +275,10 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/r/myapp/hello-async
 ```
 
-You will get a `call_id` in the response:
+You will get a `task_id` in the response:
 
 ```json
-{"call_id":"572415fd-e26e-542b-846f-f1f5870034f2"}
+{"task_id":"572415fd-e26e-542b-846f-f1f5870034f2"}
 ```
 
 If you watch the logs, you will see the function actually runs in the background:

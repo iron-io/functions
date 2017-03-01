@@ -25,7 +25,7 @@ func (l *DefaultFuncLogger) Writer(ctx context.Context, appName, path, image, re
 	r, w := io.Pipe()
 
 	log := common.Logger(ctx)
-	log = log.WithFields(logrus.Fields{"user_log": true, "app_name": appName, "path": path, "image": image, "call_id": reqID})
+	log = log.WithFields(logrus.Fields{"user_log": true, "app_name": appName, "path": path, "image": image, "task_id": reqID})
 
 	go func(reader io.Reader) {
 		scanner := bufio.NewScanner(reader)
