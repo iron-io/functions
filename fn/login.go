@@ -83,7 +83,7 @@ func (l *DockerLoginCmd) login(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "err: %v", err)
 		return fmt.Errorf("unexpected error: %v", err)
 	}
-	fmt.Println(`Added docker repo credentials`)
+	fmt.Println("Added docker repo credentials")
 
 	return nil
 }
