@@ -132,9 +132,9 @@ func (ds *datastore) ViewAllAppNodes(f func(datastoreutil.Node) error) error {
 
 func (ds *datastore) Put(ctx context.Context, key, value []byte) error {
   if len(value) == 0 {
-		delete(m.metaData, string(key))
+		delete(ds.metaData, string(key))
 	} else {
-		m.metaData[string(key)] = value
+		ds.metaData[string(key)] = value
 	}
 	return nil
 }
