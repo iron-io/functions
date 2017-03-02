@@ -37,6 +37,7 @@ func NewMockInit(apps []*models.App, routes []*models.Route) models.Datastore {
 			panic(err)
 		}
 	}
+  
 	return ds
 }
 
@@ -72,7 +73,7 @@ func (ds *datastore) UpdateApp(ctx context.Context, app *models.App) (*models.Ap
 	if err != nil {
 		return nil, err
 	}
-	a.UpdateConfig(app.Config)
+  a.UpdateConfig(app.Config)
 	return a.Clone(), nil
 }
 
@@ -130,7 +131,11 @@ func (ds *datastore) ViewAllAppNodes(f func(datastoreutil.Node) error) error {
 }
 
 func (ds *datastore) Put(ctx context.Context, key, value []byte) error {
-	ds.metaData[string(key)] = value
+  if len(value) == 0 {
+		delete(m.metaData, string(key))
+	} else {
+		m.metaData[string(key)] = value
+	}
 	return nil
 }
 

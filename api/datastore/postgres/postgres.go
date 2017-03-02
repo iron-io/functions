@@ -260,7 +260,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			}
 			return err
 		}
-
+    
 		same, err := tx.Query(`SELECT 1 FROM routes WHERE app_name=$1 AND path=$2`,
 			route.AppName, route.Path)
 		if err != nil {
@@ -281,7 +281,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 		if conflicts.Next() {
 			return models.ErrRoutesCreate
 		}
-
+    
 		_, err = tx.Exec(`
 		INSERT INTO routes (
 			app_name,
@@ -311,7 +311,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 		)
 		return err
 	})
-
+  
 	if err != nil {
 		return nil, err
 	}
@@ -639,4 +639,18 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 	}
 
 	return []byte(value), nil
+}
+
+
+func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
+	tx, err := ds.db.Begin()
+	if err != nil {
+		return err
+	}
+	err = f(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
