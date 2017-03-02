@@ -640,17 +640,3 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 
 	return []byte(value), nil
 }
-
-
-func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
-	tx, err := ds.db.Begin()
-	if err != nil {
-		return err
-	}
-	err = f(tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	return tx.Commit()
-}
