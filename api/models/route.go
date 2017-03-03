@@ -42,16 +42,17 @@ type Route struct {
 }
 
 var (
-	ErrRoutesValidationInvalidPath     = errors.New("Invalid Path format")
-	ErrRoutesValidationInvalidType     = errors.New("Invalid route Type")
-	ErrRoutesValidationInvalidFormat   = errors.New("Invalid route Format")
-	ErrRoutesValidationMissingAppName  = errors.New("Missing route AppName")
-	ErrRoutesValidationMissingImage    = errors.New("Missing route Image")
-	ErrRoutesValidationMissingName     = errors.New("Missing route Name")
-	ErrRoutesValidationMissingPath     = errors.New("Missing route Path")
-	ErrRoutesValidationMissingType     = errors.New("Missing route Type")
-	ErrRoutesValidationPathMalformed   = errors.New("Path malformed")
-	ErrRoutesValidationNegativeTimeout = errors.New("Negative timeout")
+	ErrRoutesValidationInvalidPath           = errors.New("Invalid Path format")
+	ErrRoutesValidationInvalidType           = errors.New("Invalid route Type")
+	ErrRoutesValidationInvalidFormat         = errors.New("Invalid route Format")
+	ErrRoutesValidationMissingAppName        = errors.New("Missing route AppName")
+	ErrRoutesValidationMissingImage          = errors.New("Missing route Image")
+	ErrRoutesValidationMissingName           = errors.New("Missing route Name")
+	ErrRoutesValidationMissingPath           = errors.New("Missing route Path")
+	ErrRoutesValidationMissingType           = errors.New("Missing route Type")
+	ErrRoutesValidationPathMalformed         = errors.New("Path malformed")
+	ErrRoutesValidationNegativeTimeout       = errors.New("Negative timeout")
+	ErrRoutesValidationNegativeMaxConcurrency = errors.New("Negative MaxConcurrency")
 )
 
 // SetDefaults sets zeroed field to defaults.
@@ -63,6 +64,7 @@ func (r *Route) SetDefaults() {
 	if r.Type == TypeNone {
 		r.Type = TypeSync
 	}
+}
 
 	if r.Format == "" {
 		r.Format = FormatDefault
@@ -125,12 +127,14 @@ func (r *Route) Validate(skipZero bool) error {
 			res = append(res, ErrRoutesValidationInvalidFormat)
 		}
 	}
+  
+  if r.MaxConcurrency < 0 {
+		res = append(res, ErrRoutesValidationNegativeMaxConcurrency)
+	}
 
 	if r.Timeout < 0 {
 		res = append(res, ErrRoutesValidationNegativeTimeout)
 	}
-
-	//TODO negative concurrency?
 
 	if len(res) > 0 {
 		return apiErrors.CompositeValidationError(res...)
