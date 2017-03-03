@@ -43,17 +43,18 @@ type Route struct {
 }
 
 var (
-	ErrRoutesValidationFoundDynamicURL = errors.New("Dynamic URL is not allowed")
-	ErrRoutesValidationInvalidPath     = errors.New("Invalid Path format")
-	ErrRoutesValidationInvalidType     = errors.New("Invalid route Type")
-	ErrRoutesValidationInvalidFormat   = errors.New("Invalid route Format")
-	ErrRoutesValidationMissingAppName  = errors.New("Missing route AppName")
-	ErrRoutesValidationMissingImage    = errors.New("Missing route Image")
-	ErrRoutesValidationMissingName     = errors.New("Missing route Name")
-	ErrRoutesValidationMissingPath     = errors.New("Missing route Path")
-	ErrRoutesValidationMissingType     = errors.New("Missing route Type")
-	ErrRoutesValidationPathMalformed   = errors.New("Path malformed")
-	ErrRoutesValidationNegativeTimeout = errors.New("Negative timeout")
+	ErrRoutesValidationFoundDynamicURL       = errors.New("Dynamic URL is not allowed")
+	ErrRoutesValidationInvalidPath           = errors.New("Invalid Path format")
+	ErrRoutesValidationInvalidType           = errors.New("Invalid route Type")
+	ErrRoutesValidationInvalidFormat         = errors.New("Invalid route Format")
+	ErrRoutesValidationMissingAppName        = errors.New("Missing route AppName")
+	ErrRoutesValidationMissingImage          = errors.New("Missing route Image")
+	ErrRoutesValidationMissingName           = errors.New("Missing route Name")
+	ErrRoutesValidationMissingPath           = errors.New("Missing route Path")
+	ErrRoutesValidationMissingType           = errors.New("Missing route Type")
+	ErrRoutesValidationPathMalformed         = errors.New("Path malformed")
+	ErrRoutesValidationNegativeTimeout       = errors.New("Negative timeout")
+	ErrRoutesValidationNegativeMaxConcurrency = errors.New("Negative MaxConcurrency")
 )
 
 // SetDefaults sets zeroed field to defaults.
@@ -132,7 +133,9 @@ func (r *Route) Validate(skipZero bool) error {
 		}
 	}
 
-	//TODO negative concurrency?
+	if r.MaxConcurrency < 0 {
+		res = append(res, ErrRoutesValidationNegativeMaxConcurrency)
+	}
 
 	if r.Timeout < 0 {
 		res = append(res, ErrRoutesValidationNegativeTimeout)
