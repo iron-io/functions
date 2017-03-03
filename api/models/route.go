@@ -87,6 +87,7 @@ func (r *Route) SetDefaults() {
 	}
 }
 
+// Validate validates field values, skipping zeroed fields if skipZero is true.
 func (r *Route) Validate(skipZero bool) error {
 	var res []error
 
