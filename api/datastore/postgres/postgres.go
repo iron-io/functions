@@ -628,7 +628,7 @@ func (ds *PostgresDatastore) Put(ctx context.Context, key, value []byte) error {
 }
 
 func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
-	row := ds.db.QueryRow("SELECT DISTINCT value FROM extras WHERE key=$1", key)
+	row := ds.db.QueryRow("SELECT value FROM extras WHERE key=$1", key)
 
 	var value string
 	err := row.Scan(&value)

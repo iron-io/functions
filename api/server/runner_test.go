@@ -30,14 +30,11 @@ func TestRouteRunnerGet(t *testing.T) {
 	rnr, cancel := testRunner(t)
 	defer cancel()
 
-	srv := testServer(
-		datastore.NewMockInit([]*models.App{
+	srv := testServer(datastore.NewMockInit(
+		[]*models.App{
 			{Name: "myapp", Config: models.Config{}},
-		},nil),
-		&mqs.Mock{},
-		rnr,
-		tasks,
-	)
+		}, nil,
+	), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -76,13 +73,11 @@ func TestRouteRunnerPost(t *testing.T) {
 	rnr, cancel := testRunner(t)
 	defer cancel()
 
-	srv := testServer(
-		datastore.NewMockInit([]*models.App{
+	srv := testServer(datastore.NewMockInit(
+		[]*models.App{
 			{Name: "myapp", Config: models.Config{}},
-		}, nil),
-		&mqs.Mock{},
-		rnr,
-		tasks)
+		}, nil,
+	), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -128,19 +123,15 @@ func TestRouteRunnerExecution(t *testing.T) {
 
 	go runner.StartWorkers(ctx, rnr, tasks)
 
-	srv := testServer(
-		datastore.NewMockInit(
-			[]*models.App{
-				{Name: "myapp", Config: models.Config{}},
-			},
-			[]*models.Route{
-				{Path: "/myroute", AppName: "myapp", Image: "iron/hello", Headers: map[string][]string{"X-Function": {"Test"}}},
-				{Path: "/myerror", AppName: "myapp", Image: "iron/error", Headers: map[string][]string{"X-Function": {"Test"}}},
-			},
-		),
-		&mqs.Mock{},
-		rnr,
-		tasks)
+	srv := testServer(datastore.NewMockInit(
+		[]*models.App{
+			{Name: "myapp", Config: models.Config{}},
+		},
+		[]*models.Route{
+			{Path: "/myroute", AppName: "myapp", Image: "iron/hello", Headers: map[string][]string{"X-Function": {"Test"}}},
+			{Path: "/myerror", AppName: "myapp", Image: "iron/error", Headers: map[string][]string{"X-Function": {"Test"}}},
+		},
+	), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path            string
@@ -190,18 +181,14 @@ func TestRouteRunnerTimeout(t *testing.T) {
 	defer cancelrnr()
 	go runner.StartWorkers(ctx, rnr, tasks)
 
-	srv := testServer(
-		datastore.NewMockInit(
-			[]*models.App{
-				{Name: "myapp", Config: models.Config{}},
-			},
-			[]*models.Route{
-				{Path: "/sleeper", AppName: "myapp", Image: "iron/sleeper", Timeout: 1},
-			},
-		),
-		&mqs.Mock{},
-		rnr,
-		tasks)
+	srv := testServer(datastore.NewMockInit(
+		[]*models.App{
+			{Name: "myapp", Config: models.Config{}},
+		},
+		[]*models.Route{
+			{Path: "/sleeper", AppName: "myapp", Image: "iron/sleeper", Timeout: 1},
+		},
+	), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path            string

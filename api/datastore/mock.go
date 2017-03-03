@@ -11,7 +11,7 @@ import (
 type datastore struct {
 	apps            map[string]*models.App
 	routesByAppName map[string]datastoreutil.Node
-	metaData        map[string][]byte
+	data        map[string][]byte
 }
 
 // NewMock returns an in-memory, mock models.Datastore implementation, which is NOT safe for concurrent use.
@@ -132,15 +132,15 @@ func (ds *datastore) ViewAllAppNodes(f func(datastoreutil.Node) error) error {
 
 func (ds *datastore) Put(ctx context.Context, key, value []byte) error {
   if len(value) == 0 {
-		delete(ds.metaData, string(key))
+		delete(ds.data, string(key))
 	} else {
-		ds.metaData[string(key)] = value
+		ds.data[string(key)] = value
 	}
 	return nil
 }
 
 func (ds *datastore) Get(ctx context.Context, key []byte) ([]byte, error) {
-	return ds.metaData[string(key)], nil
+	return ds.data[string(key)], nil
 }
 
 // A node is a map backed datastoreutil.Node
@@ -207,6 +207,7 @@ func (n *node) NewChild(k string) (datastoreutil.Node, error) {
 	}}
 	n.children[k] = c
 	return c, nil
+
 }
 
 func (n *node) Remove() error {

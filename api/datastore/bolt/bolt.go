@@ -211,7 +211,6 @@ func (ds *datastore) ViewAppNode(appName string, f func(datastoreutil.Node) erro
 func (ds *datastore) ViewAllAppNodes(f func(datastoreutil.Node) error) error {
 	return ds.db.View(func(tx *bolt.Tx) error {
 		rb := tx.Bucket(ds.routesKey)
-
 		c := rb.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
 			n := getNode(rb, k)
