@@ -64,7 +64,6 @@ func (r *Route) SetDefaults() {
 	if r.Type == TypeNone {
 		r.Type = TypeSync
 	}
-}
 
 	if r.Format == "" {
 		r.Format = FormatDefault
@@ -128,7 +127,7 @@ func (r *Route) Validate(skipZero bool) error {
 		}
 	}
   
-  if r.MaxConcurrency < 0 {
+  	if r.MaxConcurrency < 0 {
 		res = append(res, ErrRoutesValidationNegativeMaxConcurrency)
 	}
 
