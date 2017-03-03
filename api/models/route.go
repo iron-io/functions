@@ -56,48 +56,18 @@ var (
 	ErrRoutesValidationNegativeTimeout = errors.New("Negative timeout")
 )
 
-func (r *Route) Validate() error {
-	var res []error
-
+// SetDefaults sets zeroed field to defaults.
+func (r *Route) SetDefaults() {
 	if r.Memory == 0 {
 		r.Memory = 128
-	}
-
-	if r.AppName == "" {
-		res = append(res, ErrRoutesValidationMissingAppName)
-	}
-
-	if r.Path == "" {
-		res = append(res, ErrRoutesValidationMissingPath)
-	}
-
-	u, err := url.Parse(r.Path)
-	if err != nil {
-		res = append(res, ErrRoutesValidationPathMalformed)
-	}
-
-	if strings.Contains(u.Path, ":") {
-		res = append(res, ErrRoutesValidationFoundDynamicURL)
-	}
-
-	if !path.IsAbs(u.Path) {
-		res = append(res, ErrRoutesValidationInvalidPath)
 	}
 
 	if r.Type == TypeNone {
 		r.Type = TypeSync
 	}
 
-	if r.Type != TypeAsync && r.Type != TypeSync {
-		res = append(res, ErrRoutesValidationInvalidType)
-	}
-
 	if r.Format == "" {
 		r.Format = FormatDefault
-	}
-
-	if r.Format != FormatDefault && r.Format != FormatHTTP {
-		res = append(res, ErrRoutesValidationInvalidFormat)
 	}
 
 	if r.MaxConcurrency == 0 {
@@ -114,7 +84,56 @@ func (r *Route) Validate() error {
 
 	if r.Timeout == 0 {
 		r.Timeout = defaultRouteTimeout
-	} else if r.Timeout < 0 {
+	}
+}
+
+func (r *Route) Validate(skipZero bool) error {
+	var res []error
+
+	if !skipZero {
+		if r.AppName == "" {
+			res = append(res, ErrRoutesValidationMissingAppName)
+		}
+
+		if r.Image == "" {
+			res = append(res, ErrRoutesValidationMissingImage)
+		}
+
+		if r.Path == "" {
+			res = append(res, ErrRoutesValidationMissingPath)
+		}
+	}
+
+	if !skipZero || r.Path != "" {
+		u, err := url.Parse(r.Path)
+		if err != nil {
+			res = append(res, ErrRoutesValidationPathMalformed)
+		}
+
+		if strings.Contains(u.Path, ":") {
+			res = append(res, ErrRoutesValidationFoundDynamicURL)
+		}
+
+		if !path.IsAbs(u.Path) {
+			res = append(res, ErrRoutesValidationInvalidPath)
+		}
+	}
+
+	if !skipZero || r.Type != "" {
+		if r.Type != TypeAsync && r.Type != TypeSync {
+			res = append(res, ErrRoutesValidationInvalidType)
+		}
+	}
+
+	if !skipZero || r.Format != "" {
+		if r.Format != FormatDefault && r.Format != FormatHTTP {
+			res = append(res, ErrRoutesValidationInvalidFormat)
+		}
+	}
+
+	//TODO negative concurrency?
+
+	if r.Timeout < 0 {
 		res = append(res, ErrRoutesValidationNegativeTimeout)
 	}
 
@@ -182,6 +201,7 @@ func (r *Route) Update(new *Route) {
 	}
 }
 
+//TODO are these sql LIKE queries? or strict matches?
 type RouteFilter struct {
 	Path    string
 	AppName string
