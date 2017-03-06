@@ -40,6 +40,12 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 	wroute.Route.AppName = c.MustGet(api.AppName).(string)
 	wroute.Route.Path = path.Clean(c.MustGet(api.Path).(string))
 
+	if err := wroute.Validate(true); err != nil {
+		log.WithError(err).Debug(models.ErrRoutesUpdate)
+		c.JSON(http.StatusBadRequest, simpleError(err))
+		return
+	}
+
 	if wroute.Route.Image != "" {
 		authCfg, err := s.DockerAuth.GetAuthConfiguration(ctx)
 		if err != nil {
