@@ -7,8 +7,9 @@ import (
 )
 
 type Mock struct {
-	Apps   []*models.App
-	Routes []*models.Route
+	Apps    []*models.App
+	Routes  []*models.Route
+	Storage map[string][]byte
 }
 
 func NewMock(apps []*models.App, routes []*models.Route) *Mock {
@@ -18,7 +19,7 @@ func NewMock(apps []*models.App, routes []*models.Route) *Mock {
 	if routes == nil {
 		routes = []*models.Route{}
 	}
-	return &Mock{apps, routes}
+	return &Mock{apps, routes, map[string][]byte{}}
 }
 
 func (m *Mock) GetApp(ctx context.Context, appName string) (app *models.App, err error) {
@@ -129,21 +130,13 @@ func (m *Mock) RemoveRoute(ctx context.Context, appName, routePath string) error
 }
 
 func (m *Mock) Put(ctx context.Context, key, value []byte) error {
-	// TODO: improve this mock method
+	m.Storage[string(key)] = value
 	return nil
 }
 
 func (m *Mock) Get(ctx context.Context, key []byte) ([]byte, error) {
-	// TODO: improve this mock method
-	return []byte{}, nil
-}
-
-func (ds *Mock) SaveDockerCredentials(ctx context.Context, dockerLogin models.DockerCreds) error {
-	// TODO: improve this mock method
-	return nil
-}
-
-func (ds *Mock) GetDockerCredentials(ctx context.Context) (*models.DockerCreds, error) {
-	// TODO: improve this mock method
+	if val, ok := m.Storage[string(key)]; ok {
+		return val, nil
+	}
 	return nil, nil
 }

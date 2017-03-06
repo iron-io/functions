@@ -44,7 +44,7 @@ func (s *Server) handleRouteCreate(c *gin.Context) {
 		return
 	}
 
-	authCfg, err := getAuthConfiguration(s, ctx)
+	authCfg, err := s.DockerAuth.GetAuthConfiguration(ctx)
 	if err != nil {
 		log.WithError(err).Error(models.ErrInvalidDockerCreds)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrInvalidDockerCreds))

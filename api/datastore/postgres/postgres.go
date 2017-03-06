@@ -8,11 +8,11 @@ import (
 
 	"context"
 
+	"bytes"
 	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"bytes"
 )
 
 const routesTableCreate = `
@@ -317,7 +317,6 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 		return err
 	})
 
-
 	if err != nil {
 		return nil, err
 	}
@@ -606,33 +605,6 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 
 	return []byte(value), nil
 }
-
-func (ds *PostgresDatastore) SaveDockerCredentials(ctx context.Context, dockerLogin models.DockerCreds) error {
-
-	val, err := json.Marshal(dockerLogin)
-	if err != nil {
-		return err
-	}
-
-	return ds.Put(ctx, []byte("dockerLogin"), val)
-}
-
-func (ds *PostgresDatastore) GetDockerCredentials(ctx context.Context) (*models.DockerCreds, error) {
-	data, err := ds.Get(ctx, []byte("dockerLogin"))
-	if err != nil {
-		return nil, err
-	}
-	if data == nil {
-		return nil, nil
-	}
-	val := &models.DockerCreds{}
-	err = json.Unmarshal(data, val)
-	if err != nil {
-		return nil, err
-	}
-	return val, nil
-}
-
 
 func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
 	tx, err := ds.db.Begin()

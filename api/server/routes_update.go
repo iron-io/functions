@@ -41,7 +41,7 @@ func (s *Server) handleRouteUpdate(c *gin.Context) {
 	wroute.Route.Path = path.Clean(c.MustGet(api.Path).(string))
 
 	if wroute.Route.Image != "" {
-		authCfg, err := getAuthConfiguration(s, ctx)
+		authCfg, err := s.DockerAuth.GetAuthConfiguration(ctx)
 		if err != nil {
 			log.WithError(err).Error(models.ErrInvalidDockerCreds)
 			c.JSON(http.StatusInternalServerError, simpleError(models.ErrInvalidDockerCreds))

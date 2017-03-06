@@ -15,6 +15,7 @@ import (
 	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
+	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -34,11 +35,12 @@ const (
 )
 
 type Server struct {
-	Datastore models.Datastore
-	Runner    *runner.Runner
-	Router    *gin.Engine
-	MQ        models.MessageQueue
-	Enqueue   models.Enqueue
+	Datastore  models.Datastore
+	Runner     *runner.Runner
+	Router     *gin.Engine
+	MQ         models.MessageQueue
+	Enqueue    models.Enqueue
+	DockerAuth auth.DockerAuth
 
 	apiURL string
 
@@ -69,11 +71,16 @@ func NewFromEnv(ctx context.Context) *Server {
 
 	apiURL := viper.GetString(EnvAPIURL)
 
-	return New(ctx, ds, mq, apiURL)
+	auth := auth.DockerAuth{
+		Datastore: ds,
+		Key:       []byte("AES256Key-32Characters1234567890"),
+	}
+
+	return New(ctx, ds, mq, auth, apiURL)
 }
 
 // New creates a new IronFunctions server with the passed in datastore, message queue and API URL
-func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiURL string, opts ...ServerOption) *Server {
+func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, auth auth.DockerAuth, apiURL string, opts ...ServerOption) *Server {
 	metricLogger := runner.NewMetricLogger()
 	funcLogger := runner.NewFuncLogger()
 
@@ -85,14 +92,15 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 
 	tasks := make(chan task.Request)
 	s := &Server{
-		Runner:    rnr,
-		Router:    gin.New(),
-		Datastore: ds,
-		MQ:        mq,
-		hotroutes: routecache.New(cacheSize),
-		tasks:     tasks,
-		Enqueue:   DefaultEnqueue,
-		apiURL:    apiURL,
+		Runner:     rnr,
+		Router:     gin.New(),
+		Datastore:  ds,
+		MQ:         mq,
+		DockerAuth: auth,
+		hotroutes:  routecache.New(cacheSize),
+		tasks:      tasks,
+		Enqueue:    DefaultEnqueue,
+		apiURL:     apiURL,
 	}
 
 	s.Router.Use(prepareMiddleware(ctx))

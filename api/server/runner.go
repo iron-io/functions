@@ -126,7 +126,7 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	route := routes[0]
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
-	authCfg, err := getAuthConfiguration(s, ctx)
+	authCfg, err := s.DockerAuth.GetAuthConfiguration(ctx)
 	if err != nil {
 		log.WithError(err).Error(models.ErrInvalidDockerCreds)
 		c.JSON(http.StatusInternalServerError, simpleError(models.ErrInvalidDockerCreds))
