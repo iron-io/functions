@@ -18,8 +18,6 @@ spec:
         securityContext:
           privileged: true
         env:
-        - name: DOCKER_HOST
-          value: unix:///var/run/docker.sock
         - name: MQ_URL
           valueFrom:
             configMapKeyRef:
@@ -30,14 +28,6 @@ spec:
             configMapKeyRef:
               name: functions-config
               key: DB_URL
-        volumeMounts:
-        - mountPath: "/var/run/docker.sock"
-          name: docker-socket
-          readOnly: false
         ports:
         - name: http-server
           containerPort: 8080
-      volumes:
-      - name: docker-socket
-        hostPath:
-          path: "/var/run/docker.sock"
