@@ -6,7 +6,9 @@ The test harness keeps track of which node each request was routed to so we can 
 of fnlb is to normally route traffic to the same small number of nodes so that efficiences can be achieved and to support reuse of hot functions.
 ### Primes function
 The test harness utilizes the "primes" function, which calculates prime numbers as an excuse for consuming CPU resources.  The function is invoked as follows:
-```curl http://host:8080/r/primesapp/primes?max=1000000&loops=1```
+```
+curl http://host:8080/r/primesapp/primes?max=1000000&loops=1
+```
 where:
 - *max*: calculate all primes <= max (increasing max will increase memory usage, due to the Sieve of Eratosthenes algorithm)
 - *loops*: number of times to calculate the primes (repeating the count consumes additional CPU without consuming additional memory)
@@ -44,11 +46,37 @@ go run main.go -help
 <i>Command line parameters:</i>
 - *-calls*: number of times to call the route (default 100)
 - *-lb*: host and port of load balancer (default "localhost:8081")
-- *-loops*: number of times to execute the primes calculation (ex: 'loops=2' means run the primes calculation twice) (default 1)
+- *-loops*: number of times to execute the primes calculation (ex: '-loops 2' means run the primes calculation twice) (default 1)
 - *-max*: maximum number to search for primes (higher number consumes more memory) (default 1000000)
 - *-nodes*: comma-delimited list of nodes (host:port) balanced by the load balancer (needed to discover container id of each) (default "localhost:8080")
 - *-route*: path representing the route to the primes function (default "/r/primesapp/primes")
-- *-v*: true for more verbose output
+- *-v*: flag indicating verbose output
+
+### Examples: quick vs long running
+
+**Quick function:**: calculate primes up to 1000
+```
+go run main.go -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086 -max 1000 -v
+```
+where *-max* is default of 1M, *-calls* is default of 100, *-route* is default of "/r/primesapp/primes", *-lb* is default localhost:8081
+
+**Normal function**: calculate primes up to 1M
+```
+go run main.go -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086 -v
+```
+where *-max* is default of 1M, *-calls* is default of 100, *-route* is default of "/r/primesapp/primes", *-lb* is default localhost:8081
+
+**Longer running function**: calculate primes up to 1M and perform the calculation ten times
+```
+go run main.go -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086 -loops 10 -v
+```
+where *-max* is default of 1M, *-calls* is default of 100, *-route* is default of "/r/primesapp/primes", *-lb* is default localhost:8081
+
+**1000 calls to the route**: send 1000 requests through the load balancer
+```
+go run main.go -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086 -calls 1000 -v
+```
+where *-max* is default of 1M, *-calls* is default of 100, *-route* is default of "/r/primesapp/primes", *-lb* is default localhost:8081
 
 ## Planned Enhancements
 - Create 1000 routes and distribute calls amongst them.
