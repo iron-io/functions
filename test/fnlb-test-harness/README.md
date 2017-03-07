@@ -21,7 +21,12 @@ After it has run, examine the results to see how the requests were distributed a
 ### How to run it locally
 Each of the IronFunctions nodes needs to connect to the same database.
 
-STEP 1: Run five IronFunctions nodes locally.  Example (runs five nodes in the background using Docker):
+STEP 1: Create a route for the primes function.  Example:
+```
+fn apps create primesapp
+fn routes create primesapp /primes jconning/primes:0.0.1
+```
+STEP 2: Run five IronFunctions nodes locally.  Example (runs five nodes in the background using Docker):
 ```
 sudo docker run -d -it --name functions-8082 --privileged -v ${HOME}/data-8082:/app/data -p 8082:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
 sudo docker run -d -it --name functions-8083 --privileged -v ${HOME}/data-8083:/app/data -p 8083:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
@@ -29,16 +34,16 @@ sudo docker run -d -it --name functions-8084 --privileged -v ${HOME}/data-8084:/
 sudo docker run -d -it --name functions-8085 --privileged -v ${HOME}/data-8085:/app/data -p 8085:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
 sudo docker run -d -it --name functions-8086 --privileged -v ${HOME}/data-8086:/app/data -p 8086:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
 ```
-STEP 2: Run fnlb locally.  Example (runs fnlb on the default port 8081):
+STEP 3: Run fnlb locally.  Example (runs fnlb on the default port 8081):
 ```
 fnlb -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086
 ```
-STEP 3: Run the test harness.  Note that the 'nodes' parameter should be the same that was used with fnlb.  Example:
+STEP 4: Run the test harness.  Note that the 'nodes' parameter should be the same that was used with fnlb.  Example:
 ```
 cd functions/test/fnlb-test-harness
 go run main.go -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086 -calls 10 -v
 ```
-STEP 4: Examine the output to determine how many times fnlb called each node.  Assess whether it is working properly.
+STEP 5: Examine the output to determine how many times fnlb called each node.  Assess whether it is working properly.
 
 ### Usage
 go run main.go -help
