@@ -18,7 +18,8 @@ because the test harness must call each node directly one time in order to disco
 After it has run, examine the results to see how the requests were distributed across the nodes.
 ### How to run it locally
 Each of the IronFunctions nodes needs to connect to the same database.
-1. Run five IronFunctions nodes locally.  Example (runs three nodes in the background using Docker):
+
+STEP 1: Run five IronFunctions nodes locally.  Example (runs five nodes in the background using Docker):
 ```
 sudo docker run -d -it --name functions-8082 --privileged -v ${HOME}/data-8082:/app/data -p 8082:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
 sudo docker run -d -it --name functions-8083 --privileged -v ${HOME}/data-8083:/app/data -p 8083:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
@@ -26,18 +27,20 @@ sudo docker run -d -it --name functions-8084 --privileged -v ${HOME}/data-8084:/
 sudo docker run -d -it --name functions-8085 --privileged -v ${HOME}/data-8085:/app/data -p 8085:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
 sudo docker run -d -it --name functions-8086 --privileged -v ${HOME}/data-8086:/app/data -p 8086:8080 -e "DB_URL=postgres://dbUser:dbPassword@dbHost:5432/dbName" iron/functions
 ```
-2. Run fnlb locally.  Example (runs fnlb on the default port 8081):
+STEP 2: Run fnlb locally.  Example (runs fnlb on the default port 8081):
 ```
 fnlb -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086
 ```
-3. Run the test harness.  Note that the 'nodes' parameter should be the same that was used with fnlb.  Example:
+STEP 3: Run the test harness.  Note that the 'nodes' parameter should be the same that was used with fnlb.  Example:
 ```
 cd functions/test/fnlb-test-harness
 go run main.go -nodes localhost:8082,localhost:8083,localhost:8084,localhost:8085,localhost:8086 -calls 10 -v
 ```
-4. Examine the output to determine how many times fnlb called each node.  Assess whether it is working properly.
+STEP 4: Examine the output to determine how many times fnlb called each node.  Assess whether it is working properly.
+
 ### Usage
 go run main.go -help
+
 <i>Command line parameters:</i>
 - *-calls*: number of times to call the route (default 100)
 - *-lb*: host and port of load balancer (default "localhost:8081")
@@ -46,6 +49,7 @@ go run main.go -help
 - *-nodes*: comma-delimited list of nodes (host:port) balanced by the load balancer (needed to discover container id of each) (default "localhost:8080")
 - *-route*: path representing the route to the primes function (default "/r/primesapp/primes")
 - *-v*: true for more verbose output
+
 ## Planned Enhancements
 - Create 1000 routes and distribute calls amongst them.
 - Use concurrent programming to enable the test harness to call multiple routes at the same time.
