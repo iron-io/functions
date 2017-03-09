@@ -2,7 +2,7 @@
 .PHONY: all test dep build
 
 dep:
-	glide install --strip-vendor --strip-vcs
+	glide install --strip-vendor
 
 build:
 	go build -o functions
