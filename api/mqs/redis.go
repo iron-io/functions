@@ -20,9 +20,10 @@ type RedisMQ struct {
 	queueName string
 	ticker    *time.Ticker
 	prefix    string
+	reservationTimeout time.Duration
 }
 
-func NewRedisMQ(url *url.URL) (*RedisMQ, error) {
+func NewRedisMQ(url *url.URL, reservationTimeout time.Duration) (*RedisMQ, error) {
 
 	pool := &redis.Pool{
 		MaxIdle: 4,
@@ -50,6 +51,7 @@ func NewRedisMQ(url *url.URL) (*RedisMQ, error) {
 		pool:   pool,
 		ticker: time.NewTicker(time.Second),
 		prefix: url.Path,
+		reservationTimeout: reservationTimeout,
 	}
 	mq.queueName = mq.k("queue")
 	logrus.WithFields(logrus.Fields{"name": mq.queueName}).Info("Redis initialized with queue name")
@@ -210,6 +212,18 @@ func (mq *RedisMQ) delayTask(conn redis.Conn, job *models.Task) (*models.Task, e
 }
 
 func (mq *RedisMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
+	if job == nil {
+		return nil, models.ErrMQMissingTask
+	}
+	if job.ID == "" {
+		return nil, models.ErrMQEmptyTaskID
+	}
+	if job.Priority == nil {
+		return nil, models.ErrMQMissingTaskPriority
+	}
+	if *job.Priority < 0 || *job.Priority > 2 {
+		return nil, models.NewErrMQInvalidTaskPriority(job)
+	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	defer log.Println("Pushed to MQ")
 
@@ -265,7 +279,7 @@ func (mq *RedisMQ) Reserve(ctx context.Context) (*models.Task, error) {
 		return nil, err
 	}
 	reservationId := strconv.FormatInt(response, 10)
-	_, err = conn.Do("ZADD", "timeout:", time.Now().Add(time.Minute).Unix(), reservationId)
+	_, err = conn.Do("ZADD", "timeout:", time.Now().Add(mq.reservationTimeout).Unix(), reservationId)
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +301,18 @@ func (mq *RedisMQ) Reserve(ctx context.Context) (*models.Task, error) {
 }
 
 func (mq *RedisMQ) Delete(ctx context.Context, job *models.Task) error {
+	if job == nil {
+		return models.ErrMQMissingTask
+	}
+	if job.ID == "" {
+		return models.ErrMQEmptyTaskID
+	}
+	if job.Priority == nil {
+		return models.ErrMQMissingTaskPriority
+	}
+	if *job.Priority < 0 || *job.Priority > 2 {
+		return models.NewErrMQInvalidTaskPriority(job)
+	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	defer log.Println("Deleted")
 
@@ -295,7 +321,10 @@ func (mq *RedisMQ) Delete(ctx context.Context, job *models.Task) error {
 	resId, err := conn.Do("HGET", "reservations", job.ID)
 	if err != nil {
 		return err
+	} else if resId == nil {
+		return models.ErrMQTaskNotReserved
 	}
+
 	_, err = conn.Do("HDEL", "reservations", job.ID)
 	if err != nil {
 		return err

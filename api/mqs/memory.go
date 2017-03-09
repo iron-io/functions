@@ -2,13 +2,12 @@ package mqs
 
 import (
 	"context"
-	"errors"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/google/btree"
+
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 )
@@ -24,22 +23,12 @@ type MemoryMQ struct {
 	// goroutine to clear up timed out messages could also become a bottleneck at
 	// some point. May need to switch to bucketing of some sort.
 	Mutex sync.Mutex
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randSeq(n int) string {
-	rand.Seed(time.Now().Unix())
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
+	reserveTimeout time.Duration
 }
 
 const NumPriorities = 3
 
-func NewMemoryMQ() *MemoryMQ {
+func NewMemoryMQ(reserveTimeout time.Duration) *MemoryMQ {
 	var queues []chan *models.Task
 	for i := 0; i < NumPriorities; i++ {
 		queues = append(queues, make(chan *models.Task, 5000))
@@ -50,6 +39,7 @@ func NewMemoryMQ() *MemoryMQ {
 		Ticker:         ticker,
 		BTree:          btree.New(2),
 		Timeouts:       make(map[string]*TaskItem, 0),
+		reserveTimeout: reserveTimeout,
 	}
 	mq.start()
 	logrus.Info("MemoryMQ initialized")
@@ -112,6 +102,18 @@ func (ji *TaskItem) Less(than btree.Item) bool {
 }
 
 func (mq *MemoryMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
+	if job == nil {
+		return nil, models.ErrMQMissingTask
+	}
+	if job.ID == "" {
+		return nil, models.ErrMQEmptyTaskID
+	}
+	if job.Priority == nil {
+		return nil, models.ErrMQMissingTaskPriority
+	}
+	if *job.Priority < 0 || *job.Priority > 2 {
+		return nil, models.NewErrMQInvalidTaskPriority(job)
+	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	log.Println("Pushed to MQ")
 
@@ -140,7 +142,7 @@ func (mq *MemoryMQ) pushTimeout(job *models.Task) error {
 
 	ji := &TaskItem{
 		Task:    job,
-		StartAt: time.Now().Add(time.Minute),
+		StartAt: time.Now().Add(mq.reserveTimeout),
 	}
 	mq.Mutex.Lock()
 	mq.Timeouts[job.ID] = ji
@@ -179,13 +181,25 @@ func (mq *MemoryMQ) Reserve(ctx context.Context) (*models.Task, error) {
 }
 
 func (mq *MemoryMQ) Delete(ctx context.Context, job *models.Task) error {
+	if job == nil {
+		return models.ErrMQMissingTask
+	}
+	if job.ID == "" {
+		return models.ErrMQEmptyTaskID
+	}
+	if job.Priority == nil {
+		return models.ErrMQMissingTaskPriority
+	}
+	if *job.Priority < 0 || *job.Priority > 2 {
+		return models.NewErrMQInvalidTaskPriority(job)
+	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 
 	mq.Mutex.Lock()
 	defer mq.Mutex.Unlock()
 	_, exists := mq.Timeouts[job.ID]
 	if !exists {
-		return errors.New("Not reserved")
+		return models.ErrMQTaskNotReserved
 	}
 
 	delete(mq.Timeouts, job.ID)
