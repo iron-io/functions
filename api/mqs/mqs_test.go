@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,18 +19,6 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-var logBuf bytes.Buffer
-
-func captureLogs() {
-	logrus.SetOutput(&logBuf)
-	log.SetOutput(&logBuf)
-}
-
-func resetLogBuf() {
-	logBuf.Reset()
-	logBuf.WriteByte('\n')
-}
-
 const (
 	testReserveTimeout = 2 * time.Second
 
@@ -37,6 +26,14 @@ const (
 	tmpRedis = "redis://127.0.0.1:6301/"
 	tmpIron  = "ironmq+http://test:test@127.0.0.1:8080/test"
 )
+
+// A test fixture for generating test message queues.
+type fixture struct {
+	// Returns a new message queue.
+	newMQFunc func(*testing.T) models.MessageQueue
+	// Releases any background resources (e.g. docker containers) started by the creation of this fixture.
+	shutdown func()
+}
 
 var tests = map[string]func(*testing.T){
 
@@ -66,7 +63,7 @@ var tests = map[string]func(*testing.T){
 		}
 		var mq models.MessageQueue
 		f := &fixture{
-			newMQFunc: func(*testing.T) models.MessageQueue {
+			newMQFunc: func(t *testing.T) models.MessageQueue {
 				if mq != nil {
 					mq.Close()
 				}
@@ -100,7 +97,9 @@ var tests = map[string]func(*testing.T){
 		}
 		f := &fixture{
 			newMQFunc: func(t *testing.T) models.MessageQueue {
-				//TODO reset/clear redis each time
+				if err := mq.clear(); err != nil {
+					t.Fatalf("failed to clear queue: %s", err)
+				}
 				return mq
 			},
 			shutdown: func() {
@@ -122,7 +121,7 @@ var tests = map[string]func(*testing.T){
 			t.Fatalf("failed to parse ironmq url: `%v`", err)
 		}
 
-		var mq models.MessageQueue
+		var mq *IronMQ
 
 		timeout := time.After(20 * time.Second)
 		for {
@@ -141,7 +140,9 @@ var tests = map[string]func(*testing.T){
 
 		f := &fixture{
 			newMQFunc: func(t *testing.T) models.MessageQueue {
-				//TODO reset/clear ironmq each time
+				if err := mq.clear(); err != nil {
+					t.Fatalf("failed to clear queues: %s", err)
+				}
 				return mq
 			},
 			shutdown: func() {
@@ -160,14 +161,6 @@ func TestMQ(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, test)
 	}
-}
-
-// A test fixture for generating test message queues.
-type fixture struct {
-	// Returns a new message queue.
-	newMQFunc func(*testing.T) models.MessageQueue
-	// Releases any background resources (e.g. docker containers) started by the creation of this fixture.
-	shutdown func()
 }
 
 func (fixture fixture) newMQ(t *testing.T) models.MessageQueue {
@@ -335,7 +328,6 @@ func (fixture fixture) run(t *testing.T) {
 
 	// TODO iron fails single-timeout
 	// TODO redis fails single-timeout
-	// TODO bolt fails single timeout; allows delete when not reserved
 	t.Run("single-timeout", func(t *testing.T) {
 		mq := fixture.newMQ(t)
 
@@ -607,4 +599,33 @@ func mustRun(fatalf func(string, ...interface{}), desc string, cmd *exec.Cmd) {
 	if err := cmd.Run(); err != nil {
 		fatalf("failed to %s: %s", desc, b.String())
 	}
+}
+
+func (mq *RedisMQ) clear() error {
+	conn := mq.pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("FLUSHDB")
+	return err
+}
+
+func (mq *IronMQ) clear() error {
+	for i := 0; i < 3; i++ {
+		err := mq.queues[i].Clear()
+		if err != nil && !strings.Contains(err.Error(), "404 Not Found") {
+			return err
+		}
+	}
+	return nil
+}
+
+var logBuf bytes.Buffer
+
+func captureLogs() {
+	logrus.SetOutput(&logBuf)
+	log.SetOutput(&logBuf)
+}
+
+func resetLogBuf() {
+	logBuf.Reset()
+	logBuf.WriteByte('\n')
 }

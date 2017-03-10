@@ -39,7 +39,7 @@ type IronMQConfig struct {
 	QueuePrefix string `mapstructure:"queue_prefix"`
 }
 
-func NewIronMQ(url *url.URL, reserveTimeout time.Duration) (models.MessageQueue, error) {
+func NewIronMQ(url *url.URL, reserveTimeout time.Duration) (*IronMQ, error) {
 	if url.User == nil || url.User.Username() == "" {
 		logrus.Fatal("IronMQ requires PROJECT_ID and TOKEN")
 	}

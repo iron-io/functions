@@ -23,7 +23,7 @@ type RedisMQ struct {
 	reservationTimeout time.Duration
 }
 
-func NewRedisMQ(url *url.URL, reservationTimeout time.Duration) (models.MessageQueue, error) {
+func NewRedisMQ(url *url.URL, reservationTimeout time.Duration) (*RedisMQ, error) {
 
 	pool := &redis.Pool{
 		MaxIdle: 4,
@@ -173,6 +173,7 @@ func (mq *RedisMQ) start() {
 
 func (mq *RedisMQ) Close() {
 	mq.ticker.Stop()
+	mq.pool.Close()
 }
 
 func redisPush(conn redis.Conn, queue string, job *models.Task) (*models.Task, error) {
