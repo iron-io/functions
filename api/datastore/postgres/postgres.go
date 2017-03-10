@@ -47,10 +47,6 @@ type rowScanner interface {
 	Scan(dest ...interface{}) error
 }
 
-type rowQuerier interface {
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
 type PostgresDatastore struct {
 	db *sql.DB
 }
@@ -177,17 +173,18 @@ func (ds *PostgresDatastore) GetApp(ctx context.Context, name string) (*models.A
 	var resName string
 	var config string
 	err := row.Scan(&resName, &config)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, models.ErrAppsNotFound
+		}
+		return nil, err
+	}
 
 	res := &models.App{
 		Name: resName,
 	}
 
-	json.Unmarshal([]byte(config), &res.Config)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, models.ErrAppsNotFound
-		}
+	if err := json.Unmarshal([]byte(config), &res.Config); err != nil {
 		return nil, err
 	}
 
@@ -201,10 +198,11 @@ func scanApp(scanner rowScanner, app *models.App) error {
 		&app.Name,
 		&configStr,
 	)
+	if err != nil {
+		return err
+	}
 
-	json.Unmarshal([]byte(configStr), &app.Config)
-
-	return err
+	return json.Unmarshal([]byte(configStr), &app.Config)
 }
 
 func (ds *PostgresDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
