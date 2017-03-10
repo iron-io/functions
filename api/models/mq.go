@@ -58,6 +58,8 @@ type MessageQueue interface {
 	//
 	// Task fields ID and Priority must be set.
 	Delete(context.Context, *Task) error
+
+	Close()
 }
 
 type Enqueue func(context.Context, MessageQueue, *Task) (*Task, error)

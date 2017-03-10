@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
 	"github.com/Sirupsen/logrus"
+	"github.com/garyburd/redigo/redis"
 
 	"github.com/iron-io/functions/api/models"
 )
@@ -41,11 +41,20 @@ const (
 var tests = map[string]func(*testing.T){
 
 	"memory": func(t *testing.T) {
+		var mq models.MessageQueue
 		f := &fixture{
 			newMQFunc: func(*testing.T) models.MessageQueue {
-				return NewMemoryMQ(testReserveTimeout)
+				if mq != nil {
+					mq.Close()
+				}
+				mq := NewMemoryMQ(testReserveTimeout)
+				return mq
 			},
-			shutdown: func() {},
+			shutdown: func() {
+				if mq != nil {
+					mq.Close()
+				}
+			},
 		}
 		f.run(t)
 	},
@@ -55,17 +64,24 @@ var tests = map[string]func(*testing.T){
 		if err != nil {
 			t.Fatalf("failed to parse bolt url: `%v`", err)
 		}
+		var mq models.MessageQueue
 		f := &fixture{
 			newMQFunc: func(*testing.T) models.MessageQueue {
-				//TODO should bolt be closed before file removal?
+				if mq != nil {
+					mq.Close()
+				}
 				os.Remove(tmpBolt)
-				mq, err := NewBoltMQ(url, testReserveTimeout)
+				var err error
+				mq, err = NewBoltMQ(url, testReserveTimeout)
 				if err != nil {
 					t.Fatalf("failed to create bolt mq: `%v`", err)
 				}
 				return mq
 			},
 			shutdown: func() {
+				if mq != nil {
+					mq.Close()
+				}
 				os.Remove(tmpBolt)
 			},
 		}
@@ -88,6 +104,9 @@ var tests = map[string]func(*testing.T){
 				return mq
 			},
 			shutdown: func() {
+				if mq != nil {
+					mq.Close()
+				}
 				tryRun(t.Logf, "stop redis container", exec.Command("docker", "rm", "-f", "iron-redis-test"))
 			},
 		}
@@ -126,6 +145,9 @@ var tests = map[string]func(*testing.T){
 				return mq
 			},
 			shutdown: func() {
+				if mq != nil {
+					mq.Close()
+				}
 				tryRun(t.Logf, "stop ironmq container", exec.Command("docker", "rm", "-f", "iron-mq-test"))
 			},
 		}
@@ -229,7 +251,7 @@ func (fixture fixture) run(t *testing.T) {
 		*negativePriority.Priority = -1
 		if task, err := mq.Push(ctx, &negativePriority); err == nil {
 			t.Error("expected invalid priority error but got none")
-		} else if ! models.IsErrMQInvalidTaskPriority(err) {
+		} else if !models.IsErrMQInvalidTaskPriority(err) {
 			t.Errorf("expected invalid priority error but got `%v`", err)
 		} else if task != nil {
 			t.Errorf("expected nil task but got: %v", task)
@@ -246,7 +268,7 @@ func (fixture fixture) run(t *testing.T) {
 		*invalidPriority.Priority = 5
 		if task, err := mq.Push(ctx, &invalidPriority); err == nil {
 			t.Error("expected invalid priority error but got none")
-		} else if ! models.IsErrMQInvalidTaskPriority(err) {
+		} else if !models.IsErrMQInvalidTaskPriority(err) {
 			t.Errorf("expected invalid priority error but got `%v`", err)
 		} else if task != nil {
 			t.Errorf("expected nil task but got: %v", task)
@@ -431,9 +453,9 @@ func (fixture fixture) run(t *testing.T) {
 		}
 	})
 
-	// TODO iron fails fifo-timeout
-	// TODO memory fails fifo-timeout
-	// TODO redis fails fifo-timeout
+	// TODO iron fails fifo-timeout;
+	// TODO memory fails fifo-timeout; channels too limited
+	// TODO redis fails fifo-timeout; simple queue
 	t.Run("fifo-timeout", func(t *testing.T) {
 		mq := fixture.newMQ(t)
 

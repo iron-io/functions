@@ -52,7 +52,7 @@ func timeoutName(i int) []byte {
 	return []byte(fmt.Sprintf("functions_%d_timeout", i))
 }
 
-func NewBoltMQ(url *url.URL, reserveTimeout time.Duration) (*BoltDbMQ, error) {
+func NewBoltMQ(url *url.URL, reserveTimeout time.Duration) (models.MessageQueue, error) {
 	dir := filepath.Dir(url.Path)
 	log := logrus.WithFields(logrus.Fields{"mq": url.Scheme, "dir": dir})
 	err := os.MkdirAll(dir, 0755)
@@ -176,6 +176,10 @@ func (mq *BoltDbMQ) Start() {
 			}
 		}
 	}()
+}
+
+func (mq *BoltDbMQ) Close() {
+	mq.ticker.Stop()
 }
 
 // We insert a "reservation" at readyAt, and store the json blob at the msg

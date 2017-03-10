@@ -89,6 +89,10 @@ func (mq *MemoryMQ) start() {
 	}()
 }
 
+func (mq *MemoryMQ) Close() {
+	mq.Ticker.Stop()
+}
+
 // TaskItem is for the Btree, implements btree.Item
 type TaskItem struct {
 	Task    *models.Task
