@@ -88,14 +88,6 @@ func (ds *PostgresDatastore) InsertApp(ctx context.Context, app *models.App) (*m
 	var cbyte []byte
 	var err error
 
-	if app == nil {
-		return nil, models.ErrDatastoreEmptyApp
-	}
-
-	if app.Name == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
 	if app.Config != nil {
 		cbyte, err = json.Marshal(app.Config)
 		if err != nil {
