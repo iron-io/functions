@@ -411,15 +411,18 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&headerStr,
 		&configStr,
 	)
+	if err != nil {
+		return err
+	}
 
 	if headerStr == "" {
 		return models.ErrRoutesNotFound
 	}
 
-	json.Unmarshal([]byte(headerStr), &route.Headers)
-	json.Unmarshal([]byte(configStr), &route.Config)
-
-	return err
+	if err := json.Unmarshal([]byte(headerStr), &route.Headers); err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(configStr), &route.Config)
 }
 
 func (ds *PostgresDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
