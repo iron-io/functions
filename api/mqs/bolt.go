@@ -210,17 +210,8 @@ func (mq *BoltDbMQ) delayTask(job *models.Task) (*models.Task, error) {
 }
 
 func (mq *BoltDbMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
-	if job == nil {
-		return nil, models.ErrMQMissingTask
-	}
-	if job.ID == "" {
-		return nil, models.ErrMQEmptyTaskID
-	}
-	if job.Priority == nil {
-		return nil, models.ErrMQMissingTaskPriority
-	}
-	if *job.Priority < 0 || *job.Priority > 2 {
-		return nil, models.NewErrMQInvalidTaskPriority(job)
+	if err := validate(job); err != nil {
+		return nil, err
 	}
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	log.Println("Pushed to MQ")
@@ -342,17 +333,8 @@ func (mq *BoltDbMQ) Reserve(ctx context.Context) (*models.Task, error) {
 }
 
 func (mq *BoltDbMQ) Delete(ctx context.Context, job *models.Task) error {
-	if job == nil {
-		return models.ErrMQMissingTask
-	}
-	if job.ID == "" {
-		return models.ErrMQEmptyTaskID
-	}
-	if job.Priority == nil {
-		return models.ErrMQMissingTaskPriority
-	}
-	if *job.Priority < 0 || *job.Priority > 2 {
-		return models.NewErrMQInvalidTaskPriority(job)
+	if err := validate(job); err != nil {
+		return err
 	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	defer log.Println("Deleted")

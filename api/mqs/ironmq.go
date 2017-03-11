@@ -100,17 +100,8 @@ func NewIronMQ(url *url.URL, reserveTimeout time.Duration) (*IronMQ, error) {
 func (mq *IronMQ) Close() {}
 
 func (mq *IronMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
-	if job == nil {
-		return nil, models.ErrMQMissingTask
-	}
-	if job.ID == "" {
-		return nil, models.ErrMQEmptyTaskID
-	}
-	if job.Priority == nil {
-		return nil, models.ErrMQMissingTaskPriority
-	}
-	if *job.Priority < 0 || *job.Priority > 2 {
-		return nil, models.NewErrMQInvalidTaskPriority(job)
+	if err := validate(job); err != nil {
+		return nil, err
 	}
 
 	// Push the work onto the queue.
@@ -164,17 +155,8 @@ func (mq *IronMQ) Reserve(ctx context.Context) (*models.Task, error) {
 }
 
 func (mq *IronMQ) Delete(ctx context.Context, job *models.Task) error {
-	if job == nil {
-		return models.ErrMQMissingTask
-	}
-	if job.ID == "" {
-		return models.ErrMQEmptyTaskID
-	}
-	if job.Priority == nil {
-		return models.ErrMQMissingTaskPriority
-	}
-	if *job.Priority < 0 || *job.Priority > 2 {
-		return models.NewErrMQInvalidTaskPriority(job)
+	if err := validate(job); err != nil {
+		return err
 	}
 	mq.Lock()
 	assoc, exists := mq.msgAssoc[job.ID]

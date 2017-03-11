@@ -205,17 +205,8 @@ func (mq *RedisMQ) delayTask(conn redis.Conn, job *models.Task) (*models.Task, e
 }
 
 func (mq *RedisMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
-	if job == nil {
-		return nil, models.ErrMQMissingTask
-	}
-	if job.ID == "" {
-		return nil, models.ErrMQEmptyTaskID
-	}
-	if job.Priority == nil {
-		return nil, models.ErrMQMissingTaskPriority
-	}
-	if *job.Priority < 0 || *job.Priority > 2 {
-		return nil, models.NewErrMQInvalidTaskPriority(job)
+	if err := validate(job); err != nil {
+		return nil, err
 	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	defer log.Println("Pushed to MQ")
@@ -295,17 +286,8 @@ func (mq *RedisMQ) Reserve(ctx context.Context) (*models.Task, error) {
 }
 
 func (mq *RedisMQ) Delete(ctx context.Context, job *models.Task) error {
-	if job == nil {
-		return models.ErrMQMissingTask
-	}
-	if job.ID == "" {
-		return models.ErrMQEmptyTaskID
-	}
-	if job.Priority == nil {
-		return models.ErrMQMissingTaskPriority
-	}
-	if *job.Priority < 0 || *job.Priority > 2 {
-		return models.NewErrMQInvalidTaskPriority(job)
+	if err := validate(job); err != nil {
+		return err
 	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	defer log.Println("Deleted")
