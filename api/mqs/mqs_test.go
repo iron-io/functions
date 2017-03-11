@@ -9,12 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/garyburd/redigo/redis"
+	ironmq "github.com/iron-io/iron_go3/mq"
 
 	"github.com/iron-io/functions/api/models"
 )
@@ -326,8 +326,6 @@ func (fixture fixture) run(t *testing.T) {
 		}
 	})
 
-	// TODO iron fails single-timeout
-	// TODO redis fails single-timeout
 	t.Run("single-timeout", func(t *testing.T) {
 		mq := fixture.newMQ(t)
 
@@ -352,7 +350,7 @@ func (fixture fixture) run(t *testing.T) {
 		}
 
 		// Let reservation timeout
-		<-time.After(2 * testReserveTimeout)
+		<-time.After(20 * testReserveTimeout)
 
 		if got, err := mq.Reserve(ctx); err != nil {
 			t.Log(logBuf.String())
@@ -366,7 +364,7 @@ func (fixture fixture) run(t *testing.T) {
 		}
 
 		// Let reservation timeout
-		<-time.After(2 * testReserveTimeout)
+		<-time.After(20 * testReserveTimeout)
 		// Delete too late
 		if err := mq.Delete(ctx, task); err != models.ErrMQTaskNotReserved {
 			t.Log(logBuf.String())
@@ -445,9 +443,7 @@ func (fixture fixture) run(t *testing.T) {
 		}
 	})
 
-	// TODO iron fails fifo-timeout;
-	// TODO memory fails fifo-timeout; channels too limited
-	// TODO redis fails fifo-timeout; simple queue
+	// TODO fix fifo-timeout for iron, redis and memory
 	t.Run("fifo-timeout", func(t *testing.T) {
 		mq := fixture.newMQ(t)
 
@@ -477,7 +473,7 @@ func (fixture fixture) run(t *testing.T) {
 			t.Fatal("unexpected nil first reserve")
 		}
 		// Let the reservation timeout
-		<-time.After(2 * testReserveTimeout)
+		<-time.After(20 * testReserveTimeout)
 
 		first, err = mq.Reserve(ctx)
 		if err != nil {
@@ -487,6 +483,9 @@ func (fixture fixture) run(t *testing.T) {
 			t.Log(logBuf.String())
 			t.Fatal("unexpected nil first reserve")
 		}
+		if first.ID != a.ID {
+			t.Errorf("expected 'A' first, but got %q", first.ID)
+		}
 		second, err := mq.Reserve(ctx)
 		if err != nil {
 			t.Log(logBuf.String())
@@ -494,10 +493,6 @@ func (fixture fixture) run(t *testing.T) {
 		} else if second == nil {
 			t.Log(logBuf.String())
 			t.Fatal("unexpected nil second reserve")
-		}
-
-		if first.ID != a.ID {
-			t.Errorf("expected 'A' first, but got %q", first.ID)
 		}
 		if second.ID != b.ID {
 			t.Errorf("expected 'B' second, but got %q", second.ID)
@@ -507,7 +502,6 @@ func (fixture fixture) run(t *testing.T) {
 		}
 	})
 
-	//TODO bolt fails delay
 	t.Run("delay", func(t *testing.T) {
 		mq := fixture.newMQ(t)
 
@@ -529,9 +523,6 @@ func (fixture fixture) run(t *testing.T) {
 			t.Fatalf("unexpected error pushing a: `%v`", err)
 		}
 
-		// Wait for delay
-		<-time.After(2 * time.Duration(a.Delay) * time.Second)
-
 		first, err := mq.Reserve(ctx)
 		if err != nil {
 			t.Log(logBuf.String())
@@ -540,6 +531,17 @@ func (fixture fixture) run(t *testing.T) {
 			t.Log(logBuf.String())
 			t.Fatal("unexpected nil first reserve")
 		}
+		if first.ID != b.ID {
+			t.Errorf("expected 'b' first, but got %q", first.ID)
+		}
+		if err := mq.Delete(ctx, first); err != nil {
+			t.Log(logBuf.String())
+			t.Fatal("unexpected error deleteing task")
+		}
+
+		// Wait for delay
+		<-time.After(2 * time.Duration(a.Delay) * time.Second)
+
 		second, err := mq.Reserve(ctx)
 		if err != nil {
 			t.Log(logBuf.String())
@@ -549,9 +551,6 @@ func (fixture fixture) run(t *testing.T) {
 			t.Fatal("unexpected nil second reserve")
 		}
 
-		if first.ID != b.ID {
-			t.Errorf("expected 'b' first, but got %q", first.ID)
-		}
 		if second.ID != a.ID {
 			t.Errorf("expected 'a' second, but got %q", second.ID)
 		}
@@ -611,7 +610,7 @@ func (mq *RedisMQ) clear() error {
 func (mq *IronMQ) clear() error {
 	for i := 0; i < 3; i++ {
 		err := mq.queues[i].Clear()
-		if err != nil && !strings.Contains(err.Error(), "404 Not Found") {
+		if err != nil && !ironmq.ErrQueueNotFound(err) {
 			return err
 		}
 	}

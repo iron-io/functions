@@ -27,7 +27,8 @@ type IronMQ struct {
 	sync.Mutex
 	// job id to {msgid, reservationid}
 	msgAssoc map[string]*assoc
-	reserveTimeout time.Duration
+	// Reserve timeout in seconds.
+	reserveTimeout int
 }
 
 type IronMQConfig struct {
@@ -78,7 +79,7 @@ func NewIronMQ(url *url.URL, reserveTimeout time.Duration) (*IronMQ, error) {
 	mq := &IronMQ{
 		queues:   make([]ironmq.Queue, 3),
 		msgAssoc: make(map[string]*assoc),
-		reserveTimeout: reserveTimeout,
+		reserveTimeout: int(reserveTimeout/time.Second),
 	}
 
 	// Check we can connect by trying to create one of the queues. Create is
@@ -127,10 +128,10 @@ func (mq *IronMQ) Reserve(ctx context.Context) (*models.Task, error) {
 	var messages []ironmq.Message
 	var err error
 	for i := 2; i >= 0; i-- {
-		messages, err = mq.queues[i].LongPoll(1, int(mq.reserveTimeout), 0 /* wait */, false /* delete */)
+		messages, err = mq.queues[i].LongPoll(1, mq.reserveTimeout, 0 /* wait */, false /* delete */)
 		if err != nil {
 			// It is OK if the queue does not exist, it will be created when a message is queued.
-			if !strings.Contains(err.Error(), "404 Not Found") {
+			if !ironmq.ErrQueueNotFound(err) {
 				return nil, err
 			}
 		}
@@ -181,7 +182,17 @@ func (mq *IronMQ) Delete(ctx context.Context, job *models.Task) error {
 	mq.Unlock()
 
 	if exists {
-		return mq.queues[*job.Priority].DeleteMessage(assoc.msgId, assoc.reservationId)
+		err := mq.queues[*job.Priority].DeleteMessage(assoc.msgId, assoc.reservationId)
+		if err != nil && ErrReservationTimedOut(err) {
+			return models.ErrMQTaskNotReserved
+		}
+		return err
 	}
+
 	return models.ErrMQTaskNotReserved
+}
+
+//TODO move to ironmq? (iron_go3/mq)
+func ErrReservationTimedOut(err error) bool {
+	return err.Error() == "403 Forbidden: Reservation has timed out"
 }
