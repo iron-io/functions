@@ -3,15 +3,15 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>functions</id>
-    <version>0.2.25</version>
-    <packageSourceUrl>https://github.com/iron-io/functions/</packageSourceUrl>
+    <version>0.2.36</version>
+    <packageSourceUrl>https://github.com/iron-io/functions</packageSourceUrl>
     
     <title>Iron.io Functions (Install)</title>
     <authors>Iron.io Inc.</authors>
-    <projectUrl>https://github.com/iron-io/functions/</projectUrl>
+    <projectUrl>https://github.com/iron-io/functions</projectUrl>
     <!--<iconUrl>http://cdn.rawgit.com/__REPLACE_YOUR_REPO__/master/icons/functions.png</iconUrl>-->
     <copyright>2017 Functions Iron.io</copyright>
-    <tags>serverless faas docker lambda</tags>
+    <tags>serverless functions faas docker lambda</tags>
     <summary>IronFunctions - the serverless microservices platform.</summary>
     <description>IronFunctions is an open source serverless platform, or as we like to refer to it, Functions as a Service (FaaS) platform that you can run anywhere.</description>
   </metadata>
