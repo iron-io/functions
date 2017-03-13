@@ -10,13 +10,21 @@ import (
 	"testing"
 )
 
-func TestDockerAuth_GetAuthConfiguration(t *testing.T) {
+func TestDockerAuth(t *testing.T) {
 
 	dockerAuth := DockerAuth{
-		Datastore: datastore.NewMock(nil, nil),
+		Datastore: datastore.NewMock(),
 		Key:       []byte("A159B69FAF460F55C0966B6383CE0917"),
 	}
 	ctx := context.Background()
+
+	newAuthCfg, err := dockerAuth.GetAuthConfiguration(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	if newAuthCfg == nil {
+		t.Error("authConfiguration shouldn't be nil")
+	}
 
 	authCfg := docker.AuthConfiguration{
 		Username:      "testName",
@@ -24,7 +32,6 @@ func TestDockerAuth_GetAuthConfiguration(t *testing.T) {
 		Email:         "email",
 		ServerAddress: "url",
 	}
-	//{"username": "string", "password": "string", "email": "string", "serveraddress" : "string", "auth": ""}
 	bytes, err := json.Marshal(authCfg)
 	if err != nil {
 		t.Error(err)
@@ -35,7 +42,7 @@ func TestDockerAuth_GetAuthConfiguration(t *testing.T) {
 		Auth: authString,
 	}
 	dockerAuth.SaveDockerCredentials(ctx, creds)
-	newAuthCfg, err := dockerAuth.GetAuthConfiguration(ctx)
+	newAuthCfg, err = dockerAuth.GetAuthConfiguration(ctx)
 	if err != nil {
 		t.Error(err)
 	}

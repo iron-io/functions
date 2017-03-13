@@ -32,6 +32,7 @@ const (
 	EnvDBURL    = "db_url"
 	EnvPort     = "port" // be careful, Gin expects this variable to be "port"
 	EnvAPIURL   = "api_url"
+	EnvAESKEY   = "aes_key"
 )
 
 type Server struct {
@@ -73,7 +74,7 @@ func NewFromEnv(ctx context.Context) *Server {
 
 	auth := auth.DockerAuth{
 		Datastore: ds,
-		Key:       []byte("AES256Key-32Characters1234567890"),
+		Key:       []byte(viper.GetString(EnvAESKEY)),
 	}
 
 	return New(ctx, ds, mq, auth, apiURL)

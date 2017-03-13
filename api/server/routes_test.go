@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -17,7 +18,7 @@ func TestRouteCreate(t *testing.T) {
 	defer close(tasks)
 
 	for i, test := range []struct {
-		mock          models.Datastore
+		dsMock        models.Datastore
 		path          string
 		body          string
 		expectedCode  int
@@ -37,7 +38,7 @@ func TestRouteCreate(t *testing.T) {
 		{datastore.NewMock(), "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.mock, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.dsMock, &mqs.Mock{}, rnr, tasks)
 
 		body := bytes.NewBuffer([]byte(test.body))
 		_, rec := routerRequest(t, srv.Router, "POST", test.path, body)

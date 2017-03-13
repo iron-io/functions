@@ -7,10 +7,10 @@ import (
 	"github.com/iron-io/functions/api/models"
 )
 
-type Mock struct {
-	Apps    []*models.App
-	Routes  []*models.Route
-	data map[string][]byte
+type mock struct {
+	Apps   []*models.App
+	Routes []*models.Route
+	data   map[string][]byte
 }
 
 func NewMock() models.Datastore {
@@ -135,5 +135,8 @@ func (m *mock) Put(ctx context.Context, key, value []byte) error {
 }
 
 func (m *mock) Get(ctx context.Context, key []byte) ([]byte, error) {
-	return m.data[string(key)], nil
+	if val, ok := m.data[string(key)]; ok {
+		return val, nil
+	}
+	return nil, nil
 }

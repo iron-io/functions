@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -17,17 +18,18 @@ import (
 	"github.com/iron-io/functions/api/server/internal/routecache"
 )
 
-func testRouterAsync(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *gin.Engine {
+func testRouterAsync(ds models.Datastore, da auth.DockerAuth, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request, enqueue models.Enqueue) *gin.Engine {
 	ctx := context.Background()
 
 	s := &Server{
-		Runner:    rnr,
-		Router:    gin.New(),
-		Datastore: ds,
-		MQ:        mq,
-		tasks:     tasks,
-		Enqueue:   enqueue,
-		hotroutes: routecache.New(10),
+		Runner:     rnr,
+		Router:     gin.New(),
+		Datastore:  ds,
+		DockerAuth: da,
+		MQ:         mq,
+		tasks:      tasks,
+		Enqueue:    enqueue,
+		hotroutes:  routecache.New(10),
 	}
 
 	r := s.Router
@@ -51,6 +53,9 @@ func TestRouteRunnerAsyncExecution(t *testing.T) {
 		},
 	)
 	mq := &mqs.Mock{}
+	da := auth.DockerAuth{
+		Datastore: ds,
+	}
 
 	for i, test := range []struct {
 		path         string
@@ -82,7 +87,7 @@ func TestRouteRunnerAsyncExecution(t *testing.T) {
 		wg.Add(1)
 		fmt.Println("About to start router")
 		rnr, cancel := testRunner(t)
-		router := testRouterAsync(ds, mq, rnr, tasks, func(_ context.Context, _ models.MessageQueue, task *models.Task) (*models.Task, error) {
+		router := testRouterAsync(ds, da, mq, rnr, tasks, func(_ context.Context, _ models.MessageQueue, task *models.Task) (*models.Task, error) {
 			if test.body != task.Payload {
 				t.Errorf("Test %d: Expected task Payload to be the same as the test body", i)
 			}

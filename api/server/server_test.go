@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -30,6 +31,9 @@ func testServer(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner,
 		Router:    gin.New(),
 		Datastore: ds,
 		MQ:        mq,
+		DockerAuth: auth.DockerAuth{
+			Datastore: ds,
+		},
 		tasks:     tasks,
 		Enqueue:   DefaultEnqueue,
 		hotroutes: routecache.New(2),
