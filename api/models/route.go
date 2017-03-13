@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 
 	apiErrors "github.com/go-openapi/errors"
 )
@@ -43,7 +42,6 @@ type Route struct {
 }
 
 var (
-	ErrRoutesValidationFoundDynamicURL       = errors.New("Dynamic URL is not allowed")
 	ErrRoutesValidationInvalidPath           = errors.New("Invalid Path format")
 	ErrRoutesValidationInvalidType           = errors.New("Invalid route Type")
 	ErrRoutesValidationInvalidFormat         = errors.New("Invalid route Format")
@@ -112,10 +110,6 @@ func (r *Route) Validate(skipZero bool) error {
 			res = append(res, ErrRoutesValidationPathMalformed)
 		}
 
-		if strings.Contains(u.Path, ":") {
-			res = append(res, ErrRoutesValidationFoundDynamicURL)
-		}
-
 		if !path.IsAbs(u.Path) {
 			res = append(res, ErrRoutesValidationInvalidPath)
 		}
@@ -132,8 +126,8 @@ func (r *Route) Validate(skipZero bool) error {
 			res = append(res, ErrRoutesValidationInvalidFormat)
 		}
 	}
-
-	if r.MaxConcurrency < 0 {
+  
+  	if r.MaxConcurrency < 0 {
 		res = append(res, ErrRoutesValidationNegativeMaxConcurrency)
 	}
 

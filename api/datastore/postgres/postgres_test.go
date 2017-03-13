@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
+	"github.com/iron-io/functions/api/models"
 )
 
 const tmpPostgres = "postgres://postgres@127.0.0.1:15432/funcs?sslmode=disable"
@@ -60,9 +61,45 @@ func preparePostgresTest(logf, fatalf func(string, ...interface{})) (func(), fun
 			}
 		}
 	},
-		func() {
-			tryRun(logf, "stop postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
+	func() {
+		tryRun(logf, "stop postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
+	}
+}
+
+func TestPathRegexp(t *testing.T) {
+	for _, test := range []struct{ path, expected string }{
+		{`/`, `^(/|/\*)$`},
+		{`/blogs`, `^/(\*|((:|blogs)))$`},
+		{`/blogs/`, `^/(\*|((:|blogs)/))$`},
+		{`/blogs/123`, `^/(\*|((:|blogs)/(\*|((:|123)))))$`},
+		{`/blogs/123/comments`, `^/(\*|((:|blogs)/(\*|((:|123)/(\*|((:|comments)))))))$`},
+		{`/blogs/123/comments/456`, `^/(\*|((:|blogs)/(\*|((:|123)/(\*|((:|comments)/(\*|((:|456)))))))))$`},
+	} {
+		got := pathRegexp(test.path)
+		if got != test.expected {
+			t.Errorf("%q - expected %q but got %q", test.path, test.expected, got)
 		}
+	}
+}
+
+func TestConflictRegexp(t *testing.T) {
+	for _, test := range []struct{ input, expected string }{
+		{`/`, `^/$`},
+		{`/:`, `^/(([^:](.*))|(:))$`},
+		{`/*`, `^/((.+))$`},
+		{`/test`, `^/(\*|:(.*)|((:|test)))$`},
+		{`/test/`, `^/(\*|:(.*)|((:|test)/))$`},
+		{`/test/test`, `^/(\*|:(.*)|((:|test)/(\*|:(.*)|((:|test)))))$`},
+		{`/test/:`, `^/(\*|:(.*)|((:|test)/(([^:](.*))|(:))))$`},
+		{`/test/*`, `^/(\*|:(.*)|((:|test)/((.+))))$`},
+		{`/test/:/`, `^/(\*|:(.*)|((:|test)/(([^:](.*))|(:/))))$`},
+		{`/test/:/test`, `^/(\*|:(.*)|((:|test)/(([^:](.*))|(:/(\*|:(.*)|((:|test)))))))$`},
+	} {
+		got := conflictRegexp(test.input)
+		if got != test.expected {
+			t.Errorf("%q - expected %q but got %q", test.input, test.expected, got)
+		}
+	}
 }
 
 func TestDatastore(t *testing.T) {
@@ -79,6 +116,27 @@ func TestDatastore(t *testing.T) {
 	}
 
 	datastoretest.Test(t, ds)
+}
+
+// Note: Running all of these at once may exceed the default timeout of 10m.
+func BenchmarkDatastore(b *testing.B) {
+	u, err := url.Parse(tmpPostgres)
+	if err != nil {
+		b.Fatalf("failed to parse url:", err)
+	}
+
+	truncate, close := preparePostgresTest(b.Logf, b.Fatalf)
+	defer close()
+
+	ds, err := New(u)
+	if err != nil {
+		b.Fatalf("failed to create postgres datastore:", err)
+	}
+
+	datastoretest.Benchmark(b, func(b *testing.B) (models.Datastore, func()) {
+		truncate()
+		return ds, func(){}
+	})
 }
 
 func tryRun(logf func(string, ...interface{}), desc string, cmd *exec.Cmd) {

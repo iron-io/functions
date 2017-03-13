@@ -5,6 +5,10 @@ import (
 	"errors"
 )
 
+//TODO path name validation: implementations currently assume/require/rely on:
+// - leading slash
+// - overall legal/scrubbed path (no relative paths, consecutive slashes, etc)
+// - trailing slash allowed and distinct from none
 type Datastore interface {
 
 	// GetApp gets an App by name.
@@ -40,10 +44,6 @@ type Datastore interface {
 	// GetRoutes gets a slice of Routes, optionally filtered by filter.
 	GetRoutes(ctx context.Context, filter *RouteFilter) (routes []*Route, err error)
 
-	// GetRoutesByApp gets a slice of routes for a appName, optionally filtering on filter (filter.AppName is ignored).
-	// Returns ErrDatastoreEmptyAppName if appName is empty.
-	GetRoutesByApp(ctx context.Context, appName string, filter *RouteFilter) (routes []*Route, err error)
-
 	// InsertRoute inserts a route. Returns ErrDatastoreEmptyRoute when route is nil, and ErrDatastoreEmptyAppName
 	// or ErrDatastoreEmptyRoutePath for empty AppName or Path.
 	// Returns ErrRoutesAlreadyExists if the exact route.Path already exists, or ErrRoutesCreate if a conflicting
@@ -57,6 +57,10 @@ type Datastore interface {
 	// RemoveRoute removes a route. Returns ErrDatastoreEmptyAppName when appName is empty, and
 	// ErrDatastoreEmptyRoutePath when routePath is empty. Returns ErrRoutesNotFound when no route exists.
 	RemoveRoute(ctx context.Context, appName, routePath string) error
+
+	// GetRoutesByApp gets a slice of routes for a appName, optionally filtering on filter (filter.AppName is ignored).
+	// Returns ErrDatastoreEmptyAppName if appName is empty.
+	GetRoutesByApp(ctx context.Context, appName string, filter *RouteFilter) (routes []*Route, err error)
 
 	// The following provide a generic key value store for arbitrary data, can be used by extensions to store extra data
 	// todo: should we namespace these by app? Then when an app is deleted, it can delete any of this extra data too.

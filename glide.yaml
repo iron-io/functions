@@ -36,3 +36,5 @@ import:
 - package: github.com/golang/groupcache
   subpackages:
   - consistenthash
+- package: github.com/pkg/errors
+  version: ^0.8.0

@@ -96,11 +96,7 @@ func TestAppDelete(t *testing.T) {
 		expectedError error
 	}{
 		{datastore.NewMock(), "/v1/apps/myapp", "", http.StatusNotFound, nil},
-		{datastore.NewMockInit(
-			[]*models.App{{
-				Name: "myapp",
-			}},nil,
-		), "/v1/apps/myapp", "", http.StatusOK, nil},
+		{datastore.NewMockInit([]*models.App{{Name: "myapp"}}, nil), "/v1/apps/myapp", "", http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
 		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)
@@ -216,18 +212,12 @@ func TestAppUpdate(t *testing.T) {
 		{datastore.NewMock(), "/v1/apps/myapp", ``, http.StatusBadRequest, models.ErrInvalidJSON},
 
 		// success
-		{datastore.NewMockInit(
-			[]*models.App{{
-				Name: "myapp",
-			}}, nil,
-		), "/v1/apps/myapp", `{ "app": { "config": { "test": "1" } } }`, http.StatusOK, nil},
+		{datastore.NewMockInit([]*models.App{{Name: "myapp"}}, nil),
+			"/v1/apps/myapp", `{ "app": { "config": { "test": "1" } } }`, http.StatusOK, nil},
 
 		// Addresses #380
-		{datastore.NewMockInit(
-			[]*models.App{{
-				Name: "myapp",
-			}}, nil,
-		), "/v1/apps/myapp", `{ "app": { "name": "othername" } }`, http.StatusBadRequest, nil},
+		{datastore.NewMockInit([]*models.App{{Name: "myapp"}}, nil),
+			"/v1/apps/myapp", `{ "app": { "name": "othername" } }`, http.StatusBadRequest, nil},
 	} {
 		rnr, cancel := testRunner(t)
 		srv := testServer(test.mock, &mqs.Mock{}, rnr, tasks)

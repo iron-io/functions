@@ -77,11 +77,7 @@ func TestRouteDelete(t *testing.T) {
 		expectedError error
 	}{
 		{datastore.NewMock(), "/v1/apps/a/routes/missing", "", http.StatusNotFound, nil},
-		{datastore.NewMockInit(nil,
-			[]*models.Route{
-				{Path: "/myroute", AppName: "a"},
-			},
-		), "/v1/apps/a/routes/myroute", "", http.StatusOK, nil},
+		{datastore.NewMockInit([]*models.App{{Name: "a"}}, []*models.Route{{Path: "/myroute", AppName: "a"}}), "/v1/apps/a/routes/myroute", "", http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
 		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)
@@ -200,24 +196,12 @@ func TestRouteUpdate(t *testing.T) {
 		{datastore.NewMock(), "/v1/apps/a/routes/myroute/do", `{ "route": { "format": "invalid-format" } }`, http.StatusBadRequest, nil},
 
 		// success
-		{datastore.NewMockInit(nil,
-			[]*models.Route{
-				{
-					AppName: "a",
-					Path:    "/myroute/do",
-				},
-			},
-		), "/v1/apps/a/routes/myroute/do", `{ "route": { "image": "iron/hello" } }`, http.StatusOK, nil},
+		{datastore.NewMockInit([]*models.App{{Name: "a"}}, []*models.Route{{AppName: "a", Path: "/myroute/do"}}),
+			"/v1/apps/a/routes/myroute/do", `{ "route": { "image": "iron/hello" } }`, http.StatusOK, nil},
 
 		// Addresses #381
-		{datastore.NewMockInit(nil,
-			[]*models.Route{
-				{
-					AppName: "a",
-					Path:    "/myroute/do",
-				},
-			},
-		), "/v1/apps/a/routes/myroute/do", `{ "route": { "path": "/otherpath" } }`, http.StatusBadRequest, nil},
+		{datastore.NewMockInit([]*models.App{{Name: "a"}}, []*models.Route{{AppName: "a", Path: "/myroute/do"}}),
+			"/v1/apps/a/routes/myroute/do", `{ "route": { "path": "/otherpath" } }`, http.StatusBadRequest, nil},
 	} {
 		rnr, cancel := testRunner(t)
 		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)

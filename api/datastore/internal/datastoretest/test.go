@@ -422,6 +422,102 @@ func Test(t *testing.T, ds models.Datastore) {
 		}
 	})
 
+	t.Run("route-params", func(t *testing.T) {
+		appName := "Test/params"
+		if _, err := ds.InsertApp(ctx, &models.App{Name: appName}); err != nil {
+			t.Log(buf.String())
+			t.Fatal("failed to insert app:", err)
+		}
+
+		for _, path := range []string{
+			`/blogs`,
+			`/blogs/`,
+			`/blogs/:blog_id`,
+			`/blogs/:blog_id/comments`,
+			`/blogs/:blog_id/comments/`,
+			`/blogs/:blog_id/comments/:comment_id`,
+			`/blogs/:blog_id/comments/:comment_id/*suffix`,
+		} {
+			ds.InsertRoute(ctx, &models.Route{
+				AppName: appName,
+				Path:    path,
+				Image:   "iron/hello",
+				Type:    "sync",
+				Format:  "http",
+			})
+		}
+
+		for _, testCase := range []struct{ path, expectedRoute string }{
+			{`/blogs`, `/blogs`},
+			{`/blogs/`, `/blogs/`},
+			{`/blogs/123`, `/blogs/:blog_id`},
+			{`/blogs/123/comments`, `/blogs/:blog_id/comments`},
+			{`/blogs/123/comments/`, `/blogs/:blog_id/comments/`},
+			{
+				`/blogs/123/comments/456`,
+				`/blogs/:blog_id/comments/:comment_id`,
+			},
+			{
+				`/blogs/123/comments/456/test`,
+				`/blogs/:blog_id/comments/:comment_id/*suffix`,
+			},
+			{
+				`/blogs/123/comments/456/test/test`,
+				`/blogs/:blog_id/comments/:comment_id/*suffix`,
+			},
+		} {
+			r, err := ds.GetRoute(ctx, appName, testCase.path)
+			if err != nil {
+				t.Errorf("failed to get route %q: %s\n", testCase.path, err)
+				continue
+			}
+			if r == nil {
+				t.Errorf("expected %q but got nothing", testCase.expectedRoute)
+				continue
+			}
+			if r.Path != testCase.expectedRoute {
+				t.Errorf("expected %q but got %q", testCase.expectedRoute, r.Path)
+			}
+		}
+	})
+
+	t.Run("route-conflicts", func(t *testing.T) {
+		appName := "Test/conflicts"
+		if _, err := ds.InsertApp(ctx, &models.App{Name: appName}); err != nil {
+			t.Log(buf.String())
+			t.Fatal("failed to insert app:", err)
+		}
+
+		// Errors when any of `conflicts` can be inserted when `path` already exists.
+		validateConflicts := func(path string, conflicts ...string) {
+			if _, err := ds.InsertRoute(ctx, &models.Route{AppName: appName, Path: path}); err != nil {
+				t.Fatal("failed to insert route:", err)
+			}
+			for _, c := range conflicts {
+				_, err := ds.InsertRoute(ctx, &models.Route{AppName: appName, Path: c})
+				if err != models.ErrRoutesCreate {
+					if err == nil {
+						t.Errorf("with %q, expected create failure inserting route conflict %q but succeeded", path, c)
+					} else {
+						t.Errorf("with %q, expected create failure inserting route conflict %q but got: %s", path, c, err)
+					}
+				}
+			}
+			if err := ds.RemoveRoute(ctx, appName, path); err != nil {
+				t.Fatal("failed to remove route:", err)
+			}
+		}
+
+		validateConflicts(`/test/test`,
+			`/:`, `/*`, `/test/:`, `/test/*`, `/:/test`)
+
+		validateConflicts(`/:`,
+			`/test`, `/*`)
+
+		validateConflicts(`/test/*`,
+			`/test/test`, `/test/:`, `/test/test/test`, `/test/test/:`, `/test/test/*`)
+	})
+
 	t.Run("put-get", func(t *testing.T) {
 		// Testing Put/Get
 		err := ds.Put(ctx, nil, nil)
