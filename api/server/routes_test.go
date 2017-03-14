@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
