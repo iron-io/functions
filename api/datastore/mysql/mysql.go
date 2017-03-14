@@ -114,7 +114,7 @@ func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*mode
 	stmt, err := ds.db.Prepare("INSERT apps SET name=?,config=?")
 
 	_, err = stmt.Exec(app.Name, string(cbyte))
-	
+
 	if err != nil {
 		return nil, models.ErrAppsAlreadyExists
 	}
@@ -128,7 +128,7 @@ UpdateApp ...
 func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
 	app := &models.App{Name: newapp.Name}
 	err := ds.Tx(func(tx *sql.Tx) error {
-		row := ds.db.QueryRow(fmt.Sprintf(`SELECT config FROM apps WHERE name=%s`, app.Name))
+		row := ds.db.QueryRow(`SELECT config FROM apps WHERE name=?`, app.Name)
 
 		var config string
 		if err := row.Scan(&config); err != nil {
@@ -154,7 +154,7 @@ func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*m
 
 		stmt, err := ds.db.Prepare(`UPDATE apps SET config=? WHERE name=?`)
 
-		res, err := stmt.Exec(app.Name, string(cbyte))
+		res, err := stmt.Exec(string(cbyte), app.Name)
 
 		if err != nil {
 			return err
@@ -181,7 +181,7 @@ RemoveApp ...
 func (ds *MySQLDatastore) RemoveApp(ctx context.Context, appName string) error {
 	_, err := ds.db.Exec(`
 	  DELETE FROM apps
-	  WHERE name = $1
+	  WHERE name = ?
 	`, appName)
 
 	if err != nil {
@@ -195,7 +195,7 @@ func (ds *MySQLDatastore) RemoveApp(ctx context.Context, appName string) error {
 GetApp ...
 */
 func (ds *MySQLDatastore) GetApp(ctx context.Context, name string) (*models.App, error) {
-	row := ds.db.QueryRow(`SELECT name, config FROM apps WHERE name=$1`, name)
+	row := ds.db.QueryRow(`SELECT name, config FROM apps WHERE name=?`, name)
 
 	var resName string
 	var config string
@@ -235,7 +235,6 @@ GetApps ...
 */
 func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
 	res := []*models.App{}
-
 	filterQuery, args := buildFilterAppQuery(filter)
 	rows, err := ds.db.Query(fmt.Sprintf("SELECT DISTINCT * FROM apps %s", filterQuery), args...)
 	if err != nil {
@@ -277,11 +276,11 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 	}
 
 	err = ds.Tx(func(tx *sql.Tx) error {
-		r := tx.QueryRow(`SELECT 1 FROM apps WHERE name=$1`, route.AppName)
+		r := tx.QueryRow(`SELECT 1 FROM apps WHERE name=?`, route.AppName)
 		if err := r.Scan(new(int)); err != nil {
 			return models.ErrAppsNotFound
 		}
-		same, err := tx.Query(`SELECT 1 FROM routes WHERE app_name=$1 AND path=$2`,
+		same, err := tx.Query(`SELECT 1 FROM routes WHERE app_name=? AND path=?`,
 			route.AppName, route.Path)
 		if err != nil {
 			return err
@@ -304,7 +303,7 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 			headers,
 			config
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
 			route.AppName,
 			route.Path,
 			route.Image,
@@ -331,7 +330,7 @@ UpdateRoute ...
 func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Route) (*models.Route, error) {
 	var route models.Route
 	err := ds.Tx(func(tx *sql.Tx) error {
-		row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=$1 AND path=$2", routeSelector), newroute.AppName, newroute.Path)
+		row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=? AND path=?", routeSelector), newroute.AppName, newroute.Path)
 		if err := scanRoute(row, &route); err == sql.ErrNoRows {
 			return models.ErrRoutesNotFound
 		} else if err != nil {
@@ -352,17 +351,15 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 
 		res, err := tx.Exec(`
 		UPDATE routes SET
-			image = $3,
-			format = $4,
-			maxc = $5,
-			memory = $6,
-			type = $7,
-			timeout = $8,
-			headers = $9,
-			config = $10
-		WHERE app_name = $1 AND path = $2;`,
-			route.AppName,
-			route.Path,
+			image = ?,
+			format = ?,
+			maxc = ?,
+			memory = ?,
+			type = ?,
+			timeout = ?,
+			headers = ?,
+			config = ?
+		WHERE app_name = ? AND path = ?;`,
 			route.Image,
 			route.Format,
 			route.MaxConcurrency,
@@ -371,6 +368,8 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 			route.Timeout,
 			string(hbyte),
 			string(cbyte),
+			route.AppName,
+			route.Path,
 		)
 
 		if err != nil {
@@ -398,7 +397,7 @@ RemoveRoute ...
 func (ds *MySQLDatastore) RemoveRoute(ctx context.Context, appName, routePath string) error {
 	res, err := ds.db.Exec(`
 		DELETE FROM routes
-		WHERE path = $1 AND app_name = $2
+		WHERE path = ? AND app_name = ?
 	`, routePath, appName)
 
 	if err != nil {
@@ -450,7 +449,7 @@ GetRoute ...
 func (ds *MySQLDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
 	var route models.Route
 
-	row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=$1 AND path=$2", routeSelector), appName, routePath)
+	row := ds.db.QueryRow(fmt.Sprintf("%s WHERE app_name=? AND path=?", routeSelector), appName, routePath)
 	err := scanRoute(row, &route)
 
 	if err == sql.ErrNoRows {
@@ -497,7 +496,7 @@ func (ds *MySQLDatastore) GetRoutesByApp(ctx context.Context, appName string, fi
 	var filterQuery string
 	var args []interface{}
 	if filter == nil {
-		filterQuery = "WHERE app_name = $1"
+		filterQuery = "WHERE app_name = ?"
 		args = []interface{}{appName}
 	} else {
 		filter.AppName = appName
@@ -531,7 +530,7 @@ func buildFilterAppQuery(filter *models.AppFilter) (string, []interface{}) {
 	}
 
 	if filter.Name != "" {
-		return "WHERE name LIKE $1", []interface{}{filter.Name}
+		return "WHERE name LIKE ?", []interface{}{filter.Name}
 	}
 
 	return "", nil
@@ -548,9 +547,9 @@ func buildFilterRouteQuery(filter *models.RouteFilter) (string, []interface{}) {
 		if val != "" {
 			args = append(args, val)
 			if len(args) == 1 {
-				fmt.Fprintf(&b, "WHERE %s $1", colOp)
+				fmt.Fprintf(&b, "WHERE %s ?", colOp)
 			} else {
-				fmt.Fprintf(&b, " AND %s $%d", colOp, len(args))
+				fmt.Fprintf(&b, " AND %s ?", colOp)
 			}
 		}
 	}
@@ -571,10 +570,10 @@ func (ds *MySQLDatastore) Put(ctx context.Context, key, value []byte) error {
 			id,
 			value
 		)
-		VALUES ($1, $2)
+		VALUES (?, ?)
 		ON DUPLICATE KEY UPDATE
-			value = $2
-		`, string(key), string(value))
+			value = ?
+		`, string(key), string(value), string(value))
 
 	if err != nil {
 		return err
@@ -587,15 +586,10 @@ func (ds *MySQLDatastore) Put(ctx context.Context, key, value []byte) error {
 Get ...
 */
 func (ds *MySQLDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
+	row := ds.db.QueryRow("SELECT value FROM extras WHERE id=?", key)
 
-	rows, err := ds.db.Query(fmt.Sprintf("SELECT value FROM extras WHERE id=%s", key))
 	var value string
-	err = rows.Scan(&value)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+	err := row.Scan(&value)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {

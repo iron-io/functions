@@ -13,47 +13,51 @@ import (
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
 )
 
-const tmpMysql = "mysql:secret@tcp(localhost:3306)/funcs"
+const tmpMysql = "root:root@tcp(localhost:3307)/funcs"
 
 func prepareMysqlTest(logf, fatalf func(string, ...interface{})) (func(), func()) {
 	fmt.Println("initializing mysql for test")
 	tryRun(logf, "remove old mysql container", exec.Command("docker", "rm", "-f", "iron-mysql-test"))
-	mustRun(fatalf, "start mysql container", exec.Command("docker", "run", "--name", "iron-mysql-test", "-p", "3307:3306", "-d", "mysql"))
-
-	maxRetries := 3
-	currentRetry := 0
-	wait := 1 * time.Second
+	mustRun(fatalf, "start mysql container", exec.Command(
+		"docker", "run", "--name", "iron-mysql-test", "-p", "3307:3306", "-e", "MYSQL_DATABASE=funcs",
+		"-e", "MYSQL_ROOT_PASSWORD=root", "-d", "mysql"))
+	maxWait := 16 * time.Second
+	wait := 2 * time.Second
 	var db *sql.DB
 	var err error
 	for {
-		db, err = sql.Open("mysql", "mysql:secret@/")
+		db, err = sql.Open("mysql", "root:root@tcp(localhost:3307)/")
 		if err != nil {
-			if currentRetry == maxRetries {
-				fatalf("failed to connect to mysql after %d retries", maxRetries)
+			if wait > maxWait {
+				fatalf("failed to connect to mysql after %d seconds", maxWait)
 				break
 			}
 			fmt.Println("failed to connect to mysql:", err)
 			fmt.Println("retrying in:", wait)
 			time.Sleep(wait)
-			wait = 2 * wait
-			currentRetry++
 			continue
-		} else {
-			break
 		}
+		// Ping
+		if _, err = db.Exec("SELECT 1"); err != nil {
+			fmt.Println("failed to ping database:", err)
+			time.Sleep(wait)
+			continue
+		}
+		break
 	}
-	_, err = db.Exec(`CREATE DATABASE funcs;`)
+	_, err = db.Exec("CREATE DATABASE funcs;")
 	if err != nil {
 		fmt.Println("failed to create database:", err)
 	}
-	_, err = db.Exec(`GRANT ALL PRIVILEGES ON funcs.* TO mysql@localhost WITH GRANT OPTION;`)
+	_, err = db.Exec(`GRANT ALL PRIVILEGES ON funcs.* TO root@localhost WITH GRANT OPTION;`)
 	if err != nil {
 		fmt.Println("failed to grant priviledges to user 'mysql:", err)
+		panic(err)
 	}
 
 	fmt.Println("mysql for test ready")
 	return func() {
-			db, err := sql.Open("mysql", "mysql:secret@/funcs")
+			db, err := sql.Open("mysql", "root:root@tcp(localhost:13307)/")
 			if err != nil {
 				fatalf("failed to connect for truncation: %s\n", err)
 			}
