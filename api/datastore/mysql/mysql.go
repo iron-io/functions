@@ -1,14 +1,12 @@
 package mysql
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/url"
-
-	"context"
-
-	"bytes"
 
 	"github.com/Sirupsen/logrus"
 	_ "github.com/go-sql-driver/mysql"
@@ -62,7 +60,8 @@ type MySQLDatastore struct {
 New ...
 */
 func New(url *url.URL) (models.Datastore, error) {
-	db, err := sql.Open("mysql", url.String())
+	u := fmt.Sprintf("%s@%s%s", url.User.String(), url.Host, url.Path)
+	db, err := sql.Open("mysql", u)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
 )
 
-const tmpMysql = "root:root@tcp(localhost:3307)/funcs"
+const tmpMysql = "mysql://root:root@tcp(%v:3307)/funcs"
 
 func prepareMysqlTest(logf, fatalf func(string, ...interface{})) (func(), func()) {
 	fmt.Println("initializing mysql for test")
@@ -26,7 +26,8 @@ func prepareMysqlTest(logf, fatalf func(string, ...interface{})) (func(), func()
 	var db *sql.DB
 	var err error
 	for {
-		db, err = sql.Open("mysql", "root:root@tcp(localhost:3307)/")
+		db, err = sql.Open("mysql", fmt.Sprintf("root:root@tcp(%v:3307)/",
+			datastoretest.GetContainerHostIP()))
 		if err != nil {
 			if wait > maxWait {
 				fatalf("failed to connect to mysql after %d seconds", maxWait)
@@ -45,6 +46,11 @@ func prepareMysqlTest(logf, fatalf func(string, ...interface{})) (func(), func()
 		}
 		break
 	}
+
+	_, err = db.Exec("DROP DATABASE IF EXISTS funcs;")
+	if err != nil {
+		fmt.Println("failed to drop database:", err)
+	}
 	_, err = db.Exec("CREATE DATABASE funcs;")
 	if err != nil {
 		fmt.Println("failed to create database:", err)
@@ -57,7 +63,8 @@ func prepareMysqlTest(logf, fatalf func(string, ...interface{})) (func(), func()
 
 	fmt.Println("mysql for test ready")
 	return func() {
-			db, err := sql.Open("mysql", "root:root@tcp(localhost:13307)/")
+			db, err := sql.Open("mysql", fmt.Sprintf("root:root@tcp(%v:3307)/",
+				datastoretest.GetContainerHostIP()))
 			if err != nil {
 				fatalf("failed to connect for truncation: %s\n", err)
 			}
@@ -77,7 +84,7 @@ func TestDatastore(t *testing.T) {
 	_, close := prepareMysqlTest(t.Logf, t.Fatalf)
 	defer close()
 
-	u, err := url.Parse(tmpMysql)
+	u, err := url.Parse(fmt.Sprintf(tmpMysql, datastoretest.GetContainerHostIP()))
 	if err != nil {
 		t.Fatalf("failed to parse url: %s\n", err)
 	}
