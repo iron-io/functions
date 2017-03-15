@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/functions/api/models"
@@ -16,6 +15,13 @@ type DockerAuth struct {
 	Datastore models.Datastore
 	Key       []byte
 	Nonce     []byte
+}
+
+func NewDockerMock(ds models.Datastore) DockerAuth {
+	return DockerAuth{
+		Datastore: ds,
+		Key:       []byte("A159B69FAF460F55C0966B6383CE0917"),
+	}
 }
 
 func (da *DockerAuth) SaveDockerCredentials(ctx context.Context, dockerLogin models.DockerCreds) error {
@@ -35,7 +41,6 @@ func (da *DockerAuth) SaveDockerCredentials(ctx context.Context, dockerLogin mod
 }
 
 func (da *DockerAuth) GetAuthConfiguration(ctx context.Context) (*docker.AuthConfiguration, error) {
-	authCfg := &docker.AuthConfiguration{}
 
 	data, err := da.Datastore.Get(ctx, []byte("dockerLogin"))
 	if err != nil {
@@ -52,15 +57,10 @@ func (da *DockerAuth) GetAuthConfiguration(ctx context.Context) (*docker.AuthCon
 		if err != nil {
 			return nil, err
 		}
-
-		data, err = base64.StdEncoding.DecodeString(creds.Auth)
-
-		err = json.Unmarshal(data, authCfg)
-		if err != nil {
-			return nil, err
-		}
+		return creds.ToDockerAuthentication()
+	} else {
+		return &docker.AuthConfiguration{}, nil
 	}
-	return authCfg, nil
 }
 
 func (da *DockerAuth) encrypt(data []byte) ([]byte, []byte) {

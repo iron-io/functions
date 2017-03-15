@@ -131,8 +131,8 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	authCfg, err := s.DockerAuth.GetAuthConfiguration(ctx)
 	if err != nil {
-		log.WithError(err).Error(models.ErrInvalidDockerCreds)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrInvalidDockerCreds))
+		log.WithError(err).Error(models.ErrDockerCredsInvalid)
+		c.JSON(http.StatusInternalServerError, simpleError(models.ErrDockerCredsInvalid))
 		return
 	}
 
@@ -170,13 +170,14 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	var stdout bytes.Buffer // TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
 
 	envVars := map[string]string{
-		"METHOD":      c.Request.Method,
-		"ROUTE":       found.Path,
+		"METHOD": c.Request.Method,
+		"ROUTE":  found.Path,
 		"REQUEST_URL": fmt.Sprintf("%v//%v%v", func() string {
 			if c.Request.TLS == nil {
 				return "http"
 			}
-			return "https"}(), c.Request.Host, c.Request.URL.String()),
+			return "https"
+		}(), c.Request.Host, c.Request.URL.String()),
 	}
 
 	// app config

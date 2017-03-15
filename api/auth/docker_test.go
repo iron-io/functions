@@ -12,10 +12,7 @@ import (
 
 func TestDockerAuth(t *testing.T) {
 
-	dockerAuth := DockerAuth{
-		Datastore: datastore.NewMock(),
-		Key:       []byte("A159B69FAF460F55C0966B6383CE0917"),
-	}
+	dockerAuth := NewDockerMock(datastore.NewMock())
 	ctx := context.Background()
 
 	newAuthCfg, err := dockerAuth.GetAuthConfiguration(ctx)

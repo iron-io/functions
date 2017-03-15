@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -37,7 +38,7 @@ func TestRouteCreate(t *testing.T) {
 		{datastore.NewMock(), "/v1/apps/a/routes", `{ "route": { "image": "iron/hello", "path": "/myroute" } }`, http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.dsMock, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.dsMock, auth.NewDockerMock(test.dsMock), &mqs.Mock{}, rnr, tasks)
 
 		body := bytes.NewBuffer([]byte(test.body))
 		_, rec := routerRequest(t, srv.Router, "POST", test.path, body)
@@ -84,7 +85,7 @@ func TestRouteDelete(t *testing.T) {
 		), "/v1/apps/a/routes/myroute", "", http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.ds, auth.NewDockerMock(test.ds), &mqs.Mock{}, rnr, tasks)
 		_, rec := routerRequest(t, srv.Router, "DELETE", test.path, nil)
 
 		if rec.Code != test.expectedCode {
@@ -113,7 +114,9 @@ func TestRouteList(t *testing.T) {
 
 	rnr, cancel := testRunner(t)
 	defer cancel()
-	srv := testServer(datastore.NewMock(), &mqs.Mock{}, rnr, tasks)
+
+	ds := datastore.NewMock()
+	srv := testServer(ds, auth.NewDockerMock(ds), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -151,7 +154,8 @@ func TestRouteGet(t *testing.T) {
 	rnr, cancel := testRunner(t)
 	defer cancel()
 
-	srv := testServer(datastore.NewMock(), &mqs.Mock{}, rnr, tasks)
+	ds := datastore.NewMock()
+	srv := testServer(ds, auth.NewDockerMock(ds), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -220,7 +224,7 @@ func TestRouteUpdate(t *testing.T) {
 		), "/v1/apps/a/routes/myroute/do", `{ "route": { "path": "/otherpath" } }`, http.StatusBadRequest, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.ds, auth.NewDockerMock(test.ds), &mqs.Mock{}, rnr, tasks)
 
 		body := bytes.NewBuffer([]byte(test.body))
 

@@ -13,17 +13,22 @@ func (s *Server) handleDockerLogin(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
-	dockerLogin := models.DockerCreds{}
+	dockerCreds := models.DockerCreds{}
 
-	err := c.BindJSON(&dockerLogin)
+	err := c.BindJSON(&dockerCreds)
 	if err != nil {
 		log.WithError(err).Debug(models.ErrInvalidJSON)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrInvalidJSON))
 		return
 	}
-	log.Infoln(dockerLogin)
 
-	err = s.DockerAuth.SaveDockerCredentials(ctx, dockerLogin)
+	if err := dockerCreds.Validate(); err != nil {
+		log.Error(err)
+		c.JSON(http.StatusBadRequest, simpleError(err))
+		return
+	}
+
+	err = s.DockerAuth.SaveDockerCredentials(ctx, dockerCreds)
 
 	c.JSON(http.StatusOK, nil)
 }

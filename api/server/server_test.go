@@ -23,20 +23,18 @@ import (
 
 var tmpBolt = "/tmp/func_test_bolt.db"
 
-func testServer(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request) *Server {
+func testServer(ds models.Datastore, da auth.DockerAuth, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request) *Server {
 	ctx := context.Background()
 
 	s := &Server{
-		Runner:    rnr,
-		Router:    gin.New(),
-		Datastore: ds,
-		MQ:        mq,
-		DockerAuth: auth.DockerAuth{
-			Datastore: ds,
-		},
-		tasks:     tasks,
-		Enqueue:   DefaultEnqueue,
-		hotroutes: routecache.New(2),
+		Runner:     rnr,
+		Router:     gin.New(),
+		Datastore:  ds,
+		MQ:         mq,
+		DockerAuth: da,
+		tasks:      tasks,
+		Enqueue:    DefaultEnqueue,
+		hotroutes:  routecache.New(2),
 	}
 
 	r := s.Router
@@ -110,7 +108,11 @@ func TestFullStack(t *testing.T) {
 
 	go runner.StartWorkers(ctx, rnr, tasks)
 
-	srv := testServer(ds, &mqs.Mock{}, rnr, tasks)
+	da := auth.DockerAuth{
+		Datastore: ds,
+		Key:       []byte("A159B69FAF460F55C0966B6383CE0917"),
+	}
+	srv := testServer(ds, da, &mqs.Mock{}, rnr, tasks)
 	srv.hotroutes = routecache.New(2)
 
 	for _, test := range []struct {

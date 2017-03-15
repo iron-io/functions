@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api/auth"
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
@@ -58,7 +59,7 @@ func TestAppCreate(t *testing.T) {
 		{datastore.NewMock(), "/v1/apps", `{ "app": { "name": "teste" } }`, http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.mock, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.mock, auth.NewDockerMock(test.mock), &mqs.Mock{}, rnr, tasks)
 		router := srv.Router
 
 		body := bytes.NewBuffer([]byte(test.body))
@@ -99,11 +100,11 @@ func TestAppDelete(t *testing.T) {
 		{datastore.NewMockInit(
 			[]*models.App{{
 				Name: "myapp",
-			}},nil,
+			}}, nil,
 		), "/v1/apps/myapp", "", http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.ds, auth.NewDockerMock(test.ds), &mqs.Mock{}, rnr, tasks)
 
 		_, rec := routerRequest(t, srv.Router, "DELETE", test.path, nil)
 
@@ -133,7 +134,8 @@ func TestAppList(t *testing.T) {
 
 	rnr, cancel := testRunner(t)
 	defer cancel()
-	srv := testServer(datastore.NewMock(), &mqs.Mock{}, rnr, tasks)
+	ds := datastore.NewMock()
+	srv := testServer(ds, auth.NewDockerMock(ds), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -170,7 +172,8 @@ func TestAppGet(t *testing.T) {
 
 	rnr, cancel := testRunner(t)
 	defer cancel()
-	srv := testServer(datastore.NewMock(), &mqs.Mock{}, rnr, tasks)
+	ds := datastore.NewMock()
+	srv := testServer(ds, auth.NewDockerMock(ds), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -230,7 +233,7 @@ func TestAppUpdate(t *testing.T) {
 		), "/v1/apps/myapp", `{ "app": { "name": "othername" } }`, http.StatusBadRequest, nil},
 	} {
 		rnr, cancel := testRunner(t)
-		srv := testServer(test.mock, &mqs.Mock{}, rnr, tasks)
+		srv := testServer(test.mock, auth.NewDockerMock(test.mock), &mqs.Mock{}, rnr, tasks)
 
 		body := bytes.NewBuffer([]byte(test.body))
 		_, rec := routerRequest(t, srv.Router, "PATCH", test.path, body)
