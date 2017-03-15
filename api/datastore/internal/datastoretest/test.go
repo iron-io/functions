@@ -8,13 +8,12 @@ import (
 
 	"github.com/iron-io/functions/api/models"
 
-	"net/http"
-	"net/url"
-	"os"
-	"reflect"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"reflect"
+	"net/http"
+	"os"
+	"net/url"
 )
 
 func setLogBuffer() *bytes.Buffer {
