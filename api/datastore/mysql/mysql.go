@@ -103,6 +103,10 @@ func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*mode
 	}
 	stmt, err := ds.db.Prepare("INSERT apps SET name=?,config=?")
 
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = stmt.Exec(app.Name, string(cbyte))
 
 	if err != nil {
