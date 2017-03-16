@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
 )
 
