@@ -273,7 +273,9 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 	err = ds.Tx(func(tx *sql.Tx) error {
 		r := tx.QueryRow(`SELECT 1 FROM apps WHERE name=?`, route.AppName)
 		if err := r.Scan(new(int)); err != nil {
-			return models.ErrAppsNotFound
+			if err == sql.ErrNoRows {
+				return models.ErrAppsNotFound
+			}
 		}
 		same, err := tx.Query(`SELECT 1 FROM routes WHERE app_name=? AND path=?`,
 			route.AppName, route.Path)
