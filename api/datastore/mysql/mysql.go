@@ -234,7 +234,7 @@ GetApps ...
 func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
 	res := []*models.App{}
 	filterQuery, args := buildFilterAppQuery(filter)
-	rows, err := ds.db.Query(fmt.Sprintf("SELECT DISTINCT * FROM apps %s", filterQuery), args...)
+	rows, err := ds.db.Query(fmt.Sprintf("SELECT DISTINCT name, config FROM apps %s", filterQuery), args...)
 	if err != nil {
 		return nil, err
 	}
