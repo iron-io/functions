@@ -64,11 +64,11 @@ func prepareMysqlTest(logf, fatalf func(string, ...interface{})) (func(), func()
 	}
 	_, err = db.Exec("CREATE DATABASE funcs;")
 	if err != nil {
-		fmt.Println("failed to create database:", err)
+		fatalf("failed to create database: %s\n", err)
 	}
 	_, err = db.Exec(`GRANT ALL PRIVILEGES ON funcs.* TO root@localhost WITH GRANT OPTION;`)
 	if err != nil {
-		fmt.Println("failed to grant priviledges to user 'mysql:", err)
+		fatalf("failed to grant priviledges to user 'mysql: %s\n", err)
 		panic(err)
 	}
 

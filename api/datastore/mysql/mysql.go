@@ -12,7 +12,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
-	_ "github.com/lib/pq"
 )
 
 const routesTableCreate = `CREATE TABLE IF NOT EXISTS routes (
@@ -96,14 +95,6 @@ func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*mode
 	var cbyte []byte
 	var err error
 
-	if app == nil {
-		return nil, models.ErrDatastoreEmptyApp
-	}
-
-	if app.Name == "" {
-		return nil, models.ErrDatastoreEmptyAppName
-	}
-
 	if app.Config != nil {
 		cbyte, err = json.Marshal(app.Config)
 		if err != nil {
@@ -152,6 +143,10 @@ func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*m
 		}
 
 		stmt, err := ds.db.Prepare(`UPDATE apps SET config=? WHERE name=?`)
+
+		if err != nil {
+			return err
+		}
 
 		res, err := stmt.Exec(string(cbyte), app.Name)
 
@@ -246,10 +241,7 @@ func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter)
 		err := scanApp(rows, &app)
 
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return res, nil
-			}
-			return res, err
+			break
 		}
 		res = append(res, &app)
 	}
@@ -376,9 +368,11 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 		}
 
 		if n, err := res.RowsAffected(); err != nil {
+			if n == 0 {
+				fmt.Printf("No rows affected: %s", err)
+				return models.ErrRoutesNotFound
+			}
 			return err
-		} else if n == 0 {
-			return models.ErrRoutesNotFound
 		}
 
 		return nil
@@ -475,7 +469,7 @@ func (ds *MySQLDatastore) GetRoutes(ctx context.Context, filter *models.RouteFil
 		var route models.Route
 		err := scanRoute(rows, &route)
 		if err != nil {
-			continue
+			fmt.Println("failed to get routes:", err)
 		}
 		res = append(res, &route)
 
@@ -511,7 +505,7 @@ func (ds *MySQLDatastore) GetRoutesByApp(ctx context.Context, appName string, fi
 		var route models.Route
 		err := scanRoute(rows, &route)
 		if err != nil {
-			continue
+			fmt.Println("failed to get routes by app:", err)
 		}
 		res = append(res, &route)
 
