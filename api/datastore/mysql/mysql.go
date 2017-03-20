@@ -148,13 +148,10 @@ func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*m
 
 		stmt, err := ds.db.Prepare(`UPDATE apps SET config=? WHERE name=?`)
 
-<<<<<<< HEAD
 		if err != nil {
 			return err
 		}
 
-=======
->>>>>>> Make the mysql stuff work
 		res, err := stmt.Exec(string(cbyte), app.Name)
 
 		if err != nil {
