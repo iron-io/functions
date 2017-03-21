@@ -14,6 +14,12 @@ test:
 test-datastore:
 	cd api/datastore && go test -v ./...
 
+test-build-arm:
+    GOARCH=arm GOARM=5 $(MAKE) build
+    GOARCH=arm GOARM=6 $(MAKE) build
+    GOARCH=arm GOARM=7 $(MAKE) build
+    GOARCH=arm64 $(MAKE) build
+
 run:
 	./functions
 
@@ -32,6 +38,6 @@ docker-test:
 	-v /var/run/docker.sock:/var/run/docker.sock \
 	-v ${CURDIR}:/go/src/github.com/iron-io/functions \
 	-w /go/src/github.com/iron-io/functions iron/go:dev go test \
-	-v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn | grep -v datastore)
+	-v $(shell docker run -ti -v ${CURDIR}:/go/src/github.com/iron-io/functions -w /go/src/github.com/iron-io/functions -e GOPATH=/go golang:alpine sh -c 'go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn | grep -v datastore')
 
 all: dep build
