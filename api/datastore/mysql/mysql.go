@@ -49,14 +49,14 @@ type rowQuerier interface {
 }
 
 /*
-MySQLDatastore ...
+MySQLDatastore Defines a basic MySQL Datastore struct.
 */
 type MySQLDatastore struct {
 	db *sql.DB
 }
 
 /*
-New ...
+New Creates a new MySQL Datastore.
 */
 func New(url *url.URL) (models.Datastore, error) {
 	u := fmt.Sprintf("%s@%s%s", url.User.String(), url.Host, url.Path)
@@ -89,7 +89,7 @@ func New(url *url.URL) (models.Datastore, error) {
 }
 
 /*
-InsertApp ...
+InsertApp Inserts an app to MySQL.
 */
 func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*models.App, error) {
 	var cbyte []byte
@@ -117,7 +117,7 @@ func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*mode
 }
 
 /*
-UpdateApp ...
+UpdateApp Updates an existing app on MySQL.
 */
 func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
 	app := &models.App{Name: newapp.Name}
@@ -174,7 +174,7 @@ func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*m
 }
 
 /*
-RemoveApp ...
+RemoveApp Removes an existing app on MySQL.
 */
 func (ds *MySQLDatastore) RemoveApp(ctx context.Context, appName string) error {
 	_, err := ds.db.Exec(`
@@ -190,7 +190,7 @@ func (ds *MySQLDatastore) RemoveApp(ctx context.Context, appName string) error {
 }
 
 /*
-GetApp ...
+GetApp Retrieves an app from MySQL.
 */
 func (ds *MySQLDatastore) GetApp(ctx context.Context, name string) (*models.App, error) {
 	row := ds.db.QueryRow(`SELECT name, config FROM apps WHERE name=?`, name)
@@ -229,7 +229,7 @@ func scanApp(scanner rowScanner, app *models.App) error {
 }
 
 /*
-GetApps ...
+GetApps Retrieves an array of apps according to a specific filter.
 */
 func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
 	res := []*models.App{}
@@ -257,7 +257,7 @@ func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter)
 }
 
 /*
-InsertRoute ...
+InsertRoute Inserts an route to MySQL.
 */
 func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
 	hbyte, err := json.Marshal(route.Headers)
@@ -322,7 +322,7 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 }
 
 /*
-UpdateRoute ...
+UpdateRoute Updates an existing route on MySQL.
 */
 func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Route) (*models.Route, error) {
 	var route models.Route
@@ -391,7 +391,7 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 }
 
 /*
-RemoveRoute ...
+RemoveRoute Removes an existing route on MySQL.
 */
 func (ds *MySQLDatastore) RemoveRoute(ctx context.Context, appName, routePath string) error {
 	res, err := ds.db.Exec(`
@@ -443,7 +443,7 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 }
 
 /*
-GetRoute ...
+GetRoute Retrieves a route from MySQL.
 */
 func (ds *MySQLDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
 	var route models.Route
@@ -460,7 +460,7 @@ func (ds *MySQLDatastore) GetRoute(ctx context.Context, appName, routePath strin
 }
 
 /*
-GetRoutes ...
+GetRoutes Retrieves an array of routes according to a specific filter.
 */
 func (ds *MySQLDatastore) GetRoutes(ctx context.Context, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
@@ -487,7 +487,7 @@ func (ds *MySQLDatastore) GetRoutes(ctx context.Context, filter *models.RouteFil
 }
 
 /*
-GetRoutesByApp ...
+GetRoutesByApp Retrieves a route with a specific app name.
 */
 func (ds *MySQLDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
@@ -561,7 +561,7 @@ func buildFilterRouteQuery(filter *models.RouteFilter) (string, []interface{}) {
 }
 
 /*
-Put ...
+Put Inserts an extra into MySQL.
 */
 func (ds *MySQLDatastore) Put(ctx context.Context, key, value []byte) error {
 	_, err := ds.db.Exec(`
@@ -582,7 +582,7 @@ func (ds *MySQLDatastore) Put(ctx context.Context, key, value []byte) error {
 }
 
 /*
-Get ...
+Get Retrieves the value of a specific extra from MySQL.
 */
 func (ds *MySQLDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	row := ds.db.QueryRow("SELECT value FROM extras WHERE id=?", key)
@@ -599,7 +599,7 @@ func (ds *MySQLDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 }
 
 /*
-Tx ...
+Tx Begins and commits a MySQL Transaction.
 */
 func (ds *MySQLDatastore) Tx(f func(*sql.Tx) error) error {
 	tx, err := ds.db.Begin()
