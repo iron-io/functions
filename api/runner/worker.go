@@ -296,6 +296,8 @@ func (hc *htfn) serve(ctx context.Context) {
 	}()
 
 	cfg := *hc.cfg
+	cfg.Env["FN_HOT"] = "true"
+	cfg.Env["FN_FORMAT"] = cfg.Format
 	cfg.Timeout = 0 // add a timeout to simulate ab.end. failure.
 	cfg.Stdin = hc.containerIn
 	cfg.Stdout = hc.containerOut
