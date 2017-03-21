@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"reflect"
 	"net/http"
+	"os"
+	"net/url"
 )
 
 func setLogBuffer() *bytes.Buffer {
@@ -22,6 +24,15 @@ func setLogBuffer() *bytes.Buffer {
 	gin.DefaultWriter = &buf
 	log.SetOutput(&buf)
 	return &buf
+}
+
+func GetContainerHostIP() string {
+	dockerHost := os.Getenv("DOCKER_HOST")
+	if dockerHost == "" {
+		return "127.0.0.1"
+	}
+	parts, _ := url.Parse(dockerHost)
+	return parts.Hostname()
 }
 
 func Test(t *testing.T, ds models.Datastore) {
@@ -159,7 +170,7 @@ func Test(t *testing.T, ds models.Datastore) {
 		}
 		if app != nil {
 			t.Log(buf.String())
-			t.Fatalf("Test RemoveApp: failed to remove the app")
+			t.Fatal("Test RemoveApp: failed to remove the app")
 		}
 
 		// Test update inexistent app
