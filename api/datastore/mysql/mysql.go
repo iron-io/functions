@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
@@ -49,14 +50,14 @@ type rowQuerier interface {
 }
 
 /*
-MySQLDatastore Defines a basic MySQL Datastore struct.
+MySQLDatastore defines a basic MySQL Datastore struct.
 */
 type MySQLDatastore struct {
 	db *sql.DB
 }
 
 /*
-New Creates a new MySQL Datastore.
+New creates a new MySQL Datastore.
 */
 func New(url *url.URL) (models.Datastore, error) {
 	u := fmt.Sprintf("%s@%s%s", url.User.String(), url.Host, url.Path)
@@ -89,7 +90,7 @@ func New(url *url.URL) (models.Datastore, error) {
 }
 
 /*
-InsertApp Inserts an app to MySQL.
+InsertApp inserts an app to MySQL.
 */
 func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*models.App, error) {
 	var cbyte []byte
@@ -110,14 +111,18 @@ func (ds *MySQLDatastore) InsertApp(ctx context.Context, app *models.App) (*mode
 	_, err = stmt.Exec(app.Name, string(cbyte))
 
 	if err != nil {
-		return nil, models.ErrAppsAlreadyExists
+		mysqlErr := err.(*mysql.MySQLError)
+		if mysqlErr.Number == 1062 {
+			return nil, models.ErrAppsAlreadyExists
+		}
+		return nil, err
 	}
 
 	return app, nil
 }
 
 /*
-UpdateApp Updates an existing app on MySQL.
+UpdateApp updates an existing app on MySQL.
 */
 func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*models.App, error) {
 	app := &models.App{Name: newapp.Name}
@@ -174,7 +179,7 @@ func (ds *MySQLDatastore) UpdateApp(ctx context.Context, newapp *models.App) (*m
 }
 
 /*
-RemoveApp Removes an existing app on MySQL.
+RemoveApp removes an existing app on MySQL.
 */
 func (ds *MySQLDatastore) RemoveApp(ctx context.Context, appName string) error {
 	_, err := ds.db.Exec(`
@@ -190,7 +195,7 @@ func (ds *MySQLDatastore) RemoveApp(ctx context.Context, appName string) error {
 }
 
 /*
-GetApp Retrieves an app from MySQL.
+GetApp retrieves an app from MySQL.
 */
 func (ds *MySQLDatastore) GetApp(ctx context.Context, name string) (*models.App, error) {
 	row := ds.db.QueryRow(`SELECT name, config FROM apps WHERE name=?`, name)
@@ -229,7 +234,7 @@ func scanApp(scanner rowScanner, app *models.App) error {
 }
 
 /*
-GetApps Retrieves an array of apps according to a specific filter.
+GetApps retrieves an array of apps according to a specific filter.
 */
 func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
 	res := []*models.App{}
@@ -257,7 +262,7 @@ func (ds *MySQLDatastore) GetApps(ctx context.Context, filter *models.AppFilter)
 }
 
 /*
-InsertRoute Inserts an route to MySQL.
+InsertRoute inserts an route to MySQL.
 */
 func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) (*models.Route, error) {
 	hbyte, err := json.Marshal(route.Headers)
@@ -322,7 +327,7 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 }
 
 /*
-UpdateRoute Updates an existing route on MySQL.
+UpdateRoute updates an existing route on MySQL.
 */
 func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Route) (*models.Route, error) {
 	var route models.Route
@@ -374,11 +379,9 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 		}
 
 		if n, err := res.RowsAffected(); err != nil {
-			if n == 0 {
-				fmt.Printf("No rows affected: %s", err)
-				return models.ErrRoutesNotFound
-			}
 			return err
+		} else if n == 0 {
+			return models.ErrRoutesNotFound
 		}
 
 		return nil
@@ -391,7 +394,7 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 }
 
 /*
-RemoveRoute Removes an existing route on MySQL.
+RemoveRoute removes an existing route on MySQL.
 */
 func (ds *MySQLDatastore) RemoveRoute(ctx context.Context, appName, routePath string) error {
 	res, err := ds.db.Exec(`
@@ -431,19 +434,22 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&headerStr,
 		&configStr,
 	)
+	if err != nil {
+		return err
+	}
 
 	if headerStr == "" {
 		return models.ErrRoutesNotFound
 	}
 
-	json.Unmarshal([]byte(headerStr), &route.Headers)
-	json.Unmarshal([]byte(configStr), &route.Config)
-
-	return err
+	if err := json.Unmarshal([]byte(headerStr), &route.Headers); err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(configStr), &route.Config)
 }
 
 /*
-GetRoute Retrieves a route from MySQL.
+GetRoute retrieves a route from MySQL.
 */
 func (ds *MySQLDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
 	var route models.Route
@@ -460,7 +466,7 @@ func (ds *MySQLDatastore) GetRoute(ctx context.Context, appName, routePath strin
 }
 
 /*
-GetRoutes Retrieves an array of routes according to a specific filter.
+GetRoutes retrieves an array of routes according to a specific filter.
 */
 func (ds *MySQLDatastore) GetRoutes(ctx context.Context, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
@@ -475,7 +481,7 @@ func (ds *MySQLDatastore) GetRoutes(ctx context.Context, filter *models.RouteFil
 		var route models.Route
 		err := scanRoute(rows, &route)
 		if err != nil {
-			fmt.Println("failed to get routes:", err)
+			continue
 		}
 		res = append(res, &route)
 
@@ -487,7 +493,7 @@ func (ds *MySQLDatastore) GetRoutes(ctx context.Context, filter *models.RouteFil
 }
 
 /*
-GetRoutesByApp Retrieves a route with a specific app name.
+GetRoutesByApp retrieves a route with a specific app name.
 */
 func (ds *MySQLDatastore) GetRoutesByApp(ctx context.Context, appName string, filter *models.RouteFilter) ([]*models.Route, error) {
 	res := []*models.Route{}
@@ -511,7 +517,7 @@ func (ds *MySQLDatastore) GetRoutesByApp(ctx context.Context, appName string, fi
 		var route models.Route
 		err := scanRoute(rows, &route)
 		if err != nil {
-			fmt.Println("failed to get routes by app:", err)
+			continue
 		}
 		res = append(res, &route)
 
@@ -561,7 +567,7 @@ func buildFilterRouteQuery(filter *models.RouteFilter) (string, []interface{}) {
 }
 
 /*
-Put Inserts an extra into MySQL.
+Put inserts an extra into MySQL.
 */
 func (ds *MySQLDatastore) Put(ctx context.Context, key, value []byte) error {
 	_, err := ds.db.Exec(`
@@ -582,7 +588,7 @@ func (ds *MySQLDatastore) Put(ctx context.Context, key, value []byte) error {
 }
 
 /*
-Get Retrieves the value of a specific extra from MySQL.
+Get retrieves the value of a specific extra from MySQL.
 */
 func (ds *MySQLDatastore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	row := ds.db.QueryRow("SELECT value FROM extras WHERE id=?", key)
