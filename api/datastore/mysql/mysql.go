@@ -436,6 +436,7 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&route.Memory,
 		&route.Type,
 		&route.Timeout,
+		&route.InactivityTimeout,
 		&headerStr,
 		&configStr,
 	)

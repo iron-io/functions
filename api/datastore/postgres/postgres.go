@@ -279,7 +279,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			headers,
 			config
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
 			route.AppName,
 			route.Path,
 			route.Image,
@@ -403,6 +403,7 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&route.Memory,
 		&route.Type,
 		&route.Timeout,
+		&route.InactivityTimeout,
 		&headerStr,
 		&configStr,
 	)
