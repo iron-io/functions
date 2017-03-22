@@ -5,6 +5,8 @@ This example will show you how to test and deploy a Node function to IronFunctio
 ```sh
 # create your func.yaml file
 fn init <YOUR_DOCKERHUB_USERNAME>/hello
+# Install dependencies
+docker run --rm -v "$PWD":/worker -w /worker iron/node:dev npm install
 # build the function
 fn build
 # test it
