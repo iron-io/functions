@@ -268,7 +268,7 @@ func (hc *htfn) serve(ctx context.Context) {
 				"memory":             cfg.Memory,
 				"format":             cfg.Format,
 				"max_concurrency":    cfg.MaxConcurrency,
-				"idle_timeout": cfg.ID,
+				"idle_timeout":       cfg.IdleTimeout,
 	})
 
 	wg.Add(1)
