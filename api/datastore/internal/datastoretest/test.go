@@ -8,10 +8,13 @@ import (
 
 	"github.com/iron-io/functions/api/models"
 
+	"net/http"
+	"net/url"
+	"os"
+	"reflect"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"reflect"
-	"net/http"
 )
 
 func setLogBuffer() *bytes.Buffer {
@@ -22,6 +25,15 @@ func setLogBuffer() *bytes.Buffer {
 	gin.DefaultWriter = &buf
 	log.SetOutput(&buf)
 	return &buf
+}
+
+func GetContainerHostIP() string {
+	dockerHost := os.Getenv("DOCKER_HOST")
+	if dockerHost == "" {
+		return "127.0.0.1"
+	}
+	parts, _ := url.Parse(dockerHost)
+	return parts.Hostname()
 }
 
 func Test(t *testing.T, ds models.Datastore) {
@@ -62,12 +74,12 @@ func Test(t *testing.T, ds models.Datastore) {
 		{
 			// Set a config var
 			updated, err := ds.UpdateApp(ctx,
-				&models.App{Name: testApp.Name, Config: map[string]string{"TEST":"1"}})
+				&models.App{Name: testApp.Name, Config: map[string]string{"TEST": "1"}})
 			if err != nil {
 				t.Log(buf.String())
 				t.Fatalf("Test UpdateApp: error when updating app: %v", err)
 			}
-			expected := &models.App{Name: testApp.Name, Config: map[string]string{"TEST":"1"}}
+			expected := &models.App{Name: testApp.Name, Config: map[string]string{"TEST": "1"}}
 			if !reflect.DeepEqual(*updated, *expected) {
 				t.Log(buf.String())
 				t.Fatalf("Test UpdateApp: expected updated `%v` but got `%v`", expected, updated)
@@ -75,12 +87,12 @@ func Test(t *testing.T, ds models.Datastore) {
 
 			// Set a different var (without clearing the existing)
 			updated, err = ds.UpdateApp(ctx,
-				&models.App{Name: testApp.Name, Config: map[string]string{"OTHER":"TEST"}})
+				&models.App{Name: testApp.Name, Config: map[string]string{"OTHER": "TEST"}})
 			if err != nil {
 				t.Log(buf.String())
 				t.Fatalf("Test UpdateApp: error when updating app: %v", err)
 			}
-			expected = &models.App{Name: testApp.Name, Config: map[string]string{"TEST":"1","OTHER":"TEST"}}
+			expected = &models.App{Name: testApp.Name, Config: map[string]string{"TEST": "1", "OTHER": "TEST"}}
 			if !reflect.DeepEqual(*updated, *expected) {
 				t.Log(buf.String())
 				t.Fatalf("Test UpdateApp: expected updated `%v` but got `%v`", expected, updated)
@@ -88,12 +100,12 @@ func Test(t *testing.T, ds models.Datastore) {
 
 			// Delete a var
 			updated, err = ds.UpdateApp(ctx,
-				&models.App{Name: testApp.Name, Config: map[string]string{"TEST":""}})
+				&models.App{Name: testApp.Name, Config: map[string]string{"TEST": ""}})
 			if err != nil {
 				t.Log(buf.String())
 				t.Fatalf("Test UpdateApp: error when updating app: %v", err)
 			}
-			expected = &models.App{Name: testApp.Name, Config: map[string]string{"OTHER":"TEST"}}
+			expected = &models.App{Name: testApp.Name, Config: map[string]string{"OTHER": "TEST"}}
 			if !reflect.DeepEqual(*updated, *expected) {
 				t.Log(buf.String())
 				t.Fatalf("Test UpdateApp: expected updated `%v` but got `%v`", expected, updated)
@@ -159,7 +171,7 @@ func Test(t *testing.T, ds models.Datastore) {
 		}
 		if app != nil {
 			t.Log(buf.String())
-			t.Fatalf("Test RemoveApp: failed to remove the app")
+			t.Fatal("Test RemoveApp: failed to remove the app")
 		}
 
 		// Test update inexistent app
@@ -235,7 +247,6 @@ func Test(t *testing.T, ds models.Datastore) {
 				t.Fatalf("Test InsertApp: expected to insert:\n%v\nbut got:\n%v", expected, route)
 			}
 		}
-
 
 		// Testing update
 		{
