@@ -55,4 +55,4 @@ So, there are certain limitations for `idle_timeout` as well as for regular `tim
 
  * Idle timeout might be equal to zero. Such case may lead to satiation when function would be terminated immediately after last request processing, i.e. no idle timeout at all.
  * Idle timeout can't be negative.
- * Idle timeout can't be changed while hot function is running. Idle timeout is permanent within hot function execution lifecycle. It means that idle timeout should be considered for changing while between executions.
+ * Idle timeout can't be changed while hot function is running. Idle timeout is permanent within hot function execution lifecycle. It means that idle timeout should be considered for changing once functions is not running.
