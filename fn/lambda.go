@@ -225,6 +225,9 @@ func awsImport(c *cli.Context) error {
 	}
 
 	runtime := *function.Configuration.Runtime
+	if runtime == "nodejs4.3" {
+		runtime = "nodejs"
+	}
 	rh, ok := runtimeImportHandlers[runtime]
 	if !ok {
 		return fmt.Errorf("unsupported runtime %v", runtime)
@@ -508,6 +511,10 @@ func getFunction(awsProfile, awsRegion, version, arn string) (*aws_lambda.GetFun
 		FunctionName: aws.String(arn),
 		Qualifier:    aws.String(version),
 	})
+
+	if *(resp.Configuration.Runtime) == "nodejs4.3" {
+		resp.Configuration = resp.Configuration.SetRuntime("nodejs")
+	}
 
 	return resp, err
 }
