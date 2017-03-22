@@ -46,14 +46,14 @@ func getCfg(t *models.Task) *task.Config {
 	if t.Timeout == nil {
 		t.Timeout = &timeout
 	}
-	if t.InactivityTimeout == nil {
-		t.InactivityTimeout = &timeout
+	if t.IdleTimeout == nil {
+		t.IdleTimeout = &timeout
 	}
 
 	cfg := &task.Config{
 		Image:   *t.Image,
 		Timeout: time.Duration(*t.Timeout) * time.Second,
-		InactivityTimeout: time.Duration(*t.InactivityTimeout) * time.Second,
+		IdleTimeout: time.Duration(*t.IdleTimeout) * time.Second,
 		ID:      t.ID,
 		AppName: t.AppName,
 		Env:     t.EnvVars,

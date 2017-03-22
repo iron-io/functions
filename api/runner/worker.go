@@ -268,14 +268,14 @@ func (hc *htfn) serve(ctx context.Context) {
 				"memory":             cfg.Memory,
 				"format":             cfg.Format,
 				"max_concurrency":    cfg.MaxConcurrency,
-				"inactivity_timeout": cfg.InactivityTimeout,
+				"idle_timeout": cfg.ID,
 	})
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
-			inactivity := time.After(cfg.InactivityTimeout)
+			inactivity := time.After(cfg.IdleTimeout)
 
 			select {
 			case <-lctx.Done():

@@ -23,7 +23,7 @@ const routesTableCreate = `CREATE TABLE IF NOT EXISTS routes (
 	maxc int NOT NULL,
 	memory int NOT NULL,
 	timeout int NOT NULL,
-	inactivity_timeout int NOT NULL,
+	idle_timeout int NOT NULL,
 	type varchar(16) NOT NULL,
 	headers text NOT NULL,
 	config text NOT NULL,
@@ -40,7 +40,7 @@ const extrasTableCreate = `CREATE TABLE IF NOT EXISTS extras (
 	value varchar(256) NOT NULL
 );`
 
-const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, inactivity_timeout, headers, config FROM routes`
+const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, idle_timeout, headers, config FROM routes`
 
 type rowScanner interface {
 	Scan(dest ...interface{}) error
@@ -303,7 +303,7 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 			memory,
 			type,
 			timeout,
-			inactivity_timeout,
+			idle_timeout,
 			headers,
 			config
 		)
@@ -316,7 +316,7 @@ func (ds *MySQLDatastore) InsertRoute(ctx context.Context, route *models.Route) 
 			route.Memory,
 			route.Type,
 			route.Timeout,
-			route.InactivityTimeout,
+			route.IdleTimeout,
 			string(hbyte),
 			string(cbyte),
 		)
@@ -362,7 +362,7 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 			memory = ?,
 			type = ?,
 			timeout = ?,
-			inactivity_timeout = ?,
+			idle_timeout = ?,
 			headers = ?,
 			config = ?
 		WHERE app_name = ? AND path = ?;`,
@@ -372,7 +372,7 @@ func (ds *MySQLDatastore) UpdateRoute(ctx context.Context, newroute *models.Rout
 			route.Memory,
 			route.Type,
 			route.Timeout,
-			route.InactivityTimeout,
+			route.IdleTimeout,
 			string(hbyte),
 			string(cbyte),
 			route.AppName,
@@ -436,7 +436,7 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&route.Memory,
 		&route.Type,
 		&route.Timeout,
-		&route.InactivityTimeout,
+		&route.IdleTimeout,
 		&headerStr,
 		&configStr,
 	)

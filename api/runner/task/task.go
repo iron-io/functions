@@ -13,7 +13,7 @@ type Config struct {
 	Path                string
 	Image               string
 	Timeout             time.Duration
-	InactivityTimeout   time.Duration
+	IdleTimeout         time.Duration
 	AppName             string
 	Memory              uint64
 	Env                 map[string]string

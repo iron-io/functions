@@ -201,7 +201,7 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 		Stdin:             payload,
 		Stdout:            &stdout,
 		Timeout:           time.Duration(found.Timeout) * time.Second,
-		InactivityTimeout: time.Duration(found.InactivityTimeout) * time.Second,
+		IdleTimeout:       time.Duration(found.IdleTimeout) * time.Second,
 	}
 
 	s.Runner.Enqueue()

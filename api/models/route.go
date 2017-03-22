@@ -40,7 +40,7 @@ type Route struct {
 	Format         string      `json:"format"`
 	MaxConcurrency int         `json:"max_concurrency"`
 	Timeout        int32       `json:"timeout"`
-	InactivityTimeout int32    `json:"inactivity_timeout"`
+	IdleTimeout int32    `json:"inactivity_timeout"`
 	Config         `json:"config"`
 }
 
@@ -56,7 +56,7 @@ var (
 	ErrRoutesValidationMissingType           = errors.New("Missing route Type")
 	ErrRoutesValidationPathMalformed         = errors.New("Path malformed")
 	ErrRoutesValidationNegativeTimeout       = errors.New("Negative timeout")
-	ErrRoutesValidationNegativeInactivityTimeout       = errors.New("Negative inactivity timeout")
+	ErrRoutesValidationNegativeIdleTimeout       = errors.New("Negative inactivity timeout")
 	ErrRoutesValidationNegativeMaxConcurrency = errors.New("Negative MaxConcurrency")
 )
 
@@ -90,8 +90,8 @@ func (r *Route) SetDefaults() {
 		r.Timeout = defaultRouteTimeout
 	}
 
-	if r.InactivityTimeout == 0 {
-		r.InactivityTimeout = htfnScaleDownTimeout
+	if r.IdleTimeout == 0 {
+		r.IdleTimeout = htfnScaleDownTimeout
 	}
 }
 
@@ -148,8 +148,8 @@ func (r *Route) Validate(skipZero bool) error {
 		res = append(res, ErrRoutesValidationNegativeTimeout)
 	}
 
-	if r.InactivityTimeout < 0 {
-		res = append(res, ErrRoutesValidationNegativeInactivityTimeout)
+	if r.IdleTimeout < 0 {
+		res = append(res, ErrRoutesValidationNegativeIdleTimeout)
 	}
 
 	if len(res) > 0 {
@@ -182,8 +182,8 @@ func (r *Route) Update(new *Route) {
 	if new.Timeout != 0 {
 		r.Timeout = new.Timeout
 	}
-	if new.InactivityTimeout != 0 {
-		r.InactivityTimeout = new.InactivityTimeout
+	if new.IdleTimeout != 0 {
+		r.IdleTimeout = new.IdleTimeout
 	}
 	if new.Format != "" {
 		r.Format = new.Format
