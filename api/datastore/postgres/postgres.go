@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS routes (
 	maxc integer NOT NULL,
 	memory integer NOT NULL,
 	timeout integer NOT NULL,
+	inactivity_timeout integer NOT NULL,
 	type character varying(16) NOT NULL,
 	headers text NOT NULL,
 	config text NOT NULL,
@@ -41,7 +42,7 @@ const extrasTableCreate = `CREATE TABLE IF NOT EXISTS extras (
 	value character varying(256) NOT NULL
 );`
 
-const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, headers, config FROM routes`
+const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, inactivity_timeout, headers, config FROM routes`
 
 type rowScanner interface {
 	Scan(dest ...interface{}) error
@@ -274,6 +275,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			memory,
 			type,
 			timeout,
+			inactivity_timeout,
 			headers,
 			config
 		)
@@ -286,6 +288,7 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			route.Memory,
 			route.Type,
 			route.Timeout,
+			route.InactivityTimeout,
 			string(hbyte),
 			string(cbyte),
 		)
@@ -329,8 +332,9 @@ func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, newroute *models.R
 			memory = $6,
 			type = $7,
 			timeout = $8,
-			headers = $9,
-			config = $10
+			inactivity_timeout = $9,
+			headers = $10,
+			config = $11
 		WHERE app_name = $1 AND path = $2;`,
 			route.AppName,
 			route.Path,
@@ -340,6 +344,7 @@ func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, newroute *models.R
 			route.Memory,
 			route.Type,
 			route.Timeout,
+			route.InactivityTimeout,
 			string(hbyte),
 			string(cbyte),
 		)
