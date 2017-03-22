@@ -169,6 +169,11 @@ func (mq *RedisMQ) start() {
 	}()
 }
 
+func (mq *RedisMQ) Close() {
+	mq.ticker.Stop()
+	mq.pool.Close()
+}
+
 func redisPush(conn redis.Conn, queue string, job *models.Task) (*models.Task, error) {
 	buf, err := json.Marshal(job)
 	if err != nil {

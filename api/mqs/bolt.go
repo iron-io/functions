@@ -177,6 +177,10 @@ func (mq *BoltDbMQ) Start() {
 	}()
 }
 
+func (mq *BoltDbMQ) Close() {
+	mq.ticker.Stop()
+}
+
 // We insert a "reservation" at readyAt, and store the json blob at the msg
 // key. The timer loop plucks this out and puts it in the jobs bucket when the
 // time elapses. The value stored at the reservation key is the priority.

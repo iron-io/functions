@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/treeder/functions/api/models"
@@ -19,7 +20,7 @@ func New(mqURL string) (models.MessageQueue, error) {
 	logrus.WithFields(logrus.Fields{"mq": u.Scheme}).Debug("selecting MQ")
 	switch u.Scheme {
 	case "memory":
-		return NewMemoryMQ(), nil
+		return NewMemoryMQ(time.Minute), nil
 	case "redis":
 		return NewRedisMQ(u)
 	case "bolt":

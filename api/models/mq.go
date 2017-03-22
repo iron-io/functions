@@ -1,6 +1,11 @@
 package models
 
-import "context"
+import (
+	"context"
+	"strings"
+	"fmt"
+	"errors"
+)
 
 // Titan uses a Message Queue to impose a total ordering on jobs that it will
 // execute in order. Tasks are added to the queue via the Push() interface. The
@@ -37,6 +42,8 @@ type MessageQueue interface {
 	// delays. That is, if jobs {A, C} are queued at t seconds, both with Delay
 	// = 5 seconds, and the same priority, then they may be available on the
 	// queue as [C, A] or [A, C].
+	//
+	// Task fields ID and Priority must be set.
 	Push(context.Context, *Task) (*Task, error)
 
 	// Remove a job from the front of the queue, reserve it for a timeout and
@@ -48,7 +55,28 @@ type MessageQueue interface {
 	// If a reservation is pending, consider it acknowledged and delete it. If
 	// the job does not have an outstanding reservation, error. If a job did not
 	// exist, succeed.
+	//
+	// Task fields ID and Priority must be set.
 	Delete(context.Context, *Task) error
+
+	Close()
 }
 
 type Enqueue func(context.Context, MessageQueue, *Task) (*Task, error)
+
+var (
+	ErrMQMissingTask         = errors.New("Missing task")
+	ErrMQEmptyTaskID         = errors.New("Empty task ID")
+	ErrMQMissingTaskPriority = errors.New("Missing task priority")
+	ErrMQTaskNotReserved     = errors.New("Task not reserved")
+)
+
+const errMQInvalidTaskPriority = "Invalid valid task priority:"
+
+func IsErrMQInvalidTaskPriority(err error) bool {
+	return strings.HasPrefix(err.Error(), errMQInvalidTaskPriority)
+}
+
+func NewErrMQInvalidTaskPriority(task *Task) error {
+	return fmt.Errorf("%s task %q: %d", errMQInvalidTaskPriority, task.ID, task.Priority)
+}
