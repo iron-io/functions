@@ -40,7 +40,7 @@ type Route struct {
 	Format         string      `json:"format"`
 	MaxConcurrency int         `json:"max_concurrency"`
 	Timeout        int32       `json:"timeout"`
-	IdleTimeout int32    `json:"inactivity_timeout"`
+	IdleTimeout int32    `json:"idle_timeout"`
 	Config         `json:"config"`
 }
 
@@ -56,7 +56,7 @@ var (
 	ErrRoutesValidationMissingType           = errors.New("Missing route Type")
 	ErrRoutesValidationPathMalformed         = errors.New("Path malformed")
 	ErrRoutesValidationNegativeTimeout       = errors.New("Negative timeout")
-	ErrRoutesValidationNegativeIdleTimeout       = errors.New("Negative inactivity timeout")
+	ErrRoutesValidationNegativeIdleTimeout       = errors.New("Negative idle timeout")
 	ErrRoutesValidationNegativeMaxConcurrency = errors.New("Negative MaxConcurrency")
 )
 
