@@ -172,7 +172,6 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 	if a.entrypoint == "" {
 		if helper != nil {
 			a.entrypoint = helper.Entrypoint()
-			// return fmt.Errorf("could not detect entrypoint for %v, use --entrypoint to add it explicitly. %v", a.runtime, err)
 		}
 	}
 	if a.cmd == "" {

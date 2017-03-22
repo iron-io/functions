@@ -162,6 +162,7 @@ func writeTmpDockerfile(dir string, ff *funcfile) error {
 	if err != nil {
 		return err
 	}
+	defer fd.Close()
 
 	// convert entrypoint string to slice
 	bufferEp := stringToSlice(ff.Entrypoint)
@@ -171,7 +172,7 @@ func writeTmpDockerfile(dir string, ff *funcfile) error {
 	err = t.Execute(fd, struct {
 		BaseImage, Entrypoint, Cmd string
 	}{rt, bufferEp.String(), bufferCmd.String()})
-	fd.Close()
+
 	return err
 }
 
