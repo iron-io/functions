@@ -133,7 +133,7 @@ var acceptableFnRuntimes = map[string]string{
 	"scala":       "iron/scala",
 	"rust":        "corey/rust-alpine",
 	"dotnet":      "microsoft/dotnet:runtime",
-	"lambda-node": "iron/functions-lambda:node",
+	"lambda-node": "iron/functions-lambda:nodejs4.3",
 }
 
 const tplDockerfile = `FROM {{ .BaseImage }}

@@ -20,6 +20,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+var runtimes = map[string]string{
+	"nodejs4.3": "lambda-node",
+}
+
 func lambda() cli.Command {
 	var flags []cli.Flag
 
@@ -110,13 +114,9 @@ func awsImport(c *cli.Context) error {
 		return err
 	}
 
-	if *function.Configuration.Runtime == "nodejs4.3" {
-		*function.Configuration.Runtime = "node"
-	}
-
 	opts := createImageOptions{
 		Name:          functionName,
-		Base:          fmt.Sprintf("lambda-%s", *function.Configuration.Runtime),
+		Base:          runtimes[(*function.Configuration.Runtime)],
 		Package:       "",
 		Handler:       *function.Configuration.Handler,
 		OutputStream:  newdockerJSONWriter(os.Stdout),
@@ -150,7 +150,7 @@ func awsImport(c *cli.Context) error {
 
 var (
 	runtimeImportHandlers = map[string]func(functionName, tmpFileName string, opts *createImageOptions) ([]fileLike, error){
-		"node":      basicImportHandler,
+		"nodejs4.3": basicImportHandler,
 		"python2.7": basicImportHandler,
 		"java8": func(functionName, tmpFileName string, opts *createImageOptions) ([]fileLike, error) {
 			fmt.Println("Found Java Lambda function. Going to assume code is a single JAR file.")
