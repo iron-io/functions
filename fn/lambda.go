@@ -21,7 +21,7 @@ import (
 )
 
 var runtimes = map[string]string{
-	"nodejs4.3": "lambda-node",
+	"nodejs4.3": "lambda-nodejs4.3",
 }
 
 func lambda() cli.Command {
