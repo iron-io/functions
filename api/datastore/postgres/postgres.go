@@ -121,9 +121,8 @@ func (ds *PostgresDatastore) UpdateApp(ctx context.Context, newapp *models.App) 
 			return err
 		}
 
-		err := json.Unmarshal([]byte(config), &app.Config)
-		if err != nil {
-			return err
+		if len(config) > 0 {
+			json.Unmarshal([]byte(config), &app.Config)
 		}
 
 		app.UpdateConfig(newapp.Config)
