@@ -2,7 +2,7 @@
 
 $packageName= 'functions'
 $toolsDir   = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
-$url        = 'https://github.com/iron-io/functions/releases/download/0.2.25/fn.exe'
+$url        = 'https://github.com/iron-io/functions/releases/download/0.2.57/fn.exe'
 #$fileLocation = Join-Path $toolsDir 'NAME_OF_EMBEDDED_INSTALLER_FILE'
 #$fileLocation = '\\SHARE_LOCATION\to\INSTALLER_FILE'
 
