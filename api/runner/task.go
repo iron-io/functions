@@ -2,10 +2,12 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"io"
+	"os"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/drivers"
 )
@@ -43,5 +45,37 @@ func (t *containerTask) WorkDir() string                    { return "" }
 func (t *containerTask) Close()                 {}
 func (t *containerTask) WriteStat(drivers.Stat) {}
 
-// FIXME: for now just use empty creds => public docker hub image
-func (t *containerTask) DockerAuth() docker.AuthConfiguration { return docker.AuthConfiguration{} }
+// Implementing the docker.AuthConfiguration interface.  Pulling in
+// the docker repo password from environment variables
+func (t *containerTask) DockerAuth() (docker.AuthConfiguration, error) {
+	reg, _, _ := drivers.ParseImage(t.Image())
+
+	// Default to the nil configuration
+	authconfig := docker.AuthConfiguration{}
+
+	// Attempt to fetch config from built in environment
+	regsettings := t.EnvVars()["DOCKER_REPOSITORY_AUTHS"]
+
+	if regsettings == "" {
+		// Attempt to fetch it from an environment variable
+		regsettings = os.Getenv("DOCKER_REPOSITORY_AUTHS")
+	}
+
+	// If we have settings, unmarshal them
+	if regsettings != "" {
+		registries := make(dockerRegistries, 0)
+		if err := json.Unmarshal([]byte(regsettings), &registries); err != nil {
+			return authconfig, err
+		}
+
+		if customAuth := registries.Find(reg); customAuth != nil {
+			authconfig = docker.AuthConfiguration{
+				Password:      customAuth.Password,
+				ServerAddress: customAuth.Name,
+				Username:      customAuth.Username,
+			}
+		}
+	}
+
+	return authconfig, nil
+}
