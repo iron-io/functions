@@ -8,12 +8,12 @@ import (
 
 	"context"
 
+	"bytes"
 	"github.com/Sirupsen/logrus"
+	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"bytes"
-	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 )
 
 const routesTableCreate = `
@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS routes (
 	maxc integer NOT NULL,
 	memory integer NOT NULL,
 	timeout integer NOT NULL,
+	idle_timeout integer NOT NULL,
 	type character varying(16) NOT NULL,
 	headers text NOT NULL,
 	config text NOT NULL,
@@ -41,7 +42,7 @@ const extrasTableCreate = `CREATE TABLE IF NOT EXISTS extras (
 	value character varying(256) NOT NULL
 );`
 
-const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, headers, config FROM routes`
+const routeSelector = `SELECT app_name, path, image, format, maxc, memory, type, timeout, idle_timeout, headers, config FROM routes`
 
 type rowScanner interface {
 	Scan(dest ...interface{}) error
@@ -120,7 +121,7 @@ func (ds *PostgresDatastore) UpdateApp(ctx context.Context, newapp *models.App) 
 			return err
 		}
 
-		if config != "" {
+		if len(config) > 0 {
 			err := json.Unmarshal([]byte(config), &app.Config)
 			if err != nil {
 				return err
@@ -184,8 +185,11 @@ func (ds *PostgresDatastore) GetApp(ctx context.Context, name string) (*models.A
 		Name: resName,
 	}
 
-	if err := json.Unmarshal([]byte(config), &res.Config); err != nil {
-		return nil, err
+	if len(config) > 0 {
+		err := json.Unmarshal([]byte(config), &res.Config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
@@ -202,7 +206,14 @@ func scanApp(scanner rowScanner, app *models.App) error {
 		return err
 	}
 
-	return json.Unmarshal([]byte(configStr), &app.Config)
+	if len(configStr) > 0 {
+		err = json.Unmarshal([]byte(configStr), &app.Config)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (ds *PostgresDatastore) GetApps(ctx context.Context, filter *models.AppFilter) ([]*models.App, error) {
@@ -274,10 +285,11 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			memory,
 			type,
 			timeout,
+			idle_timeout,
 			headers,
 			config
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
 			route.AppName,
 			route.Path,
 			route.Image,
@@ -286,12 +298,12 @@ func (ds *PostgresDatastore) InsertRoute(ctx context.Context, route *models.Rout
 			route.Memory,
 			route.Type,
 			route.Timeout,
+			route.IdleTimeout,
 			string(hbyte),
 			string(cbyte),
 		)
 		return err
 	})
-
 
 	if err != nil {
 		return nil, err
@@ -329,8 +341,9 @@ func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, newroute *models.R
 			memory = $6,
 			type = $7,
 			timeout = $8,
-			headers = $9,
-			config = $10
+			idle_timeout = $9,
+			headers = $10,
+			config = $11
 		WHERE app_name = $1 AND path = $2;`,
 			route.AppName,
 			route.Path,
@@ -340,6 +353,7 @@ func (ds *PostgresDatastore) UpdateRoute(ctx context.Context, newroute *models.R
 			route.Memory,
 			route.Type,
 			route.Timeout,
+			route.IdleTimeout,
 			string(hbyte),
 			string(cbyte),
 		)
@@ -398,6 +412,7 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		&route.Memory,
 		&route.Type,
 		&route.Timeout,
+		&route.IdleTimeout,
 		&headerStr,
 		&configStr,
 	)
@@ -405,14 +420,21 @@ func scanRoute(scanner rowScanner, route *models.Route) error {
 		return err
 	}
 
-	if headerStr == "" {
-		return models.ErrRoutesNotFound
+	if len(headerStr) > 0 {
+		err = json.Unmarshal([]byte(headerStr), &route.Headers)
+		if err != nil {
+			return err
+		}
 	}
 
-	if err := json.Unmarshal([]byte(headerStr), &route.Headers); err != nil {
-		return err
+	if len(configStr) > 0 {
+		err = json.Unmarshal([]byte(configStr), &route.Config)
+		if err != nil {
+			return err
+		}
 	}
-	return json.Unmarshal([]byte(configStr), &route.Config)
+
+	return nil
 }
 
 func (ds *PostgresDatastore) GetRoute(ctx context.Context, appName, routePath string) (*models.Route, error) {
@@ -556,7 +578,6 @@ func (ds *PostgresDatastore) Get(ctx context.Context, key []byte) ([]byte, error
 
 	return []byte(value), nil
 }
-
 
 func (ds *PostgresDatastore) Tx(f func(*sql.Tx) error) error {
 	tx, err := ds.db.Begin()
