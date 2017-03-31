@@ -1,5 +1,9 @@
 package runner
 
+import (
+	"strings"
+)
+
 type dockerRegistry struct {
 	Name     string `json:"name"`
 	Username string `json:"username"`
@@ -10,7 +14,7 @@ type dockerRegistries []dockerRegistry
 
 func (t dockerRegistries) Find(name string) *dockerRegistry {
 	for _, v := range t {
-		if v.Name == name {
+		if strings.HasSuffix(v.Name, name) {
 			return &v
 		}
 	}

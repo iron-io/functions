@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/user"
+	"path/filepath"
 	"time"
 
+	"github.com/docker/docker/cli/config/configfile"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/drivers"
@@ -33,14 +36,14 @@ func (t *containerTask) Labels() map[string]string {
 	}
 }
 
-func (t *containerTask) Id() string                         { return t.cfg.ID }
-func (t *containerTask) Route() string                      { return "" }
-func (t *containerTask) Image() string                      { return t.cfg.Image }
-func (t *containerTask) Timeout() time.Duration             { return t.cfg.Timeout }
-func (t *containerTask) IdleTimeout() time.Duration   { return t.cfg.IdleTimeout }
-func (t *containerTask) Logger() (io.Writer, io.Writer)     { return t.cfg.Stdout, t.cfg.Stderr }
-func (t *containerTask) Volumes() [][2]string               { return [][2]string{} }
-func (t *containerTask) WorkDir() string                    { return "" }
+func (t *containerTask) Id() string                     { return t.cfg.ID }
+func (t *containerTask) Route() string                  { return "" }
+func (t *containerTask) Image() string                  { return t.cfg.Image }
+func (t *containerTask) Timeout() time.Duration         { return t.cfg.Timeout }
+func (t *containerTask) IdleTimeout() time.Duration     { return t.cfg.IdleTimeout }
+func (t *containerTask) Logger() (io.Writer, io.Writer) { return t.cfg.Stdout, t.cfg.Stderr }
+func (t *containerTask) Volumes() [][2]string           { return [][2]string{} }
+func (t *containerTask) WorkDir() string                { return "" }
 
 func (t *containerTask) Close()                 {}
 func (t *containerTask) WriteStat(drivers.Stat) {}
@@ -61,21 +64,44 @@ func (t *containerTask) DockerAuth() (docker.AuthConfiguration, error) {
 		regsettings = os.Getenv("DOCKER_REPOSITORY_AUTHS")
 	}
 
-	// If we have settings, unmarshal them
-	if regsettings != "" {
-		registries := make(dockerRegistries, 0)
+	var registries dockerRegistries
+	if regsettings == "" {
+		u, err := user.Current()
+		if err == nil {
+			var config configfile.ConfigFile
+			cfile, err := os.Open(filepath.Join(u.HomeDir, ".docker", "config.json"))
+			if err != nil {
+				return authconfig, err
+			}
+			err = config.LoadFromReader(cfile)
+			if err != nil {
+				return authconfig, err
+			}
+
+			var regs []dockerRegistry
+			for _, auth := range config.AuthConfigs {
+				regs = append(regs, dockerRegistry{
+					Username: auth.Username,
+					Password: auth.Password,
+					Name:     auth.ServerAddress,
+				})
+			}
+
+			registries = dockerRegistries(regs)
+		}
+	} else {
+		// If we have settings, unmarshal them
 		if err := json.Unmarshal([]byte(regsettings), &registries); err != nil {
 			return authconfig, err
 		}
-
-		if customAuth := registries.Find(reg); customAuth != nil {
-			authconfig = docker.AuthConfiguration{
-				Password:      customAuth.Password,
-				ServerAddress: customAuth.Name,
-				Username:      customAuth.Username,
-			}
-		}
 	}
 
+	if customAuth := registries.Find(reg); customAuth != nil {
+		authconfig = docker.AuthConfiguration{
+			Password:      customAuth.Password,
+			ServerAddress: customAuth.Name,
+			Username:      customAuth.Username,
+		}
+	}
 	return authconfig, nil
 }
