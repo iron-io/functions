@@ -110,8 +110,7 @@ func discoverContainerIds() {
 	// This is needed because IronFunctions doesn't make the host/port available to the function (as of Mar 2017).
 	fmt.Println("Discovering container ids for every node (use Docker's HOSTNAME env var as a container id)...")
 	for _, s := range nodes {
-		e, err := executeFunction(s, route, 100, 1)
-		if err == nil {
+		if e, err := executeFunction(s, route, 100, 1); err == nil {
 			nodesByContainerId[e.Hostname] = s
 			fmt.Printf("  %s %s\n", s, e.Hostname)
 		} else {

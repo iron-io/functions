@@ -46,6 +46,7 @@ func main() {
 		}
 	}
 
+	// Repeat the calculation of primes simply to give the CPU more work to do without consuming additional memory
 	for i := 0; i < numLoops; i++ {
 		primes := sieveOfEratosthenes(maxPrime)
 		_ = primes
