@@ -69,7 +69,7 @@ imports:
   - reference
   - uuid
 - name: github.com/docker/docker
-  version: fddb5a7f2ab29be441bc797f7e79fffc5cc531d3
+  version: f6b7dc983782e5800bdfd901f963494df9fbb0b7
   subpackages:
   - api/types
   - api/types/blkiodev
@@ -81,6 +81,7 @@ imports:
   - api/types/strslice
   - api/types/swarm
   - api/types/versions
+  - cli/config/configfile
   - opts
   - pkg/archive
   - pkg/fileutils
