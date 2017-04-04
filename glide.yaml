@@ -2,6 +2,9 @@ package: github.com/iron-io/functions
 import:
 - package: github.com/Sirupsen/logrus
 - package: github.com/boltdb/bolt
+- package: github.com/docker/docker
+  subpackages:
+  - cli/config/configfile
 - package: github.com/garyburd/redigo
   subpackages:
   - redis
