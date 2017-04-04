@@ -15,6 +15,44 @@ import (
 	"github.com/iron-io/runner/drivers"
 )
 
+var registries dockerRegistries
+
+func init() {
+
+	// Attempt to fetch it from an environment variable
+	regsettings := os.Getenv("DOCKER_AUTH")
+
+	if regsettings == "" {
+		u, err := user.Current()
+		if err == nil {
+			var config configfile.ConfigFile
+			cfile, err := os.Open(filepath.Join(u.HomeDir, ".docker", "config.json"))
+			if err != nil {
+				return
+			}
+			err = config.LoadFromReader(cfile)
+			if err != nil {
+				return
+			}
+
+			var regs []dockerRegistry
+			for _, auth := range config.AuthConfigs {
+				regs = append(regs, dockerRegistry{
+					Username: auth.Username,
+					Password: auth.Password,
+					Name:     auth.ServerAddress,
+				})
+			}
+
+			registries = dockerRegistries(regs)
+		}
+	} else {
+		// If we have settings, unmarshal them
+		json.Unmarshal([]byte(regsettings), &registries)
+	}
+
+}
+
 type containerTask struct {
 	ctx    context.Context
 	cfg    *task.Config
@@ -52,49 +90,7 @@ func (t *containerTask) WriteStat(drivers.Stat) {}
 // the docker repo password from environment variables
 func (t *containerTask) DockerAuth() (docker.AuthConfiguration, error) {
 	reg, _, _ := drivers.ParseImage(t.Image())
-
-	// Default to the nil configuration
 	authconfig := docker.AuthConfiguration{}
-
-	// Attempt to fetch config from built in environment
-	regsettings := t.EnvVars()["DOCKER_REPOSITORY_AUTHS"]
-
-	if regsettings == "" {
-		// Attempt to fetch it from an environment variable
-		regsettings = os.Getenv("DOCKER_REPOSITORY_AUTHS")
-	}
-
-	var registries dockerRegistries
-	if regsettings == "" {
-		u, err := user.Current()
-		if err == nil {
-			var config configfile.ConfigFile
-			cfile, err := os.Open(filepath.Join(u.HomeDir, ".docker", "config.json"))
-			if err != nil {
-				return authconfig, err
-			}
-			err = config.LoadFromReader(cfile)
-			if err != nil {
-				return authconfig, err
-			}
-
-			var regs []dockerRegistry
-			for _, auth := range config.AuthConfigs {
-				regs = append(regs, dockerRegistry{
-					Username: auth.Username,
-					Password: auth.Password,
-					Name:     auth.ServerAddress,
-				})
-			}
-
-			registries = dockerRegistries(regs)
-		}
-	} else {
-		// If we have settings, unmarshal them
-		if err := json.Unmarshal([]byte(regsettings), &registries); err != nil {
-			return authconfig, err
-		}
-	}
 
 	if customAuth := registries.Find(reg); customAuth != nil {
 		authconfig = docker.AuthConfiguration{
@@ -103,5 +99,6 @@ func (t *containerTask) DockerAuth() (docker.AuthConfiguration, error) {
 			Username:      customAuth.Username,
 		}
 	}
+
 	return authconfig, nil
 }
