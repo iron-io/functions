@@ -10,7 +10,7 @@ docker: vendor
 	docker push iron/fn
 
 vendor:
-	glide install -v
+	dep ensure --update
 
 test:
 	go test -v $(shell glide nv)
