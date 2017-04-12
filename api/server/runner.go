@@ -188,6 +188,9 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	for header, value := range c.Request.Header {
 		envVars[toEnvName("HEADER", header)] = strings.Join(value, " ")
 	}
+	// revert Host header that is being prompted to c.Request.Host
+	// instead of being available as part of c.Requests.Header
+	envVars[toEnvName("HEADER", "Host")] = c.Request.Host
 
 	cfg := &task.Config{
 		AppName:           appName,
