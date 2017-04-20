@@ -33,7 +33,9 @@ func scheme() string {
 }
 
 func apiClient() *fnclient.Functions {
-	transport := httptransport.New(host(), "/v1", []string{scheme()})
+	url := apiURL()
+
+	transport := httptransport.New(url.Host, "/v1", []string{url.Scheme})
 
 	if os.Getenv("IRON_TOKEN") != "" {
 		transport.DefaultAuthentication = httptransport.BearerToken(os.Getenv("IRON_TOKEN"))
