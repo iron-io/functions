@@ -1,6 +1,5 @@
 ![IronFunctions](docs/assets/logo-black-400w.png)
 
-[![CircleCI](https://circleci.com/gh/treeder/functions.svg?style=svg)](https://circleci.com/gh/treeder/functions)
 [![GoDoc](https://godoc.org/github.com/treeder/functions?status.svg)](https://godoc.org/github.com/treeder/functions)
 
 Welcome to IronFunctions! The open source serverless platform.
@@ -90,7 +89,7 @@ configuration options [here](docs/operating/options.md). If you are on Windows, 
 Install the IronFunctions CLI tool:
 
 ```sh
-curl -LSs https://goo.gl/VZrL8t | sh
+curl -LSs https://raw.githubusercontent.com/treeder/functions/master/fn/install.sh | sh
 ```
 
 This will download a shell script and execute it.  If the script asks for a password, that is because it invokes sudo.
