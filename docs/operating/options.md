@@ -45,5 +45,5 @@ docker run --rm --name functions -it -v /var/run/docker.sock:/var/run/docker.soc
 
 You can of course just run the binary directly, you'll just have to change how you set the environment variables above.
 
-See [contributing doc](../CONTRIBUTING.md) for information on how to build and run.
+See [contributing doc](../../CONTRIBUTING.md) for information on how to build and run.
 
