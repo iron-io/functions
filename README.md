@@ -180,7 +180,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps
 ```
 
-[More on apps](docs/apps.md).
+[More on apps](docs/definitions.md#applications).
 
 Now that we have an app, we can route endpoints to functions.
 
@@ -206,7 +206,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps/myapp/routes
 ```
 
-[More on routes](docs/routes.md).
+[More on routes](docs/operating/routes.md).
 
 ### Calling your Function
 
@@ -286,7 +286,7 @@ If you watch the logs, you will see the function actually runs in the background
 
 ![async log](docs/assets/async-log.png)
 
-Read more on [logging](docs/logging.md).
+Read more on [logging](docs/operating/logging.md).
 
 ## Functions UI
 
