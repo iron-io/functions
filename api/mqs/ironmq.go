@@ -10,9 +10,9 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/iron-io/functions/api/models"
 	mq_config "github.com/iron-io/iron_go3/config"
 	ironmq "github.com/iron-io/iron_go3/mq"
+	"github.com/treeder/functions/api/models"
 )
 
 type assoc struct {
@@ -92,6 +92,8 @@ func NewIronMQ(url *url.URL) *IronMQ {
 	logrus.WithFields(logrus.Fields{"base_queue": queueName}).Info("IronMQ initialized")
 	return mq
 }
+
+func (mq *IronMQ) Close() {}
 
 func (mq *IronMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
 	if job.Priority == nil || *job.Priority < 0 || *job.Priority > 2 {

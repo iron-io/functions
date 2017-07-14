@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/iron-io/functions/examples/blog/database"
-	"github.com/iron-io/functions/examples/blog/models"
+	"github.com/treeder/functions/examples/blog/database"
+	"github.com/treeder/functions/examples/blog/models"
 )
 
 func HandlePostCreate(db *database.Database, auth map[string]interface{}) {

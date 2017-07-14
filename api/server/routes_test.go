@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iron-io/functions/api/datastore"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/mqs"
+	"github.com/treeder/functions/api/datastore"
+	"github.com/treeder/functions/api/models"
+	"github.com/treeder/functions/api/mqs"
 )
 
 func TestRouteCreate(t *testing.T) {

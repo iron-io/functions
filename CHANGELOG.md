@@ -59,7 +59,7 @@
 - [#251](https://github.com/iron-io/functions/issues/251): Maybe drop the CONFIG_ prefix on user defined config vars?.
 - [#235](https://github.com/iron-io/functions/issues/235): Docs: Missing Redis docs.
 - [#229](https://github.com/iron-io/functions/issues/229): fnctl change suggestions.
-- [#218](https://github.com/iron-io/functions/issues/218): Copy s3 event example from iron-io/lambda.
+- [#218](https://github.com/iron-io/functions/issues/218): Copy s3 event example from treeder/lambda.
 - [#216](https://github.com/iron-io/functions/issues/216): fnclt lambda commands need to automatically detect region from the AWS config.
 - [#197](https://github.com/iron-io/functions/issues/197): Create an fnctl dns entry and enable ssl for install of the cli tool.
 - [#182](https://github.com/iron-io/functions/issues/182): Remove error in logs when image not found.

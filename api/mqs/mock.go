@@ -3,7 +3,7 @@ package mqs
 import (
 	"context"
 
-	"github.com/iron-io/functions/api/models"
+	"github.com/treeder/functions/api/models"
 )
 
 type Mock struct {
@@ -24,3 +24,5 @@ func (mock *Mock) Reserve(context.Context) (*models.Task, error) {
 func (mock *Mock) Delete(context.Context, *models.Task) error {
 	return nil
 }
+
+func (mock *Mock) Close() {}

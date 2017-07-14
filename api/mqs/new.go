@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/iron-io/functions/api/models"
+	"github.com/treeder/functions/api/models"
 )
 
 // New will parse the URL and return the correct MQ implementation.
@@ -19,7 +20,7 @@ func New(mqURL string) (models.MessageQueue, error) {
 	logrus.WithFields(logrus.Fields{"mq": u.Scheme}).Debug("selecting MQ")
 	switch u.Scheme {
 	case "memory":
-		return NewMemoryMQ(), nil
+		return NewMemoryMQ(time.Minute), nil
 	case "redis":
 		return NewRedisMQ(u)
 	case "bolt":

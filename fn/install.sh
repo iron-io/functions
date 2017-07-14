@@ -3,7 +3,7 @@ set -e
 
 # Install script to install fn
 
-release="0.2.59"
+release="0.3.2"
 
 command_exists() {
   command -v "$@" > /dev/null 2>&1
@@ -54,7 +54,7 @@ else
     exit 1
 fi
 
-url='https://github.com/iron-io/functions/releases/download'
+url='https://github.com/treeder/functions/releases/download'
 
 # perform some very rudimentary platform detection
 case "$(uname)" in
@@ -84,7 +84,7 @@ cat >&2 <<'EOF'
   installer script (yet - PRs welcome! [fn/install]).
   Please visit the following URL for more detailed installation instructions:
 
-    https://github.com/iron-io/functions
+    https://github.com/treeder/functions
 
 EOF
 exit 1

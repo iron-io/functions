@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/treeder/functions/api/models"
+	"github.com/treeder/functions/api/runner/common"
 	"net/http"
 )
 

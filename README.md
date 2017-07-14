@@ -1,7 +1,6 @@
 ![IronFunctions](docs/assets/logo-black-400w.png)
 
-[![CircleCI](https://circleci.com/gh/iron-io/functions.svg?style=svg)](https://circleci.com/gh/iron-io/functions)
-[![GoDoc](https://godoc.org/github.com/iron-io/functions?status.svg)](https://godoc.org/github.com/iron-io/functions)
+[![GoDoc](https://godoc.org/github.com/treeder/functions?status.svg)](https://godoc.org/github.com/treeder/functions)
 
 Welcome to IronFunctions! The open source serverless platform.
 
@@ -90,7 +89,7 @@ configuration options [here](docs/operating/options.md). If you are on Windows, 
 Install the IronFunctions CLI tool:
 
 ```sh
-curl -LSs https://goo.gl/VZrL8t | sh
+curl -LSs https://raw.githubusercontent.com/treeder/functions/master/fn/install.sh | sh
 ```
 
 This will download a shell script and execute it.  If the script asks for a password, that is because it invokes sudo.
@@ -180,7 +179,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps
 ```
 
-[More on apps](docs/apps.md).
+[More on apps](docs/definitions.md#applications).
 
 Now that we have an app, we can route endpoints to functions.
 
@@ -206,7 +205,7 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps/myapp/routes
 ```
 
-[More on routes](docs/routes.md).
+[More on routes](docs/operating/routes.md).
 
 ### Calling your Function
 
@@ -286,7 +285,7 @@ If you watch the logs, you will see the function actually runs in the background
 
 ![async log](docs/assets/async-log.png)
 
-Read more on [logging](docs/logging.md).
+Read more on [logging](docs/operating/logging.md).
 
 ## Functions UI
 
@@ -294,7 +293,7 @@ Read more on [logging](docs/logging.md).
 docker run --rm -it --link functions:api -p 4000:4000 -e "API_URL=http://api:8080" iron/functions-ui
 ```
 
-For more information, see: https://github.com/iron-io/functions-ui
+For more information, see: https://github.com/treeder/functions-ui
 
 ## Writing Functions
 
@@ -308,7 +307,7 @@ See [docs/](docs/README.md) for full documentation.
 
 ## Roadmap
 
-These are the high level roadmap goals. See [milestones](https://github.com/iron-io/functions/milestones) for detailed issues.
+These are the high level roadmap goals. See [milestones](https://github.com/treeder/functions/milestones) for detailed issues.
 
 * ~~Alpha 1 - November 2016~~
   * Initial release of base framework

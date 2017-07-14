@@ -1,4 +1,4 @@
-# IronFunctions using Postgres
+# IronFunctions using MySQL
 
 Let's presuppose you don't have even a MySQL DB ready.
 

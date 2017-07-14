@@ -11,8 +11,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/garyburd/redigo/redis"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/treeder/functions/api/models"
+	"github.com/treeder/functions/api/runner/common"
 )
 
 type RedisMQ struct {
@@ -167,6 +167,11 @@ func (mq *RedisMQ) start() {
 			mq.processDelayedTasks(conn)
 		}
 	}()
+}
+
+func (mq *RedisMQ) Close() {
+	mq.ticker.Stop()
+	mq.pool.Close()
 }
 
 func redisPush(conn redis.Conn, queue string, job *models.Task) (*models.Task, error) {

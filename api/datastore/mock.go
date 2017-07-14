@@ -3,8 +3,8 @@ package datastore
 import (
 	"context"
 
-	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
-	"github.com/iron-io/functions/api/models"
+	"github.com/treeder/functions/api/datastore/internal/datastoreutil"
+	"github.com/treeder/functions/api/models"
 )
 
 type mock struct {

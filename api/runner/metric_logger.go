@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/iron-io/runner/common"
+	"github.com/treeder/functions/api/runner/common"
 )
 
 type MetricLogger interface {

@@ -13,8 +13,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/treeder/functions/api/models"
+	"github.com/treeder/functions/api/runner/common"
 )
 
 type BoltDbMQ struct {
@@ -175,6 +175,10 @@ func (mq *BoltDbMQ) Start() {
 			}
 		}
 	}()
+}
+
+func (mq *BoltDbMQ) Close() {
+	mq.ticker.Stop()
 }
 
 // We insert a "reservation" at readyAt, and store the json blob at the msg

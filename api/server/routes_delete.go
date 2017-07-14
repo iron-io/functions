@@ -6,7 +6,7 @@ import (
 	"path"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api"
+	"github.com/treeder/functions/api"
 )
 
 func (s *Server) handleRouteDelete(c *gin.Context) {

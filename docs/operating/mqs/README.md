@@ -12,12 +12,12 @@ docker run -e "MQ_URL=redis://localhost:6379/" ...
 
 URL: `bolt:///titan/data/functions-mq.db`
 
-See Bolt in databases above. The Bolt database is locked at the file level, so
+See Bolt in [databases section](../operating/databases/boltdb.md). The Bolt database is locked at the file level, so
 the file cannot be the same as the one used for the Bolt Datastore.
 
 ## [Redis](http://redis.io/)
 
-See Redis in databases above.
+See the Redis example above.
 
 ## [IronMQ](https://www.iron.io/platform/ironmq/)
 

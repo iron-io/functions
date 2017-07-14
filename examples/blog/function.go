@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/iron-io/functions/examples/blog/database"
-	"github.com/iron-io/functions/examples/blog/models"
-	"github.com/iron-io/functions/examples/blog/routes"
+	"github.com/treeder/functions/examples/blog/database"
+	"github.com/treeder/functions/examples/blog/models"
+	"github.com/treeder/functions/examples/blog/routes"
 )
 
 var noAuth = map[string]interface{}{}

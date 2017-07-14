@@ -15,9 +15,9 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/mqs"
-	"github.com/iron-io/functions/api/runner/task"
+	"github.com/treeder/functions/api/models"
+	"github.com/treeder/functions/api/mqs"
+	"github.com/treeder/functions/api/runner/task"
 )
 
 func setLogBuffer() *bytes.Buffer {
