@@ -1,7 +1,7 @@
-all: vendor build	
+all: vendor build
 	./fn
 
-build: 
+build:
 	go build -o fn
 
 docker: vendor
@@ -9,8 +9,8 @@ docker: vendor
 	docker build -t iron/fn .
 	docker push iron/fn
 
-vendor:
-	dep ensure --update
+dep:
+	dep ensure
 
 test:
 	go test $(go list ./... | grep -v /vendor/)
