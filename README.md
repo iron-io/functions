@@ -60,8 +60,8 @@ and you'll find plenty of information. We have pretty thorough post on the Iron.
 
 Join our Slack community to get help and give feedback.
 
-[![Slack Status](https://open-iron.herokuapp.com/badge.svg)](
-get.iron.io/open-slack)
+[![Slack Status](https://iron-functions-slack.herokuapp.com/badge.svg)](
+http://get.iron.io/functions-slack)
 
 ## Quickstart
 
@@ -327,7 +327,7 @@ These are the high level roadmap goals. See [milestones](https://github.com/iron
 You can get community support via:
 
 * [Stack Overflow](http://stackoverflow.com/questions/tagged/ironfunctions)
-* [Slack](http://get.iron.io/open-slack)
+* [Slack](http://get.iron.io/functions-slack)
 
 You can get commercial support by contacting [Iron.io](https://iron.io/contact)
 
