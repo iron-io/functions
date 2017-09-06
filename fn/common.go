@@ -202,9 +202,14 @@ func extractEnvConfig(configs []string) map[string]string {
 }
 
 func dockerpush(ff *funcfile) error {
-	cmd := exec.Command("docker", "push", ff.FullName())
+	latestTag := ff.Name + ":latest"
+	cmd := exec.Command("docker", "tag", latestTag, ff.FullName())
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error tagging latest: %v", err)
+	}
+	cmd = exec.Command("docker", "push", ff.Name)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error running docker push: %v", err)
 	}
