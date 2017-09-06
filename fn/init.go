@@ -94,6 +94,12 @@ func initFn() cli.Command {
 				Destination: &a.maxConcurrency,
 				Value:       1,
 			},
+			cli.StringFlag{
+				Name:        "cmd",
+				Usage:       "command",
+				Destination: &a.cmd,
+				Value:       "",
+			},
 		},
 	}
 }
