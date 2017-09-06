@@ -2,7 +2,7 @@
 .PHONY: all test dep build
 
 dep:
-	glide install --strip-vendor
+	dep ensure
 
 build:
 	go build -o functions
@@ -22,9 +22,6 @@ test-build-arm:
 
 run:
 	./functions
-
-docker-dep:
-	docker run --rm -it -v ${CURDIR}:/go/src/github.com/iron-io/functions -w /go/src/github.com/iron-io/functions treeder/glide install -v
 
 docker-build:
 	docker run --rm -v ${CURDIR}:/go/src/github.com/iron-io/functions -w /go/src/github.com/iron-io/functions iron/go:dev go build -o functions-alpine

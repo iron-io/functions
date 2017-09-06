@@ -1,7 +1,7 @@
-all: vendor build	
+all: vendor build
 	./fn
 
-build: 
+build:
 	go build -o fn
 
 docker: vendor
@@ -9,11 +9,11 @@ docker: vendor
 	docker build -t iron/fn .
 	docker push iron/fn
 
-vendor:
-	glide install -v
+dep:
+	dep ensure
 
 test:
-	go test -v $(shell glide nv)
+	go test $(go list ./... | grep -v /vendor/)
 
 release:
 	GOOS=linux go build -o fn_linux
