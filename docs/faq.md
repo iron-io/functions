@@ -12,7 +12,9 @@ Anywhere. Any cloud, on-premise, on your laptop. As long as you can run a Docker
 
 ## Which orchestration tools does IronFunctions support?
 
-IronFunctions can be deployed using any orchestration tool.
+IronFunctions can be deployed using any orchestration tool. Here are some examples:
+
+- [Using Rancher](https://github.com/wjimenez5271/rancher-iron-functions#deploying)
 
 ## Does IronFunctions require Docker?
 
