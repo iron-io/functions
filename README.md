@@ -95,6 +95,8 @@ curl -LSs https://goo.gl/VZrL8t | sh
 
 This will download a shell script and execute it.  If the script asks for a password, that is because it invokes sudo.
 
+Once installed close and re-open the terminal so the installed command `fn` is in your path.
+
 ### Write a Function
 
 Functions are small, bite sized bits of code that do one simple thing. Forget about monoliths when using functions,
@@ -122,8 +124,7 @@ func main() {
 }
 ```
 
-Copy and paste the code above into a file called `func.go`, then run the following commands to build your function
-and deploy it.
+Make a new folder and cd into that folder then copy and paste the code above into a file called `func.go`. From that folder run the following commands to build your function and deploy it:
 
 ```sh
 # create func.yaml file, replace $USERNAME with your Docker Hub username.
