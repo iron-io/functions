@@ -23,13 +23,19 @@ import (
 
 var (
 	fileExtToRuntime = map[string]string{
-		".go": "go",
-		".js": "node",
-		".rb": "ruby",
-		".py": "python",
-		".rs": "rust",
-		".cs": "dotnet",
-		".fs": "dotnet",
+		".go":   "go",
+		".js":   "node",
+		".rb":   "ruby",
+		".py":   "python",
+		".rs":   "rust",
+		".cs":   "dotnet",
+		".fs":   "dotnet",
+		".java": "java",
+	}
+
+	filenames = []string{
+		"func",
+		"Func",
 	}
 
 	fnInitRuntimes []string
@@ -194,9 +200,11 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 
 func detectRuntime(path string) (runtime string, err error) {
 	for ext, runtime := range fileExtToRuntime {
-		fn := filepath.Join(path, fmt.Sprintf("func%s", ext))
-		if exists(fn) {
-			return runtime, nil
+		for _, filename := range filenames {
+			fn := filepath.Join(path, fmt.Sprintf("%s%s", filename, ext))
+			if exists(fn) {
+				return runtime, nil
+			}
 		}
 	}
 	return "", fmt.Errorf("no supported files found to guess runtime, please set runtime explicitly with --runtime flag")

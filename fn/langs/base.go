@@ -15,6 +15,8 @@ func GetLangHelper(lang string) LangHelper {
 		return &RustLangHelper{}
 	case "dotnet":
 		return &DotNetLangHelper{}
+	case "java":
+		return &JavaLangHelper{}
 	case "lambda-nodejs4.3":
 		return &LambdaNodeHelper{}
 	}
