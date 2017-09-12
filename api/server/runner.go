@@ -18,7 +18,7 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 	uuid "github.com/satori/go.uuid"
 )
 

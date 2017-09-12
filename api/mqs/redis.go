@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/garyburd/redigo/redis"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 )
 
 type RedisMQ struct {

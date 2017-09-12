@@ -21,7 +21,7 @@ import (
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/functions/api/server/internal/routecache"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 	"github.com/spf13/viper"
 )
 

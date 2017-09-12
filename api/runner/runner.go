@@ -15,7 +15,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 	"github.com/iron-io/runner/drivers"
 	driverscommon "github.com/iron-io/runner/drivers"
 	"github.com/iron-io/runner/drivers/docker"
