@@ -11,7 +11,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"cirello.io/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"

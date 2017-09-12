@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/garyburd/redigo/redis"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/iron-io/functions/api/runner/protocol"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/drivers"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/iron-io/functions/api/datastore/bolt"
 	"github.com/iron-io/functions/api/datastore/mysql"
 	"github.com/iron-io/functions/api/datastore/postgres"
