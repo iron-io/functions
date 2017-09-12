@@ -25,7 +25,7 @@ func init() {
 	if regsettings == "" {
 		u, err := user.Current()
 		if err == nil {
-			var config configfile.ConfigFile
+			var config ConfigFile
 			cfile, err := os.Open(filepath.Join(u.HomeDir, ".docker", "config.json"))
 			if err != nil {
 				return
