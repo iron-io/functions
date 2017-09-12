@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/ucirello/supervisor"
+	"github.com/ccirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/datastore"
