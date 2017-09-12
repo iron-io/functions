@@ -64,7 +64,7 @@
   name = "github.com/boltdb/bolt"
 
 [[dependencies]]
-  name = "github.com/ccirello/supervisor"
+  name = "github.com/ucirello/supervisor"
   version = "^0.5.3"
 
 [[dependencies]]

@@ -74,12 +74,6 @@
   version = "v3.1.0"
 
 [[projects]]
-  name = "github.com/ccirello/supervisor"
-  packages = ["."]
-  revision = "3ae4051c50e006498b4b8aee130185a53caab86e"
-  version = "v0.5.3"
-
-[[projects]]
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   revision = "32cd0c5b3aef12c76ed64aaf678f6c79736be7dc"
@@ -123,7 +117,7 @@
 
 [[projects]]
   name = "github.com/docker/docker"
-  packages = ["api/types","api/types/blkiodev","api/types/container","api/types/filters","api/types/mount","api/types/network","api/types/registry","api/types/strslice","api/types/swarm","api/types/versions","cli/config/configfile","opts","pkg/archive","pkg/fileutils","pkg/homedir","pkg/idtools","pkg/ioutils","pkg/jsonlog","pkg/jsonmessage","pkg/longpath","pkg/pools","pkg/promise","pkg/stdcopy","pkg/system","pkg/term","pkg/term/windows"]
+  packages = ["api/types","api/types/blkiodev","api/types/container","api/types/filters","api/types/mount","api/types/network","api/types/registry","api/types/strslice","api/types/swarm","api/types/versions","opts","pkg/archive","pkg/fileutils","pkg/homedir","pkg/idtools","pkg/ioutils","pkg/jsonlog","pkg/jsonmessage","pkg/longpath","pkg/pools","pkg/promise","pkg/stdcopy","pkg/system","pkg/term","pkg/term/windows"]
   revision = "90d35abf7b3535c1c319c872900fbd76374e521c"
   version = "v17.05.0-ce-rc3"
 
@@ -380,6 +374,12 @@
   revision = "d0303fe809921458f417bcf828397a65db30a7e4"
 
 [[projects]]
+  name = "github.com/moby/moby"
+  packages = ["cli/config/configfile"]
+  revision = "90d35abf7b3535c1c319c872900fbd76374e521c"
+  version = "v17.05.0-ce-rc3"
+
+[[projects]]
   name = "github.com/opencontainers/runc"
   packages = ["libcontainer/system","libcontainer/user"]
   revision = "baf6536d6259209c3edfa2b22237af82942d3dfa"
@@ -446,6 +446,12 @@
   revision = "0967fc9aceab2ce9da34061253ac10fb99bba5b2"
 
 [[projects]]
+  name = "github.com/ucirello/supervisor"
+  packages = ["."]
+  revision = "3ae4051c50e006498b4b8aee130185a53caab86e"
+  version = "v0.5.3"
+
+[[projects]]
   name = "github.com/urfave/cli"
   packages = ["."]
   revision = "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
@@ -496,6 +502,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2304c8c25256f9979e88cb002726965a376e586d68e8ba752555264346f195ae"
+  inputs-digest = "2e558c15ce48188827293d5fcad8147194486eb7723bfc9f7bbe061716ab9588"
   solver-name = "gps-cdcl"
   solver-version = 1
