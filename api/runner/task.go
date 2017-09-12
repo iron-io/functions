@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/docker/docker/cli/config/configfile"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/drivers"
@@ -25,7 +24,7 @@ func init() {
 	if regsettings == "" {
 		u, err := user.Current()
 		if err == nil {
-			var config configfile.ConfigFile
+			var config ConfigFile
 			cfile, err := os.Open(filepath.Join(u.HomeDir, ".docker", "config.json"))
 			if err != nil {
 				return
