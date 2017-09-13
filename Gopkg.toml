@@ -149,7 +149,7 @@
 
 [[dependencies]]
   branch = "master"
-  name = "github.com/iron-io/runner"
+  name = "github.com/c0ze/runner"
 
 [[dependencies]]
   branch = "master"

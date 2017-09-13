@@ -321,9 +321,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/iron-io/runner"
+  name = "github.com/c0ze/runner"
   packages = ["common","common/stats","drivers","drivers/docker","drivers/mock"]
-  revision = "0f2736fbfb404bdc882c70fd0c498176afc020a7"
+  revision = "2a7665f4e7ddb3e07eccb1a011c02c7fc9f449c2"
 
 [[projects]]
   name = "github.com/jmespath/go-jmespath"
