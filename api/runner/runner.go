@@ -16,10 +16,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/c0ze/runner/common"
-	"github.com/iron-io/runner/drivers"
-	driverscommon "github.com/iron-io/runner/drivers"
-	"github.com/iron-io/runner/drivers/docker"
-	"github.com/iron-io/runner/drivers/mock"
+	"github.com/c0ze/runner/drivers"
+	driverscommon "github.com/c0ze/runner/drivers"
+	"github.com/c0ze/runner/drivers/docker"
+	"github.com/c0ze/runner/drivers/mock"
 )
 
 type Runner struct {
