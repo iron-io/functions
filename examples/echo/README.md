@@ -23,7 +23,8 @@ USERNAME=YOUR_DOCKER_HUB_USERNAME
 ```
 # tagging
 docker run --rm -v "$PWD":/app treeder/bump patch
-docker tag $USERNAME/func-echo:latest $USERNAME/func-echo:`cat VERSION`
+docker tag iron/func-echo:latest $USERNAME/func-echo:`cat VERSION`
+docker tag $USERNAME/func-echo:`cat VERSION` $USERNAME/func-echo:latest
 
 # pushing to docker hub
 docker push $USERNAME/func-echo
@@ -52,7 +53,7 @@ With this command we are going to create an application with name `echo`.
 ```
 curl -X POST --data '{
     "app": {
-        "name": "echo",
+        "name": "echo"
     }
 }' http://$FUNCAPI/v1/apps
 ```
@@ -63,7 +64,7 @@ Now, we can create our route
 curl -X POST --data '{
     "route": {
         "image": "'$USERNAME'/func-echo",
-        "path": "/echo",
+        "path": "/echo"
     }
 }' http://$FUNCAPI/v1/apps/echo/routes
 ```
