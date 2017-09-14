@@ -23,8 +23,7 @@ USERNAME=YOUR_DOCKER_HUB_USERNAME
 ```
 # tagging
 docker run --rm -v "$PWD":/app treeder/bump patch
-docker tag iron/func-echo:latest $USERNAME/func-echo:`cat VERSION`
-docker tag $USERNAME/func-echo:`cat VERSION` $USERNAME/func-echo:latest
+docker tag $USERNAME/func-echo:latest $USERNAME/func-echo:`cat VERSION`
 
 # pushing to docker hub
 docker push $USERNAME/func-echo
