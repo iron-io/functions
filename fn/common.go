@@ -203,7 +203,7 @@ func extractEnvConfig(configs []string) map[string]string {
 
 func dockerpush(ff *funcfile) error {
 	latestTag := ff.Name + ":latest"
-	cmd := exec.Command("docker", "tag", latestTag, ff.FullName())
+	cmd := exec.Command("docker", "tag", ff.FullName(), latestTag)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
