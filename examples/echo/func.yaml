@@ -1,3 +1,0 @@
-name: iron/func-echo
-build:
-  - ./build.sh
