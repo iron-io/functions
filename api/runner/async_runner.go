@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -56,6 +57,7 @@ func getCfg(t *models.Task) *task.Config {
 		IdleTimeout: time.Duration(*t.IdleTimeout) * time.Second,
 		ID:      t.ID,
 		AppName: t.AppName,
+		Stdin:   strings.NewReader(t.Payload),
 		Env:     t.EnvVars,
 	}
 	return cfg
