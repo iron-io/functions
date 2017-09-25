@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 )
 
 func (s *Server) handleRouteUpdate(c *gin.Context) {

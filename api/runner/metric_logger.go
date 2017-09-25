@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/iron-io/runner/common"
+	"github.com/sirupsen/logrus"
+	"github.com/c0ze/runner/common"
 )
 
 type MetricLogger interface {

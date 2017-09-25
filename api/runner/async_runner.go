@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 )
 
 func getTask(ctx context.Context, url string) (*models.Task, error) {

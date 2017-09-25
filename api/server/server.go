@@ -11,8 +11,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/ucirello/supervisor"
+	"github.com/sirupsen/logrus"
+	"cirello.io/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/datastore"
@@ -21,7 +21,7 @@ import (
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/functions/api/server/internal/routecache"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
 	"github.com/spf13/viper"
 )
 
