@@ -99,7 +99,7 @@ func TestAppDelete(t *testing.T) {
 		{datastore.NewMockInit(
 			[]*models.App{{
 				Name: "myapp",
-			}},nil,
+			}}, nil,
 		), "/v1/apps/myapp", "", http.StatusOK, nil},
 	} {
 		rnr, cancel := testRunner(t)

@@ -9,8 +9,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"sync"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -52,13 +52,13 @@ func getCfg(t *models.Task) *task.Config {
 	}
 
 	cfg := &task.Config{
-		Image:   *t.Image,
-		Timeout: time.Duration(*t.Timeout) * time.Second,
+		Image:       *t.Image,
+		Timeout:     time.Duration(*t.Timeout) * time.Second,
 		IdleTimeout: time.Duration(*t.IdleTimeout) * time.Second,
-		ID:      t.ID,
-		AppName: t.AppName,
-		Stdin:   strings.NewReader(t.Payload),
-		Env:     t.EnvVars,
+		ID:          t.ID,
+		AppName:     t.AppName,
+		Stdin:       strings.NewReader(t.Payload),
+		Env:         t.EnvVars,
 	}
 	return cfg
 }

@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/ucirello/supervisor"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/datastore"
@@ -23,6 +22,7 @@ import (
 	"github.com/iron-io/functions/api/server/internal/routecache"
 	"github.com/iron-io/runner/common"
 	"github.com/spf13/viper"
+	"github.com/ucirello/supervisor"
 )
 
 const (

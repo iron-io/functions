@@ -10,7 +10,7 @@ import (
 type mock struct {
 	Apps   []*models.App
 	Routes []*models.Route
-	data map[string][]byte
+	data   map[string][]byte
 }
 
 func NewMock() models.Datastore {

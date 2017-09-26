@@ -162,13 +162,14 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	var stdout bytes.Buffer // TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
 
 	envVars := map[string]string{
-		"METHOD":      c.Request.Method,
-		"ROUTE":       found.Path,
+		"METHOD": c.Request.Method,
+		"ROUTE":  found.Path,
 		"REQUEST_URL": fmt.Sprintf("%v//%v%v", func() string {
 			if c.Request.TLS == nil {
 				return "http"
 			}
-			return "https"}(), c.Request.Host, c.Request.URL.String()),
+			return "https"
+		}(), c.Request.Host, c.Request.URL.String()),
 	}
 
 	// app config
@@ -190,18 +191,18 @@ func (s *Server) serve(ctx context.Context, c *gin.Context, appName string, foun
 	}
 
 	cfg := &task.Config{
-		AppName:           appName,
-		Path:              found.Path,
-		Env:               envVars,
-		Format:            found.Format,
-		ID:                reqID,
-		Image:             found.Image,
-		MaxConcurrency:    found.MaxConcurrency,
-		Memory:            found.Memory,
-		Stdin:             payload,
-		Stdout:            &stdout,
-		Timeout:           time.Duration(found.Timeout) * time.Second,
-		IdleTimeout:       time.Duration(found.IdleTimeout) * time.Second,
+		AppName:        appName,
+		Path:           found.Path,
+		Env:            envVars,
+		Format:         found.Format,
+		ID:             reqID,
+		Image:          found.Image,
+		MaxConcurrency: found.MaxConcurrency,
+		Memory:         found.Memory,
+		Stdin:          payload,
+		Stdout:         &stdout,
+		Timeout:        time.Duration(found.Timeout) * time.Second,
+		IdleTimeout:    time.Duration(found.IdleTimeout) * time.Second,
 	}
 
 	s.Runner.Enqueue()

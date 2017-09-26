@@ -12,8 +12,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/garyburd/redigo/redis"
-	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
+	"github.com/iron-io/functions/api/models"
 )
 
 type RedisDataStore struct {
@@ -180,7 +180,6 @@ func (ds *RedisDataStore) UpdateRoute(ctx context.Context, newroute *models.Rout
 	}
 
 	route.Update(newroute)
-
 
 	hset := fmt.Sprintf("routes:%s", route.AppName)
 

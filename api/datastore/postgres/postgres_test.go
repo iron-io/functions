@@ -50,17 +50,17 @@ func preparePostgresTest(logf, fatalf func(string, ...interface{})) (func(), fun
 	}
 	fmt.Println("postgres for test ready")
 	return func() {
-		db, err := sql.Open("postgres", fmt.Sprintf(tmpPostgres, datastoretest.GetContainerHostIP()))
-		if err != nil {
-			fatalf("failed to connect for truncation: %s\n", err)
-		}
-		for _, table := range []string{"routes", "apps", "extras"} {
-			_, err = db.Exec(`TRUNCATE TABLE ` + table)
+			db, err := sql.Open("postgres", fmt.Sprintf(tmpPostgres, datastoretest.GetContainerHostIP()))
 			if err != nil {
-				fatalf("failed to truncate table %q: %s\n", table, err)
+				fatalf("failed to connect for truncation: %s\n", err)
 			}
-		}
-	},
+			for _, table := range []string{"routes", "apps", "extras"} {
+				_, err = db.Exec(`TRUNCATE TABLE ` + table)
+				if err != nil {
+					fatalf("failed to truncate table %q: %s\n", table, err)
+				}
+			}
+		},
 		func() {
 			tryRun(logf, "stop postgres container", exec.Command("docker", "rm", "-f", "iron-postgres-test"))
 		}
