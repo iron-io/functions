@@ -27,7 +27,7 @@ var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
 var API_URL = "http://localhost:8080"
 var SCHEME = "http"
 var HOST string
-var BASE_PATH  string
+var BASE_PATH string
 
 func getBasePath(version string) string {
 	u, err := url.Parse(API_URL)
