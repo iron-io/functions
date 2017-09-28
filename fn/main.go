@@ -10,6 +10,7 @@ import (
 	vers "github.com/iron-io/functions/api/version"
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
+	"log"
 )
 
 var aliases = map[string]cli.Command{
@@ -24,11 +25,26 @@ var aliases = map[string]cli.Command{
 var API_VERSION = "/v1"
 var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
 var API_URL = "http://localhost:8080"
+var SCHEME = "http"
+var HOST string
+var BASE_PATH  string
+
+func getBasePath(version string) string {
+	u, err := url.Parse(API_URL)
+	if err != nil {
+		log.Fatalln("Couldn't parse API URL:", err)
+	}
+	HOST = u.Host
+	SCHEME = u.Scheme
+	u.Path = version
+	return u.String()
+}
 
 func init() {
 	if os.Getenv("API_URL") != "" {
 		API_URL = os.Getenv("API_URL")
 	}
+	BASE_PATH = getBasePath(API_VERSION)
 }
 
 func main() {
@@ -37,13 +53,7 @@ func main() {
 }
 
 func resetBasePath(c *functions.Configuration) error {
-	u, err := url.Parse(API_URL)
-	if err != nil {
-		return err
-	}
-	u.Path = API_VERSION
-	c.BasePath = u.String()
-
+	c.BasePath = BASE_PATH
 	return nil
 }
 
