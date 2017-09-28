@@ -12,16 +12,8 @@ import (
 	"net/url"
 )
 
-var API_VERSION = "/v1"
-var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
-
 func host() string {
-	apiURL := os.Getenv("API_URL")
-	if apiURL == "" {
-		apiURL = "http://localhost:8080"
-	}
-
-	u, err := url.Parse(apiURL)
+	u, err := url.Parse(API_URL)
 	if err != nil {
 		log.Fatalln("Couldn't parse API URL:", err)
 	}

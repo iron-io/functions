@@ -21,6 +21,32 @@ var aliases = map[string]cli.Command{
 	"call":   call(),
 }
 
+var API_VERSION = "/v1"
+var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
+var API_URL = "http://localhost:8080"
+
+func init() {
+	if os.Getenv("API_URL") != "" {
+		API_URL = os.Getenv("API_URL")
+	}
+}
+
+func main() {
+	app := newFn()
+	app.Run(os.Args)
+}
+
+func resetBasePath(c *functions.Configuration) error {
+	u, err := url.Parse(API_URL)
+	if err != nil {
+		return err
+	}
+	u.Path = API_VERSION
+	c.BasePath = u.String()
+
+	return nil
+}
+
 func aliasesFn() []cli.Command {
 	cmds := []cli.Command{}
 	for alias, cmd := range aliases {
@@ -119,25 +145,4 @@ func prepareCmdArgsValidation(cmds []cli.Command) {
 		}
 		cmds[i] = cmd
 	}
-}
-
-func main() {
-	app := newFn()
-	app.Run(os.Args)
-}
-
-func resetBasePath(c *functions.Configuration) error {
-	apiURL := os.Getenv("API_URL")
-	if apiURL == "" {
-		apiURL = "http://localhost:8080"
-	}
-
-	u, err := url.Parse(apiURL)
-	if err != nil {
-		return err
-	}
-	u.Path = API_VERSION
-	c.BasePath = u.String()
-
-	return nil
 }
