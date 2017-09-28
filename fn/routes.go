@@ -195,8 +195,8 @@ func (a *routesCmd) call(c *cli.Context) error {
 	route := cleanRoutePath(c.Args().Get(1))
 
 	u := url.URL{
-		Scheme: "http",
-		Host:   host(),
+		Scheme: SCHEME,
+		Host:   HOST,
 	}
 	u.Path = path.Join(u.Path, "r", appName, route)
 	content := stdin()

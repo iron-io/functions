@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/url"
-	"os"
-
 	vers "github.com/iron-io/functions/api/version"
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
@@ -24,16 +21,7 @@ type versionCmd struct {
 }
 
 func (r *versionCmd) version(c *cli.Context) error {
-	apiURL := os.Getenv("API_URL")
-	if apiURL == "" {
-		apiURL = "http://localhost:8080"
-	}
-
-	u, err := url.Parse(apiURL)
-	if err != nil {
-		return err
-	}
-	r.Configuration.BasePath = u.String()
+	r.Configuration.BasePath = getBasePath("")
 
 	fmt.Println("Client version:", vers.Version)
 	v, _, err := r.VersionGet()

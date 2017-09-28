@@ -305,7 +305,7 @@
   branch = "master"
   name = "github.com/iron-io/functions_go"
   packages = [".","client","client/apps","client/routes","client/tasks","client/version","models"]
-  revision = "69e4dec8454c3c710045263c2ede76139c141146"
+  revision = "8d7dbe9fd1698e16b45374c8b7348d499124e4a3"
 
 [[projects]]
   branch = "master"
@@ -502,6 +502,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2e558c15ce48188827293d5fcad8147194486eb7723bfc9f7bbe061716ab9588"
+  inputs-digest = "b3a50ed92dd97163343a69c78202db9501c39efeba85993f80cd6969dbe2e9cc"
   solver-name = "gps-cdcl"
   solver-version = 1
