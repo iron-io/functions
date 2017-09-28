@@ -136,7 +136,7 @@ func resetBasePath(c *functions.Configuration) error {
 	if err != nil {
 		return err
 	}
-	u.Path = "/v1"
+	u.Path = API_VERSION
 	c.BasePath = u.String()
 
 	return nil

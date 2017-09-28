@@ -3,12 +3,17 @@ package main
 import (
 	"os"
 
+	"crypto/tls"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	fnclient "github.com/iron-io/functions_go/client"
 	"log"
+	"net/http"
 	"net/url"
 )
+
+var API_VERSION = "/v1"
+var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
 
 func host() string {
 	apiURL := os.Getenv("API_URL")
@@ -25,7 +30,12 @@ func host() string {
 }
 
 func apiClient() *fnclient.Functions {
-	transport := httptransport.New(host(), "/v1", []string{"http"})
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: SSL_SKIP_VERIFY},
+	}
+	cl := &http.Client{Transport: tr}
+
+	transport := httptransport.NewWithClient(host(), API_VERSION, []string{"http", "https"}, cl)
 	if os.Getenv("IRON_TOKEN") != "" {
 		transport.DefaultAuthentication = httptransport.BearerToken(os.Getenv("IRON_TOKEN"))
 	}
