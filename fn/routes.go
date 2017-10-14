@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	jwt "github.com/dgrijalva/jwt-go"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	fnclient "github.com/iron-io/functions_go/client"
 	apiroutes "github.com/iron-io/functions_go/client/routes"
@@ -131,6 +134,13 @@ func routes() cli.Command {
 				Usage:     "retrieve one or all routes properties",
 				ArgsUsage: "<app> </path> [property.[key]]",
 				Action:    r.inspect,
+			},
+			{
+				Name:      "token",
+				Aliases:   []string{"t"},
+				Usage:     "retrieve jwt for authentication",
+				ArgsUsage: "<app> </path> [expiration(sec)]",
+				Action:    r.token,
 			},
 		},
 	}
@@ -576,5 +586,60 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	}
 
 	fmt.Println(appName, route, "deleted")
+	return nil
+}
+
+func (a *routesCmd) token(c *cli.Context) error {
+	appName := c.Args().Get(0)
+	route := cleanRoutePath(c.Args().Get(1))
+	e := c.Args().Get(2)
+	expiration := 60 * 60
+	if e != "" {
+		var err error
+		expiration, err = strconv.Atoi(e)
+		if err != nil {
+			return fmt.Errorf("invalid expiration: %s", err)
+		}
+	}
+
+	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
+		Context: context.Background(),
+		App:     appName,
+		Route:   route,
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %s", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %s", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %s", err)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "\t")
+	jwtKey := resp.Payload.Route.JwtKey
+	if jwtKey == "" {
+		return errors.New("Empty JWT Key")
+	}
+
+	// Create the Claims
+	now := time.Now().Unix()
+	claims := &jwt.StandardClaims{
+		ExpiresAt: time.Unix(now, 0).Add(time.Duration(expiration) * time.Second).Unix(),
+		IssuedAt:  now,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(jwtKey))
+	if err != nil {
+		return fmt.Errorf("unexpected error: %s", err)
+	}
+	t := struct {
+		Token string `json:"token"`
+	}{Token: ss}
+	enc.Encode(t)
+
 	return nil
 }
