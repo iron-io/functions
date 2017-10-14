@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/request"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
@@ -128,6 +130,13 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	route := routes[0]
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
 
+	if err = processJwt(route.JwtKey, c); err != nil {
+		log.WithError(err).Error("JWT Authentication Failed")
+		c.Writer.Header().Set("WWW-Authenticate", "Bearer realm=\"\"")
+		c.JSON(http.StatusUnauthorized, simpleError(err))
+		return
+	}
+
 	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
 		s.FireAfterDispatch(ctx, reqRoute)
 		return
@@ -135,6 +144,33 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 
 	log.Error(models.ErrRunnerRouteNotFound)
 	c.JSON(http.StatusNotFound, simpleError(models.ErrRunnerRouteNotFound))
+}
+
+func processJwt(signingKey string, c *gin.Context) error {
+	if signingKey == "" {
+		return nil
+	}
+
+	extractor := request.AuthorizationHeaderExtractor
+	tokenString, err := extractor.ExtractToken(c.Request)
+	if err != nil {
+		return err
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(signingKey), nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if _, ok := token.Claims.(*jwt.StandardClaims); ok && token.Valid {
+		return nil
+	}
+
+	return errors.New("Invalid token")
+
 }
 
 func (s *Server) loadroutes(ctx context.Context, filter models.RouteFilter) ([]*models.Route, error) {

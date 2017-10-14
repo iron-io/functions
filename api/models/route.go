@@ -42,6 +42,7 @@ type Route struct {
 	Timeout        int32       `json:"timeout"`
 	IdleTimeout    int32       `json:"idle_timeout"`
 	Config         `json:"config"`
+	JwtKey         string `json:"jwt_key"`
 }
 
 var (

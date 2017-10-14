@@ -105,7 +105,7 @@
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
+  packages = [".","request"]
   revision = "d2709f9f1f31ebcda9651b03077758c1f3a0018c"
   version = "v3.0.0"
 
@@ -502,6 +502,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2e558c15ce48188827293d5fcad8147194486eb7723bfc9f7bbe061716ab9588"
+  inputs-digest = "7a498ed85c909127a2648968ee50bb24aadd5b06733bd03e4aa34299b5bb5753"
   solver-name = "gps-cdcl"
   solver-version = 1

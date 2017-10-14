@@ -273,6 +273,10 @@ func routeWithFlags(c *cli.Context, rt *models.Route) {
 		rt.Timeout = &to
 	}
 
+	if j := c.String("jwt_key"); j != "" {
+		rt.JwtKey = j
+	}
+
 	if len(c.StringSlice("headers")) > 0 {
 		headers := map[string][]string{}
 		for _, header := range c.StringSlice("headers") {
@@ -303,6 +307,10 @@ func routeWithFuncFile(c *cli.Context, rt *models.Route) {
 			to := int64(ff.Timeout.Seconds())
 			rt.Timeout = &to
 		}
+		if ff.JwtKey != nil {
+			rt.JwtKey = *ff.JwtKey
+		}
+
 		if rt.Path == "" && ff.Path != nil {
 			rt.Path = *ff.Path
 		}
