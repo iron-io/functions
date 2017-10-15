@@ -673,6 +673,7 @@ func getJwtToken(signingKey string, expiration int) (string, error) {
 	claims := &jwt.StandardClaims{
 		ExpiresAt: time.Unix(now, 0).Add(time.Duration(expiration) * time.Second).Unix(),
 		IssuedAt:  now,
+		NotBefore: time.Unix(now, 0).Add(time.Duration(-1) * time.Minute).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, err := token.SignedString([]byte(signingKey))
