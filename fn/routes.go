@@ -435,6 +435,10 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *fnmodels.Route) err
 		if r.Timeout != nil {
 			resp.Payload.Route.Timeout = r.Timeout
 		}
+		if r.JwtKey != "" {
+			resp.Payload.Route.JwtKey = r.JwtKey
+		}
+
 	}
 
 	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{

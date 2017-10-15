@@ -192,6 +192,10 @@ func (r *Route) Update(new *Route) {
 	if new.MaxConcurrency != 0 {
 		r.MaxConcurrency = new.MaxConcurrency
 	}
+	if new.JwtKey != "" {
+		r.JwtKey = new.JwtKey
+	}
+
 	if new.Headers != nil {
 		if r.Headers == nil {
 			r.Headers = make(http.Header)
