@@ -97,6 +97,12 @@ This will download a shell script and execute it.  If the script asks for a pass
 
 Once installed close and re-open the terminal so the installed command `fn` is in your path.
 
+#### on OSX with HomeBrew:
+
+```sh
+brew install iron-functions
+```
+
 ### Write a Function
 
 Functions are small, bite sized bits of code that do one simple thing. Forget about monoliths when using functions,
