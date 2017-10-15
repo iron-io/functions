@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/iron-io/functions_go/models"
 	"net/url"
 	"os"
 	"path"
@@ -172,7 +173,8 @@ func runremotetest(target string, in, expectedOut, expectedErr *string, env map[
 		os.Setenv(k, v)
 		restrictedEnv = append(restrictedEnv, k)
 	}
-	if err := callfn(target, stdin, &stdout, "", restrictedEnv); err != nil {
+	dummyRoute := &models.Route{}
+	if err := callfn(target, dummyRoute, stdin, &stdout, "", restrictedEnv); err != nil {
 		return fmt.Errorf("%v\nstdout:%s\n", err, stdout.String())
 	}
 

@@ -211,10 +211,28 @@ func (a *routesCmd) call(c *cli.Context) error {
 	u.Path = path.Join(u.Path, "r", appName, route)
 	content := stdin()
 
-	return callfn(u.String(), content, os.Stdout, c.String("method"), c.StringSlice("e"))
+	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
+		Context: context.Background(),
+		App:     appName,
+		Route:   route,
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %s", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %s", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %s", err)
+	}
+
+	rt := resp.Payload.Route
+
+	return callfn(u.String(), rt, content, os.Stdout, c.String("method"), c.StringSlice("e"))
 }
 
-func callfn(u string, content io.Reader, output io.Writer, method string, env []string) error {
+func callfn(u string, rt *models.Route, content io.Reader, output io.Writer, method string, env []string) error {
 	if method == "" {
 		if content == nil {
 			method = "GET"
@@ -232,6 +250,14 @@ func callfn(u string, content io.Reader, output io.Writer, method string, env []
 
 	if len(env) > 0 {
 		envAsHeader(req, env)
+	}
+
+	if rt.JwtKey != "" {
+		ss, err := getJwtToken(rt.JwtKey, 60*60)
+		if err != nil {
+			return fmt.Errorf("unexpected error: %s", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", ss))
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -630,13 +656,7 @@ func (a *routesCmd) token(c *cli.Context) error {
 	}
 
 	// Create the Claims
-	now := time.Now().Unix()
-	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Unix(now, 0).Add(time.Duration(expiration) * time.Second).Unix(),
-		IssuedAt:  now,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(jwtKey))
+	ss, err := getJwtToken(jwtKey, expiration)
 	if err != nil {
 		return fmt.Errorf("unexpected error: %s", err)
 	}
@@ -646,4 +666,15 @@ func (a *routesCmd) token(c *cli.Context) error {
 	enc.Encode(t)
 
 	return nil
+}
+
+func getJwtToken(signingKey string, expiration int) (string, error) {
+	now := time.Now().Unix()
+	claims := &jwt.StandardClaims{
+		ExpiresAt: time.Unix(now, 0).Add(time.Duration(expiration) * time.Second).Unix(),
+		IssuedAt:  now,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(signingKey))
+	return ss, err
 }
