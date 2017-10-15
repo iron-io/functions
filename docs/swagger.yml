@@ -384,6 +384,9 @@ definitions:
         type: integer
         default: 30
         description: Hot functions idle timeout before termination. Value in Seconds
+      jwt_key:
+        description: Signing key for JWT
+        type: string
 
   App:
     type: object
