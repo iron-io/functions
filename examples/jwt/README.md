@@ -1,10 +1,10 @@
-# Quick Example for a Authentication
+# Quick Example for JWT Authentication
 
-This example will show you how to test and deploy secure function to IronFunctions.
+This example will show you how to test and deploy a function with JWT Authentication.
 
 ```sh
 # create your func.yaml file
-fn init <YOUR_DOCKERHUB_USERNAME>/jwt
+fn init <YOUR_DOCKERHUB_USERNAME>/<REPO NAME>
 
 # Add 
 # jwt_key: <Your JWT signing key>
@@ -22,29 +22,37 @@ fn routes create myapp /jwt
 
 ```
 
+If you are going to add jwt authentication to an existing function,
+you can simply add `jwt_key` to your func.yml, and update your route
+using fn tool update command.
+
 Now you can call your function on IronFunctions:
 
 ```sh
 # Get token for authentication
 fn routes token myapp /jwt
-#The token expiration time is 1 hour by default. You can specify an expiration time with such arguments.
-#e.g. The token expires by 500 seconds.
+# The token expiration time is 1 hour by default. You can also specify the expiration time explicitly.
+# Below example set the token expiration time at 500 seconds :
 fn routes token myapp /jwt 500
 
-#You'll get token like this
+# The response will include a token :
 # {
 #        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MDgwNTcwNTEsImlhdCI6MTUwODA1MzQ1MX0.3c_xUaleCdHy_fdU9zFB50j3hqwYWgPZ-EkTXV3VWag"
 # }
 
-#Access to your app with token
+# Now, you can access your app with a token :
 curl  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MDgwNTcwNTEsImlhdCI6MTUwODA1MzQ1MX0.3c_xUaleCdHy_fdU9zFB50j3hqwYWgPZ-EkTXV3VWag' http://localhost:8080/r/myapp/jwt
 
-# or use
+# or use fn tool
+# This will automatically generate a token and make function call :
 fn call myapp /jwt
 
 ```
 
+__important__: Please note that enabling Jwt authentication will require you to authenticate each time you try to call your function.
+You won't be able to call your function without a token.
+
 ## Dependencies
 
-Be sure you're dependencies are in the `vendor/` directory and that's it.
+Be sure your dependencies are in the `vendor/` directory.
 
