@@ -57,6 +57,10 @@ var routeFlags = []cli.Flag{
 		Name:  "max-concurrency,mc",
 		Usage: "maximum concurrency for hot container",
 	},
+	cli.StringFlag{
+		Name:  "jwt-key,j",
+		Usage: "Signing key for JWT",
+	},
 	cli.DurationFlag{
 		Name:  "timeout",
 		Usage: "route timeout (eg. 30s)",
@@ -309,7 +313,7 @@ func routeWithFlags(c *cli.Context, rt *models.Route) {
 		rt.Timeout = &to
 	}
 
-	if j := c.String("jwt_key"); j != "" {
+	if j := c.String("jwt-key"); j != "" {
 		rt.JwtKey = j
 	}
 
@@ -343,7 +347,7 @@ func routeWithFuncFile(c *cli.Context, rt *models.Route) {
 			to := int64(ff.Timeout.Seconds())
 			rt.Timeout = &to
 		}
-		if ff.JwtKey != nil {
+		if ff.JwtKey != nil && *ff.JwtKey != "" {
 			rt.JwtKey = *ff.JwtKey
 		}
 
