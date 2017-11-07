@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bufio"
@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	image_commands "github.com/iron-io/functions/fn/commands/images"
+	"github.com/iron-io/functions/fn/common"
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
@@ -49,14 +51,14 @@ func (t *testcmd) flags() []cli.Flag {
 
 func (t *testcmd) test(c *cli.Context) error {
 	if t.build {
-		b := &buildcmd{verbose: true}
-		if err := b.build(c); err != nil {
+		b := &image_commands.Buildcmd{Verbose: true}
+		if err := b.Build(c); err != nil {
 			return err
 		}
 		fmt.Println()
 	}
 
-	ff, err := loadFuncfile()
+	ff, err := common.LoadFuncfile()
 	if err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func (t *testcmd) test(c *cli.Context) error {
 		if ff.Path == nil || *ff.Path == "" {
 			return errors.New("execution of tests on remote server demand that this function to have a `path`.")
 		}
-		if err := resetBasePath(t.Configuration); err != nil {
+		if err := common.ResetBasePath(t.Configuration); err != nil {
 			return fmt.Errorf("error setting endpoint: %v", err)
 		}
 		baseURL, err := url.Parse(t.Configuration.BasePath)
@@ -134,7 +136,7 @@ func runlocaltest(target string, in, expectedOut, expectedErr *string, env map[s
 		restrictedEnv = append(restrictedEnv, k)
 	}
 
-	if err := runff(target, stdin, &stdout, &stderr, "", restrictedEnv, nil); err != nil {
+	if err := image_commands.Runff(target, stdin, &stdout, &stderr, "", restrictedEnv, nil); err != nil {
 		return fmt.Errorf("%v\nstdout:%s\nstderr:%s\n", err, stdout.String(), stderr.String())
 	}
 

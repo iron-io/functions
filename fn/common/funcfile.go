@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"encoding/json"
@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
+	bumper "github.com/giantswarm/semver-bump/bump"
+	"github.com/giantswarm/semver-bump/storage"
 	yaml "gopkg.in/yaml.v2"
 )
 
 var (
-	validfn = [...]string{
+	Validfn = [...]string{
 		"func.yaml",
 		"func.yml",
 		"func.json",
@@ -31,7 +33,7 @@ type fftest struct {
 	Env  map[string]string `yaml:"env,omitempty" json:"env,omitempty"`
 }
 
-type funcfile struct {
+type Funcfile struct {
 	Name           string            `yaml:"name,omitempty" json:"name,omitempty"`
 	Version        string            `yaml:"version,omitempty" json:"version,omitempty"`
 	Runtime        *string           `yaml:"runtime,omitempty" json:"runtime,omitempty"`
@@ -49,7 +51,7 @@ type funcfile struct {
 	MaxConcurrency *int              `yaml:"max_concurrency,omitempty" json:"max_concurrency,omitempty"`
 }
 
-func (ff *funcfile) FullName() string {
+func (ff *Funcfile) FullName() string {
 	fname := ff.Name
 	if ff.Version != "" {
 		fname = fmt.Sprintf("%s:%s", fname, ff.Version)
@@ -57,7 +59,7 @@ func (ff *funcfile) FullName() string {
 	return fname
 }
 
-func (ff *funcfile) RuntimeTag() (runtime, tag string) {
+func (ff *Funcfile) RuntimeTag() (runtime, tag string) {
 	if ff.Runtime == nil {
 		return "", ""
 	}
@@ -71,25 +73,55 @@ func (ff *funcfile) RuntimeTag() (runtime, tag string) {
 	return rt[:tagpos], rt[tagpos+1:]
 }
 
-func findFuncfile(path string) (string, error) {
-	for _, fn := range validfn {
+func cleanImageName(name string) string {
+	if i := strings.Index(name, ":"); i != -1 {
+		name = name[:i]
+	}
+
+	return name
+}
+
+func (ff *Funcfile) Bumpversion() error {
+	ff.Name = cleanImageName(ff.Name)
+	if ff.Version == "" {
+		ff.Version = INITIAL_VERSION
+		return nil
+	}
+
+	s, err := storage.NewVersionStorage("local", ff.Version)
+	if err != nil {
+		return err
+	}
+
+	version := bumper.NewSemverBumper(s, "")
+	newver, err := version.BumpPatchVersion("", "")
+	if err != nil {
+		return err
+	}
+
+	ff.Version = newver.String()
+	return nil
+}
+
+func FindFuncfile(path string) (string, error) {
+	for _, fn := range Validfn {
 		fullfn := filepath.Join(path, fn)
-		if exists(fullfn) {
+		if Exists(fullfn) {
 			return fullfn, nil
 		}
 	}
 	return "", newNotFoundError("could not find function file")
 }
 
-func loadFuncfile() (*funcfile, error) {
-	fn, err := findFuncfile(".")
+func LoadFuncfile() (*Funcfile, error) {
+	fn, err := FindFuncfile(".")
 	if err != nil {
 		return nil, err
 	}
-	return parsefuncfile(fn)
+	return ParseFuncfile(fn)
 }
 
-func parsefuncfile(path string) (*funcfile, error) {
+func ParseFuncfile(path string) (*Funcfile, error) {
 	ext := filepath.Ext(path)
 	switch ext {
 	case ".json":
@@ -100,38 +132,38 @@ func parsefuncfile(path string) (*funcfile, error) {
 	return nil, errUnexpectedFileFormat
 }
 
-func storefuncfile(path string, ff *funcfile) error {
+func StoreFuncfile(path string, ff *Funcfile) error {
 	ext := filepath.Ext(path)
 	switch ext {
 	case ".json":
 		return encodeFuncfileJSON(path, ff)
 	case ".yaml", ".yml":
-		return encodeFuncfileYAML(path, ff)
+		return EncodeFuncfileYAML(path, ff)
 	}
 	return errUnexpectedFileFormat
 }
 
-func decodeFuncfileJSON(path string) (*funcfile, error) {
+func decodeFuncfileJSON(path string) (*Funcfile, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open %s for parsing. Error: %v", path, err)
 	}
-	ff := new(funcfile)
+	ff := new(Funcfile)
 	err = json.NewDecoder(f).Decode(ff)
 	return ff, err
 }
 
-func decodeFuncfileYAML(path string) (*funcfile, error) {
+func decodeFuncfileYAML(path string) (*Funcfile, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open %s for parsing. Error: %v", path, err)
 	}
-	ff := new(funcfile)
+	ff := new(Funcfile)
 	err = yaml.Unmarshal(b, ff)
 	return ff, err
 }
 
-func encodeFuncfileJSON(path string, ff *funcfile) error {
+func encodeFuncfileJSON(path string, ff *Funcfile) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("could not open %s for encoding. Error: %v", path, err)
@@ -139,7 +171,7 @@ func encodeFuncfileJSON(path string, ff *funcfile) error {
 	return json.NewEncoder(f).Encode(ff)
 }
 
-func encodeFuncfileYAML(path string, ff *funcfile) error {
+func EncodeFuncfileYAML(path string, ff *Funcfile) error {
 	b, err := yaml.Marshal(ff)
 	if err != nil {
 		return fmt.Errorf("could not encode function file. Error: %v", err)

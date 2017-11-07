@@ -1,21 +1,47 @@
-package main
+package common
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/iron-io/functions/fn/langs"
+	functions "github.com/iron-io/functions_go"
 	"io"
 	"io/ioutil"
+	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
-
-	"github.com/iron-io/functions/fn/langs"
 )
 
-func verbwriter(verbose bool) io.Writer {
+var API_VERSION = "/v1"
+var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
+var API_URL = "http://localhost:8080"
+var SCHEME = "http"
+var INITIAL_VERSION = "0.0.1"
+var HOST string
+var BASE_PATH string
+
+func GetBasePath(version string) string {
+	u, err := url.Parse(API_URL)
+	if err != nil {
+		log.Fatalln("Couldn't parse API URL:", err)
+	}
+	HOST = u.Host
+	SCHEME = u.Scheme
+	u.Path = version
+	return u.String()
+}
+
+func ResetBasePath(c *functions.Configuration) error {
+	c.BasePath = BASE_PATH
+	return nil
+}
+
+func Verbwriter(verbose bool) io.Writer {
 	verbwriter := ioutil.Discard
 	if verbose {
 		verbwriter = os.Stderr
@@ -23,21 +49,21 @@ func verbwriter(verbose bool) io.Writer {
 	return verbwriter
 }
 
-func buildfunc(verbwriter io.Writer, fn string) (*funcfile, error) {
-	funcfile, err := parsefuncfile(fn)
+func Buildfunc(verbwriter io.Writer, fn string) (*Funcfile, error) {
+	funcfile, err := ParseFuncfile(fn)
 	if err != nil {
 		return nil, err
 	}
 
 	if funcfile.Version == "" {
-		funcfile, err = bumpversion(*funcfile)
+		err = funcfile.Bumpversion()
 		if err != nil {
 			return nil, err
 		}
-		if err := storefuncfile(fn, funcfile); err != nil {
+		if err := StoreFuncfile(fn, funcfile); err != nil {
 			return nil, err
 		}
-		funcfile, err = parsefuncfile(fn)
+		funcfile, err = ParseFuncfile(fn)
 		if err != nil {
 			return nil, err
 		}
@@ -68,12 +94,12 @@ func localbuild(verbwriter io.Writer, path string, steps []string) error {
 	return nil
 }
 
-func dockerbuild(verbwriter io.Writer, path string, ff *funcfile) error {
+func dockerbuild(verbwriter io.Writer, path string, ff *Funcfile) error {
 	dir := filepath.Dir(path)
 
 	var helper langs.LangHelper
 	dockerfile := filepath.Join(dir, "Dockerfile")
-	if !exists(dockerfile) {
+	if !Exists(dockerfile) {
 		err := writeTmpDockerfile(dir, ff)
 		defer os.Remove(filepath.Join(dir, "Dockerfile"))
 		if err != nil {
@@ -108,7 +134,7 @@ func dockerbuild(verbwriter io.Writer, path string, ff *funcfile) error {
 	return nil
 }
 
-func exists(name string) bool {
+func Exists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {
 			return false
@@ -117,7 +143,7 @@ func exists(name string) bool {
 	return true
 }
 
-var acceptableFnRuntimes = map[string]string{
+var AcceptableFnRuntimes = map[string]string{
 	"elixir":           "iron/elixir",
 	"erlang":           "iron/erlang",
 	"gcc":              "iron/gcc",
@@ -143,13 +169,13 @@ ADD . /function/
 {{ if ne .Cmd "" }} CMD [{{ .Cmd }}] {{ end }}
 `
 
-func writeTmpDockerfile(dir string, ff *funcfile) error {
+func writeTmpDockerfile(dir string, ff *Funcfile) error {
 	if ff.Entrypoint == "" && ff.Cmd == "" {
 		return errors.New("entrypoint and cmd are missing, you must provide one or the other")
 	}
 
 	runtime, tag := ff.RuntimeTag()
-	rt, ok := acceptableFnRuntimes[runtime]
+	rt, ok := AcceptableFnRuntimes[runtime]
 	if !ok {
 		return fmt.Errorf("cannot use runtime %s", runtime)
 	}
@@ -190,7 +216,7 @@ func stringToSlice(in string) bytes.Buffer {
 	return buffer
 }
 
-func extractEnvConfig(configs []string) map[string]string {
+func ExtractEnvConfig(configs []string) map[string]string {
 	c := make(map[string]string)
 	for _, v := range configs {
 		kv := strings.SplitN(v, "=", 2)
@@ -201,7 +227,7 @@ func extractEnvConfig(configs []string) map[string]string {
 	return c
 }
 
-func dockerpush(ff *funcfile) error {
+func Dockerpush(ff *Funcfile) error {
 	latestTag := ff.Name + ":latest"
 	cmd := exec.Command("docker", "tag", ff.FullName(), latestTag)
 	cmd.Stderr = os.Stderr
@@ -216,7 +242,7 @@ func dockerpush(ff *funcfile) error {
 	return nil
 }
 
-func appNamePath(img string) (string, string) {
+func AppNamePath(img string) (string, string) {
 	sep := strings.Index(img, "/")
 	if sep < 0 {
 		return "", ""

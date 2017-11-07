@@ -1,13 +1,13 @@
-package main
+package commands
 
 import (
 	"errors"
 	"fmt"
-
+	"github.com/iron-io/functions/fn/common"
 	"github.com/urfave/cli"
 )
 
-func push() cli.Command {
+func Push() cli.Command {
 	cmd := pushcmd{}
 	var flags []cli.Flag
 	flags = append(flags, cmd.flags()...)
@@ -38,11 +38,11 @@ func (p *pushcmd) flags() []cli.Flag {
 // push the container, and finally it will update function's route. Optionally,
 // the route can be overriden inside the functions file.
 func (p *pushcmd) push(c *cli.Context) error {
-	verbwriter := verbwriter(p.verbose)
+	verbwriter := common.Verbwriter(p.verbose)
 
-	ff, err := loadFuncfile()
+	ff, err := common.LoadFuncfile()
 	if err != nil {
-		if _, ok := err.(*notFoundError); ok {
+		if _, ok := err.(*common.NotFoundError); ok {
 			return errors.New("error: image name is missing or no function file found")
 		}
 		return err
@@ -50,7 +50,7 @@ func (p *pushcmd) push(c *cli.Context) error {
 
 	fmt.Fprintln(verbwriter, "pushing", ff.FullName())
 
-	if err := dockerpush(ff); err != nil {
+	if err := common.Dockerpush(ff); err != nil {
 		return err
 	}
 

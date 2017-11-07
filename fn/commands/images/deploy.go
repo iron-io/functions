@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"errors"
@@ -9,11 +9,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/iron-io/functions/fn/common"
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
 
-func deploy() cli.Command {
+func Deploy() cli.Command {
 	cmd := deploycmd{
 		RoutesApi: functions.NewRoutesApi(),
 	}
@@ -69,7 +70,7 @@ func (p *deploycmd) flags() []cli.Flag {
 
 func (p *deploycmd) scan(c *cli.Context) error {
 	p.appName = c.Args().First()
-	p.verbwriter = verbwriter(p.verbose)
+	p.verbwriter = common.Verbwriter(p.verbose)
 
 	var walked bool
 
@@ -114,7 +115,7 @@ func (p *deploycmd) scan(c *cli.Context) error {
 func (p *deploycmd) deploy(path string) error {
 	fmt.Fprintln(p.verbwriter, "deploying", path)
 
-	funcfile, err := buildfunc(p.verbwriter, path)
+	funcfile, err := common.Buildfunc(p.verbwriter, path)
 	if err != nil {
 		return err
 	}
@@ -123,20 +124,20 @@ func (p *deploycmd) deploy(path string) error {
 		return nil
 	}
 
-	if err := dockerpush(funcfile); err != nil {
+	if err := common.Dockerpush(funcfile); err != nil {
 		return err
 	}
 
 	return p.route(path, funcfile)
 }
 
-func (p *deploycmd) route(path string, ff *funcfile) error {
-	if err := resetBasePath(p.Configuration); err != nil {
+func (p *deploycmd) route(path string, ff *common.Funcfile) error {
+	if err := common.ResetBasePath(p.Configuration); err != nil {
 		return fmt.Errorf("error setting endpoint: %v", err)
 	}
 
 	if ff.Path == nil {
-		_, path := appNamePath(ff.FullName())
+		_, path := common.AppNamePath(ff.FullName())
 		ff.Path = &path
 	}
 
@@ -201,7 +202,7 @@ func isFuncfile(path string, info os.FileInfo) bool {
 	}
 
 	basefn := filepath.Base(path)
-	for _, fn := range validfn {
+	for _, fn := range common.Validfn {
 		if basefn == fn {
 			return true
 		}

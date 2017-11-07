@@ -1,27 +1,28 @@
-package main
+package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
-	"context"
+	"github.com/iron-io/functions/fn/common"
 	"github.com/iron-io/functions_go"
 	fnclient "github.com/iron-io/functions_go/client"
 	apiapps "github.com/iron-io/functions_go/client/apps"
 	"github.com/iron-io/functions_go/models"
 	"github.com/jmoiron/jsonq"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 type appsCmd struct {
 	client *fnclient.Functions
 }
 
-func apps() cli.Command {
-	a := appsCmd{client: apiClient()}
+func Apps() cli.Command {
+	a := appsCmd{client: common.ApiClient()}
 
 	return cli.Command{
 		Name:  "apps",
@@ -125,7 +126,7 @@ func (a *appsCmd) list(c *cli.Context) error {
 func (a *appsCmd) create(c *cli.Context) error {
 	body := &models.AppWrapper{App: &models.App{
 		Name:   c.Args().Get(0),
-		Config: extractEnvConfig(c.StringSlice("config")),
+		Config: common.ExtractEnvConfig(c.StringSlice("config")),
 	}}
 
 	resp, err := a.client.Apps.PostApps(&apiapps.PostAppsParams{
@@ -153,7 +154,7 @@ func (a *appsCmd) update(c *cli.Context) error {
 	appName := c.Args().First()
 
 	patchedApp := &functions.App{
-		Config: extractEnvConfig(c.StringSlice("config")),
+		Config: common.ExtractEnvConfig(c.StringSlice("config")),
 	}
 
 	err := a.patchApp(appName, patchedApp)

@@ -1,16 +1,16 @@
-package main
+package common
 
 import (
+	"crypto/tls"
+	"net/http"
 	"os"
 
-	"crypto/tls"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	fnclient "github.com/iron-io/functions_go/client"
-	"net/http"
 )
 
-func apiClient() *fnclient.Functions {
+func ApiClient() *fnclient.Functions {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: SSL_SKIP_VERIFY},
 	}
