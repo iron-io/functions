@@ -1,12 +1,13 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
-	"context"
 	"github.com/iron-io/functions/fn/common"
 	"github.com/iron-io/functions_go"
 	fnclient "github.com/iron-io/functions_go/client"
@@ -14,7 +15,6 @@ import (
 	"github.com/iron-io/functions_go/models"
 	"github.com/jmoiron/jsonq"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 type appsCmd struct {

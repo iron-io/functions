@@ -14,11 +14,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/iron-io/functions/fn/common"
 	"github.com/iron-io/functions/fn/langs"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 var (
