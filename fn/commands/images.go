@@ -1,6 +1,7 @@
 package commands
 
 import (
+	image_commands "github.com/iron-io/functions/fn/commands/images"
 	"github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
@@ -14,12 +15,12 @@ func Images() cli.Command {
 		Name:  "images",
 		Usage: "manage function images",
 		Subcommands: []cli.Command{
-			Build(),
-			Deploy(),
-			Bump(),
+			image_commands.Build(),
+			image_commands.Deploy(),
+			image_commands.Bump(),
 			Call(),
-			Push(),
-			Run(),
+			image_commands.Push(),
+			image_commands.Run(),
 			testfn(),
 		},
 	}

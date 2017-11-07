@@ -9,33 +9,33 @@ import (
 )
 
 func Build() cli.Command {
-	cmd := buildcmd{}
+	cmd := Buildcmd{}
 	flags := append([]cli.Flag{}, cmd.flags()...)
 	return cli.Command{
 		Name:   "build",
 		Usage:  "build function version",
 		Flags:  flags,
-		Action: cmd.build,
+		Action: cmd.Build,
 	}
 }
 
-type buildcmd struct {
-	verbose bool
+type Buildcmd struct {
+	Verbose bool
 }
 
-func (b *buildcmd) flags() []cli.Flag {
+func (b *Buildcmd) flags() []cli.Flag {
 	return []cli.Flag{
 		cli.BoolFlag{
 			Name:        "v",
 			Usage:       "verbose mode",
-			Destination: &b.verbose,
+			Destination: &b.Verbose,
 		},
 	}
 }
 
 // build will take the found valid function and build it
-func (b *buildcmd) build(c *cli.Context) error {
-	verbwriter := common.Verbwriter(b.verbose)
+func (b *Buildcmd) Build(c *cli.Context) error {
+	verbwriter := common.Verbwriter(b.Verbose)
 
 	path, err := os.Getwd()
 	if err != nil {

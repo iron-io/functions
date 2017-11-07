@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	image_commands "github.com/iron-io/functions/fn/commands/images"
 	"github.com/iron-io/functions/fn/common"
 	fnclient "github.com/iron-io/functions_go/client"
 	apiroutes "github.com/iron-io/functions_go/client/routes"
@@ -74,7 +75,7 @@ func Routes() cli.Command {
 				Usage:     "call a route",
 				ArgsUsage: "<app> </path> [image]",
 				Action:    r.call,
-				Flags:     runflags(),
+				Flags:     image_commands.Runflags(),
 			},
 			{
 				Name:      "list",
@@ -144,7 +145,7 @@ func Call() cli.Command {
 		Name:      "call",
 		Usage:     "call a remote function",
 		ArgsUsage: "<app> </path>",
-		Flags:     runflags(),
+		Flags:     image_commands.Runflags(),
 		Action:    r.call,
 	}
 }
@@ -200,7 +201,7 @@ func (a *routesCmd) call(c *cli.Context) error {
 		Host:   common.HOST,
 	}
 	u.Path = path.Join(u.Path, "r", appName, route)
-	content := stdin()
+	content := image_commands.Stdin()
 
 	return callfn(u.String(), content, os.Stdout, c.String("method"), c.StringSlice("e"))
 }

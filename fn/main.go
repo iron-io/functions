@@ -8,16 +8,17 @@ import (
 
 	vers "github.com/iron-io/functions/api/version"
 	"github.com/iron-io/functions/fn/commands"
+	image_commands "github.com/iron-io/functions/fn/commands/images"
 	"github.com/iron-io/functions/fn/common"
 	"github.com/urfave/cli"
 )
 
 var aliases = map[string]cli.Command{
-	"build":  commands.Build(),
-	"bump":   commands.Bump(),
-	"deploy": commands.Deploy(),
-	"push":   commands.Push(),
-	"run":    commands.Run(),
+	"build":  image_commands.Build(),
+	"bump":   image_commands.Bump(),
+	"deploy": image_commands.Deploy(),
+	"push":   image_commands.Push(),
+	"run":    image_commands.Run(),
 	"call":   commands.Call(),
 }
 
