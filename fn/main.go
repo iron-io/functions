@@ -3,58 +3,34 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
 	vers "github.com/iron-io/functions/api/version"
-	functions "github.com/iron-io/functions_go"
+	"github.com/iron-io/functions/fn/commands"
+	"github.com/iron-io/functions/fn/common"
 	"github.com/urfave/cli"
-	"log"
 )
 
 var aliases = map[string]cli.Command{
-	"build":  build(),
-	"bump":   bump(),
-	"deploy": deploy(),
-	"push":   push(),
-	"run":    run(),
-	"call":   call(),
-}
-
-var API_VERSION = "/v1"
-var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
-var API_URL = "http://localhost:8080"
-var SCHEME = "http"
-var HOST string
-var BASE_PATH string
-
-func getBasePath(version string) string {
-	u, err := url.Parse(API_URL)
-	if err != nil {
-		log.Fatalln("Couldn't parse API URL:", err)
-	}
-	HOST = u.Host
-	SCHEME = u.Scheme
-	u.Path = version
-	return u.String()
+	"build":  commands.Build(),
+	"bump":   commands.Bump(),
+	"deploy": commands.Deploy(),
+	"push":   commands.Push(),
+	"run":    commands.Run(),
+	"call":   commands.Call(),
 }
 
 func init() {
 	if os.Getenv("API_URL") != "" {
-		API_URL = os.Getenv("API_URL")
+		common.API_URL = os.Getenv("API_URL")
 	}
-	BASE_PATH = getBasePath(API_VERSION)
+	common.BASE_PATH = common.GetBasePath(common.API_VERSION)
 }
 
 func main() {
 	app := newFn()
 	app.Run(os.Args)
-}
-
-func resetBasePath(c *functions.Configuration) error {
-	c.BasePath = BASE_PATH
-	return nil
 }
 
 func aliasesFn() []cli.Command {
@@ -106,12 +82,12 @@ GLOBAL OPTIONS:
 		fmt.Fprintf(os.Stderr, "command not found: %v\n", cmd)
 	}
 	app.Commands = []cli.Command{
-		initFn(),
-		apps(),
-		routes(),
-		images(),
-		lambda(),
-		version(),
+		commands.InitFn(),
+		commands.Apps(),
+		commands.Routes(),
+		commands.Images(),
+		commands.Lambda(),
+		commands.Version(),
 	}
 	app.Commands = append(app.Commands, aliasesFn()...)
 
