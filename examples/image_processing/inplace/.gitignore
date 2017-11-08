@@ -1,0 +1,5 @@
+bundle/
+.bundle/
+func.yaml
+Gemfile.lock
+*.png
