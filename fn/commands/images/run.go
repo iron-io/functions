@@ -1,31 +1,31 @@
-package main
+package commands
 
 import (
 	"errors"
 	"fmt"
+	"github.com/iron-io/functions/fn/common"
+	"github.com/urfave/cli"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/urfave/cli"
 )
 
-func run() cli.Command {
+func Run() cli.Command {
 	r := runCmd{}
 
 	return cli.Command{
 		Name:      "run",
 		Usage:     "run a function locally",
 		ArgsUsage: "[username/image:tag]",
-		Flags:     append(runflags(), []cli.Flag{}...),
+		Flags:     append(Runflags(), []cli.Flag{}...),
 		Action:    r.run,
 	}
 }
 
 type runCmd struct{}
 
-func runflags() []cli.Flag {
+func Runflags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "e",
@@ -45,9 +45,9 @@ func runflags() []cli.Flag {
 func (r *runCmd) run(c *cli.Context) error {
 	image := c.Args().First()
 	if image == "" {
-		ff, err := loadFuncfile()
+		ff, err := common.LoadFuncfile()
 		if err != nil {
-			if _, ok := err.(*notFoundError); ok {
+			if _, ok := err.(*common.NotFoundError); ok {
 				return errors.New("error: image name is missing or no function file found")
 			}
 			return err
@@ -55,10 +55,10 @@ func (r *runCmd) run(c *cli.Context) error {
 		image = ff.FullName()
 	}
 
-	return runff(image, stdin(), os.Stdout, os.Stderr, c.String("method"), c.StringSlice("e"), c.StringSlice("link"))
+	return Runff(image, Stdin(), os.Stdout, os.Stderr, c.String("method"), c.StringSlice("e"), c.StringSlice("link"))
 }
 
-func runff(image string, stdin io.Reader, stdout, stderr io.Writer, method string, restrictedEnv []string, links []string) error {
+func Runff(image string, stdin io.Reader, stdout, stderr io.Writer, method string, restrictedEnv []string, links []string) error {
 	sh := []string{"docker", "run", "--rm", "-i"}
 
 	var env []string

@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"context"
@@ -16,6 +16,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	image_commands "github.com/iron-io/functions/fn/commands/images"
+	"github.com/iron-io/functions/fn/common"
 	fnclient "github.com/iron-io/functions_go/client"
 	apiroutes "github.com/iron-io/functions_go/client/routes"
 	"github.com/iron-io/functions_go/models"
@@ -67,9 +69,9 @@ var routeFlags = []cli.Flag{
 	},
 }
 
-func routes() cli.Command {
+func Routes() cli.Command {
 
-	r := routesCmd{client: apiClient()}
+	r := routesCmd{client: common.ApiClient()}
 
 	return cli.Command{
 		Name:  "routes",
@@ -80,7 +82,7 @@ func routes() cli.Command {
 				Usage:     "call a route",
 				ArgsUsage: "<app> </path> [image]",
 				Action:    r.call,
-				Flags:     runflags(),
+				Flags:     image_commands.Runflags(),
 			},
 			{
 				Name:      "list",
@@ -150,14 +152,14 @@ func routes() cli.Command {
 	}
 }
 
-func call() cli.Command {
-	r := routesCmd{client: apiClient()}
+func Call() cli.Command {
+	r := routesCmd{client: common.ApiClient()}
 
 	return cli.Command{
 		Name:      "call",
 		Usage:     "call a remote function",
 		ArgsUsage: "<app> </path>",
-		Flags:     runflags(),
+		Flags:     image_commands.Runflags(),
 		Action:    r.call,
 	}
 }
@@ -209,11 +211,11 @@ func (a *routesCmd) call(c *cli.Context) error {
 	route := cleanRoutePath(c.Args().Get(1))
 
 	u := url.URL{
-		Scheme: SCHEME,
-		Host:   HOST,
+		Scheme: common.SCHEME,
+		Host:   common.HOST,
 	}
 	u.Path = path.Join(u.Path, "r", appName, route)
-	content := stdin()
+	content := image_commands.Stdin()
 
 	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
 		Context: context.Background(),
@@ -327,12 +329,12 @@ func routeWithFlags(c *cli.Context, rt *models.Route) {
 	}
 
 	if len(c.StringSlice("config")) > 0 {
-		rt.Config = extractEnvConfig(c.StringSlice("config"))
+		rt.Config = common.ExtractEnvConfig(c.StringSlice("config"))
 	}
 }
 
 func routeWithFuncFile(c *cli.Context, rt *models.Route) {
-	ff, err := loadFuncfile()
+	ff, err := common.LoadFuncfile()
 	if err == nil {
 		if ff.FullName() != "" { // args take precedence
 			rt.Image = ff.FullName()

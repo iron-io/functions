@@ -1,4 +1,4 @@
-package main
+package commands
 
 /*
 usage: fn init <name>
@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"strings"
 
+	"github.com/iron-io/functions/fn/common"
 	"github.com/iron-io/functions/fn/langs"
 	"github.com/urfave/cli"
 )
@@ -57,7 +57,7 @@ type initFnCmd struct {
 	maxConcurrency int
 }
 
-func initFn() cli.Command {
+func InitFn() cli.Command {
 	a := initFnCmd{}
 
 	return cli.Command{
@@ -106,8 +106,8 @@ func initFn() cli.Command {
 
 func (a *initFnCmd) init(c *cli.Context) error {
 	if !a.force {
-		ff, err := loadFuncfile()
-		if _, ok := err.(*notFoundError); !ok && err != nil {
+		ff, err := common.LoadFuncfile()
+		if _, ok := err.(*common.NotFoundError); !ok && err != nil {
 			return err
 		}
 		if ff != nil {
@@ -125,20 +125,20 @@ func (a *initFnCmd) init(c *cli.Context) error {
 		ffmt = &a.format
 	}
 
-	ff := &funcfile{
+	ff := &common.Funcfile{
 		Name:           a.name,
 		Runtime:        &a.runtime,
-		Version:        initialVersion,
+		Version:        common.INITIAL_VERSION,
 		Entrypoint:     a.entrypoint,
 		Cmd:            a.cmd,
 		Format:         ffmt,
 		MaxConcurrency: &a.maxConcurrency,
 	}
 
-	_, path := appNamePath(ff.FullName())
+	_, path := common.AppNamePath(ff.FullName())
 	ff.Path = &path
 
-	if err := encodeFuncfileYAML("func.yaml", ff); err != nil {
+	if err := common.EncodeFuncfileYAML("func.yaml", ff); err != nil {
 		return err
 	}
 
@@ -157,7 +157,7 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 		return errors.New("Please specify a name for your function in the following format <DOCKERHUB_USERNAME>/<FUNCTION_NAME>.\nTry: fn init <DOCKERHUB_USERNAME>/<FUNCTION_NAME>")
 	}
 
-	if exists("Dockerfile") {
+	if common.Exists("Dockerfile") {
 		fmt.Println("Dockerfile found, will use that to build.")
 		return nil
 	}
@@ -172,7 +172,7 @@ func (a *initFnCmd) buildFuncFile(c *cli.Context) error {
 		fmt.Printf("assuming %v runtime\n", rt)
 	}
 	fmt.Println("runtime:", a.runtime)
-	if _, ok := acceptableFnRuntimes[a.runtime]; !ok {
+	if _, ok := common.AcceptableFnRuntimes[a.runtime]; !ok {
 		return fmt.Errorf("init does not support the %s runtime, you'll have to create your own Dockerfile for this function", a.runtime)
 	}
 
@@ -202,7 +202,7 @@ func detectRuntime(path string) (runtime string, err error) {
 	for ext, runtime := range fileExtToRuntime {
 		for _, filename := range filenames {
 			fn := filepath.Join(path, fmt.Sprintf("%s%s", filename, ext))
-			if exists(fn) {
+			if common.Exists(fn) {
 				return runtime, nil
 			}
 		}

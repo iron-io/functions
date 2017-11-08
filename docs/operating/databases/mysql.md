@@ -1,11 +1,11 @@
-# IronFunctions using Postgres
+# IronFunctions using MySQL
 
 Let's presuppose you don't have even a MySQL DB ready.
 
 ### 1. Let's start a MySQL instance:
 
 ```
-docker run --name iron-mysql \
+docker run --name iron-mysql -e MYSQL_ROOT_PASSWORD=root \
         -e MYSQL_DATABASE=funcs -e MYSQL_USER=iron -e MYSQL_PASSWORD=ironfunctions -d mysql
 ``` 
 

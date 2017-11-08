@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"archive/zip"
@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	aws_lambda "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/iron-io/functions/fn/common"
 	"github.com/urfave/cli"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -24,7 +25,7 @@ var runtimes = map[string]string{
 	"nodejs4.3": "lambda-nodejs4.3",
 }
 
-func lambda() cli.Command {
+func Lambda() cli.Command {
 	var flags []cli.Flag
 
 	flags = append(flags, getFlags()...)
@@ -178,7 +179,7 @@ func createFunctionYaml(opts createImageOptions, functionName string) error {
 	strs := strings.Split(opts.Name, "/")
 	path := fmt.Sprintf("/%s", strs[1])
 
-	funcDesc := &funcfile{
+	funcDesc := &common.Funcfile{
 		Name:    opts.Name,
 		Path:    &path,
 		Config:  opts.Config,

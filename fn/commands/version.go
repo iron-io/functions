@@ -1,13 +1,14 @@
-package main
+package commands
 
 import (
 	"fmt"
 	vers "github.com/iron-io/functions/api/version"
+	"github.com/iron-io/functions/fn/common"
 	functions "github.com/iron-io/functions_go"
 	"github.com/urfave/cli"
 )
 
-func version() cli.Command {
+func Version() cli.Command {
 	r := versionCmd{VersionApi: functions.NewVersionApi()}
 	return cli.Command{
 		Name:   "version",
@@ -21,7 +22,7 @@ type versionCmd struct {
 }
 
 func (r *versionCmd) version(c *cli.Context) error {
-	r.Configuration.BasePath = getBasePath("")
+	r.Configuration.BasePath = common.GetBasePath("")
 
 	fmt.Println("Client version:", vers.Version)
 	v, _, err := r.VersionGet()
