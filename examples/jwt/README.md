@@ -45,7 +45,7 @@ curl  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE
 
 # or use fn tool
 # This will automatically generate a token and make function call :
-fn call myapp /jwt
+fn routes call myapp /jwt
 
 ```
 
