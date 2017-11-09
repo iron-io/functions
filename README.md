@@ -213,6 +213,8 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps/myapp/routes
 ```
 
+You can use JWT for [authentication](examples/jwt).
+
 [More on routes](docs/routes.md).
 
 ### Calling your Function

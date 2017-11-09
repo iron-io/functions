@@ -49,6 +49,7 @@ type Funcfile struct {
 	Tests          []fftest          `yaml:"tests,omitempty" json:"tests,omitempty"`
 	Path           *string           `yaml:"path,omitempty" json:"path,omitempty"`
 	MaxConcurrency *int              `yaml:"max_concurrency,omitempty" json:"max_concurrency,omitempty"`
+	JwtKey         *string           `yaml:"jwt_key,omitempty" json:"jwt_key,omitempty"`
 }
 
 func (ff *Funcfile) FullName() string {
