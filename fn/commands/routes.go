@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	jwt "github.com/dgrijalva/jwt-go"
 	"io"
 	"net/http"
 	"net/url"
@@ -14,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
-	"time"
 
+	f_common "github.com/iron-io/functions/common"
 	image_commands "github.com/iron-io/functions/fn/commands/images"
 	"github.com/iron-io/functions/fn/common"
 	fnclient "github.com/iron-io/functions_go/client"
@@ -259,7 +258,7 @@ func callfn(u string, rt *models.Route, content io.Reader, output io.Writer, met
 	}
 
 	if rt.JwtKey != "" {
-		ss, err := getJwtToken(rt.JwtKey, 60*60)
+		ss, err := f_common.GetJwt(rt.JwtKey, 60*60)
 		if err != nil {
 			return fmt.Errorf("unexpected error: %s", err)
 		}
@@ -662,7 +661,7 @@ func (a *routesCmd) token(c *cli.Context) error {
 	}
 
 	// Create the Claims
-	ss, err := getJwtToken(jwtKey, expiration)
+	ss, err := f_common.GetJwt(jwtKey, expiration)
 	if err != nil {
 		return fmt.Errorf("unexpected error: %s", err)
 	}
@@ -672,16 +671,4 @@ func (a *routesCmd) token(c *cli.Context) error {
 	enc.Encode(t)
 
 	return nil
-}
-
-func getJwtToken(signingKey string, expiration int) (string, error) {
-	now := time.Now().Unix()
-	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Unix(now, 0).Add(time.Duration(expiration) * time.Second).Unix(),
-		IssuedAt:  now,
-		NotBefore: time.Unix(now, 0).Add(time.Duration(-1) * time.Minute).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(signingKey))
-	return ss, err
 }
