@@ -448,8 +448,8 @@
 [[projects]]
   name = "github.com/ucirello/supervisor"
   packages = ["."]
-  revision = "3ae4051c50e006498b4b8aee130185a53caab86e"
-  version = "v0.5.3"
+  revision = "f1f5037005c3f2655a1419fe78242583ca60132c"
+  version = "v0.5.2"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -502,6 +502,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7a498ed85c909127a2648968ee50bb24aadd5b06733bd03e4aa34299b5bb5753"
+  inputs-digest = "ef62003d4ceb634fb5518324069e8f30e46dd1df5ec5de8527789f2acf0a1c72"
   solver-name = "gps-cdcl"
   solver-version = 1
