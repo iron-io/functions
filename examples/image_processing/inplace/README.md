@@ -19,6 +19,6 @@ fn push
 fn routes create test /image-processing
 
 # you can now access via curl as well
-curl -v -X POST http://localhost:8080/r/test/image-resize -d "http://www.sourcecertain.com/img/Example.png" > image.png
+curl -v -X POST http://localhost:8080/r/test/image-processing -d "http://www.sourcecertain.com/img/Example.png" > image.png
 ```
 

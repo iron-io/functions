@@ -19,7 +19,7 @@ fn push
 fn routes create test /image-processing
 
 # you can now access via curl as well
-curl -v -X POST http://localhost:8080/r/test/image-resize -d "https://www.nationalgeographic.com/content/dam/science/photos/000/010/1086.ngsversion.1491440409220.adapt.1900.1.jpg"
+curl -v -X POST http://localhost:8080/r/test/image-processing -d "https://www.nationalgeographic.com/content/dam/science/photos/000/010/1086.ngsversion.1491440409220.adapt.1900.1.jpg"
 > https://iron-functions-image-resize.s3.amazonaws.com/1086.ngsversion.1491440409220.adapt.1900.1.jpg
 ```
 
