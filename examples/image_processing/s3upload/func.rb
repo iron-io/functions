@@ -1,7 +1,7 @@
 require 'mini_magick'
 require 'aws-sdk-s3'
 
-file_uri = STDIN.read
+file_uri = STDIN.read.strip
 image = MiniMagick::Image.open(file_uri)
 image.contrast
 image.resize "250x200"

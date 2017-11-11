@@ -1,6 +1,6 @@
 require 'mini_magick'
 
-payload = STDIN.read
+payload = STDIN.read.strip
 image = MiniMagick::Image.open(payload)
 image.contrast
 image.resize "250x200"
