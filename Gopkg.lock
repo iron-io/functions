@@ -105,7 +105,7 @@
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
+  packages = [".","request"]
   revision = "d2709f9f1f31ebcda9651b03077758c1f3a0018c"
   version = "v3.0.0"
 
@@ -305,7 +305,7 @@
   branch = "master"
   name = "github.com/iron-io/functions_go"
   packages = [".","client","client/apps","client/routes","client/tasks","client/version","models"]
-  revision = "8d7dbe9fd1698e16b45374c8b7348d499124e4a3"
+  revision = "c17755329668826e1e8571b0b5d965e14ec3a85b"
 
 [[projects]]
   branch = "master"
@@ -448,8 +448,8 @@
 [[projects]]
   name = "github.com/ucirello/supervisor"
   packages = ["."]
-  revision = "3ae4051c50e006498b4b8aee130185a53caab86e"
-  version = "v0.5.3"
+  revision = "f1f5037005c3f2655a1419fe78242583ca60132c"
+  version = "v0.5.2"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -502,6 +502,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2e558c15ce48188827293d5fcad8147194486eb7723bfc9f7bbe061716ab9588"
+  inputs-digest = "ef62003d4ceb634fb5518324069e8f30e46dd1df5ec5de8527789f2acf0a1c72"
   solver-name = "gps-cdcl"
   solver-version = 1

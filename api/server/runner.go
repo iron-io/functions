@@ -18,6 +18,7 @@ import (
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
+	f_common "github.com/iron-io/functions/common"
 	"github.com/iron-io/runner/common"
 	uuid "github.com/satori/go.uuid"
 )
@@ -127,6 +128,13 @@ func (s *Server) handleRequest(c *gin.Context, enqueue models.Enqueue) {
 	log.WithField("routes", len(routes)).Debug("Got routes from datastore")
 	route := routes[0]
 	log = log.WithFields(logrus.Fields{"app": appName, "path": route.Path, "image": route.Image})
+
+	if err = f_common.AuthJwt(route.JwtKey, c.Request); err != nil {
+		log.WithError(err).Error("JWT Authentication Failed")
+		c.Writer.Header().Set("WWW-Authenticate", "Bearer realm=\"\"")
+		c.JSON(http.StatusUnauthorized, simpleError(err))
+		return
+	}
 
 	if s.serve(ctx, c, appName, route, app, path, reqID, payload, enqueue) {
 		s.FireAfterDispatch(ctx, reqRoute)

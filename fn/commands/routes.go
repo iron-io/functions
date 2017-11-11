@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
+	f_common "github.com/iron-io/functions/common"
 	image_commands "github.com/iron-io/functions/fn/commands/images"
 	"github.com/iron-io/functions/fn/common"
 	fnclient "github.com/iron-io/functions_go/client"
@@ -55,6 +57,10 @@ var routeFlags = []cli.Flag{
 	cli.IntFlag{
 		Name:  "max-concurrency,mc",
 		Usage: "maximum concurrency for hot container",
+	},
+	cli.StringFlag{
+		Name:  "jwt-key,j",
+		Usage: "Signing key for JWT",
 	},
 	cli.DurationFlag{
 		Name:  "timeout",
@@ -134,6 +140,13 @@ func Routes() cli.Command {
 				ArgsUsage: "<app> </path> [property.[key]]",
 				Action:    r.inspect,
 			},
+			{
+				Name:      "token",
+				Aliases:   []string{"t"},
+				Usage:     "retrieve jwt for authentication",
+				ArgsUsage: "<app> </path> [expiration(sec)]",
+				Action:    r.token,
+			},
 		},
 	}
 }
@@ -203,10 +216,28 @@ func (a *routesCmd) call(c *cli.Context) error {
 	u.Path = path.Join(u.Path, "r", appName, route)
 	content := image_commands.Stdin()
 
-	return callfn(u.String(), content, os.Stdout, c.String("method"), c.StringSlice("e"))
+	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
+		Context: context.Background(),
+		App:     appName,
+		Route:   route,
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %s", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %s", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %s", err)
+	}
+
+	rt := resp.Payload.Route
+
+	return callfn(u.String(), rt, content, os.Stdout, c.String("method"), c.StringSlice("e"))
 }
 
-func callfn(u string, content io.Reader, output io.Writer, method string, env []string) error {
+func callfn(u string, rt *models.Route, content io.Reader, output io.Writer, method string, env []string) error {
 	if method == "" {
 		if content == nil {
 			method = "GET"
@@ -224,6 +255,14 @@ func callfn(u string, content io.Reader, output io.Writer, method string, env []
 
 	if len(env) > 0 {
 		envAsHeader(req, env)
+	}
+
+	if rt.JwtKey != "" {
+		ss, err := f_common.GetJwt(rt.JwtKey, 60*60)
+		if err != nil {
+			return fmt.Errorf("unexpected error: %s", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", ss))
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -275,6 +314,10 @@ func routeWithFlags(c *cli.Context, rt *models.Route) {
 		rt.Timeout = &to
 	}
 
+	if j := c.String("jwt-key"); j != "" {
+		rt.JwtKey = j
+	}
+
 	if len(c.StringSlice("headers")) > 0 {
 		headers := map[string][]string{}
 		for _, header := range c.StringSlice("headers") {
@@ -305,6 +348,10 @@ func routeWithFuncFile(c *cli.Context, rt *models.Route) {
 			to := int64(ff.Timeout.Seconds())
 			rt.Timeout = &to
 		}
+		if ff.JwtKey != nil && *ff.JwtKey != "" {
+			rt.JwtKey = *ff.JwtKey
+		}
+
 		if rt.Path == "" && ff.Path != nil {
 			rt.Path = *ff.Path
 		}
@@ -419,6 +466,10 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *fnmodels.Route) err
 		if r.Timeout != nil {
 			resp.Payload.Route.Timeout = r.Timeout
 		}
+		if r.JwtKey != "" {
+			resp.Payload.Route.JwtKey = r.JwtKey
+		}
+
 	}
 
 	_, err = a.client.Routes.PatchAppsAppRoutesRoute(&apiroutes.PatchAppsAppRoutesRouteParams{
@@ -570,5 +621,54 @@ func (a *routesCmd) delete(c *cli.Context) error {
 	}
 
 	fmt.Println(appName, route, "deleted")
+	return nil
+}
+
+func (a *routesCmd) token(c *cli.Context) error {
+	appName := c.Args().Get(0)
+	route := cleanRoutePath(c.Args().Get(1))
+	e := c.Args().Get(2)
+	expiration := 60 * 60
+	if e != "" {
+		var err error
+		expiration, err = strconv.Atoi(e)
+		if err != nil {
+			return fmt.Errorf("invalid expiration: %s", err)
+		}
+	}
+
+	resp, err := a.client.Routes.GetAppsAppRoutesRoute(&apiroutes.GetAppsAppRoutesRouteParams{
+		Context: context.Background(),
+		App:     appName,
+		Route:   route,
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case *apiroutes.GetAppsAppRoutesRouteNotFound:
+			return fmt.Errorf("error: %s", err.(*apiroutes.GetAppsAppRoutesRouteNotFound).Payload.Error.Message)
+		case *apiroutes.GetAppsAppRoutesRouteDefault:
+			return fmt.Errorf("unexpected error: %s", err.(*apiroutes.GetAppsAppRoutesRouteDefault).Payload.Error.Message)
+		}
+		return fmt.Errorf("unexpected error: %s", err)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "\t")
+	jwtKey := resp.Payload.Route.JwtKey
+	if jwtKey == "" {
+		return errors.New("Empty JWT Key")
+	}
+
+	// Create the Claims
+	ss, err := f_common.GetJwt(jwtKey, expiration)
+	if err != nil {
+		return fmt.Errorf("unexpected error: %s", err)
+	}
+	t := struct {
+		Token string `json:"token"`
+	}{Token: ss}
+	enc.Encode(t)
+
 	return nil
 }

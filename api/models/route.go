@@ -42,6 +42,7 @@ type Route struct {
 	Timeout        int32       `json:"timeout"`
 	IdleTimeout    int32       `json:"idle_timeout"`
 	Config         `json:"config"`
+	JwtKey         string `json:"jwt_key"`
 }
 
 var (
@@ -191,6 +192,10 @@ func (r *Route) Update(new *Route) {
 	if new.MaxConcurrency != 0 {
 		r.MaxConcurrency = new.MaxConcurrency
 	}
+	if new.JwtKey != "" {
+		r.JwtKey = new.JwtKey
+	}
+
 	if new.Headers != nil {
 		if r.Headers == nil {
 			r.Headers = make(http.Header)
