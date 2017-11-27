@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/iron-io/functions/api/middlewares"
 	"github.com/iron-io/functions/api/server"
 )
 
@@ -11,5 +12,7 @@ func main() {
 
 	funcServer := server.NewFromEnv(ctx)
 	// Setup your custom extensions, listeners, etc here
+	middlewares.SetupJwtAuth(funcServer)
+
 	funcServer.Start(ctx)
 }
