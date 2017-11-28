@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"context"
-	"github.com/Sirupsen/logrus"
-	"github.com/iron-io/runner/common"
+	"github.com/c0ze/runner/common"
+	"github.com/sirupsen/logrus"
 )
 
 type FuncLogger interface {

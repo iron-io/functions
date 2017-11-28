@@ -9,10 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/c0ze/runner/drivers"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/drivers"
-	"github.com/moby/moby/cli/config/configfile"
 )
 
 var registries dockerRegistries

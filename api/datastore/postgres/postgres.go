@@ -9,11 +9,11 @@ import (
 	"context"
 
 	"bytes"
-	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 )
 
 const routesTableCreate = `

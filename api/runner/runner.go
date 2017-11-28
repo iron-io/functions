@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/c0ze/runner/common"
+	"github.com/c0ze/runner/drivers"
+	driverscommon "github.com/c0ze/runner/drivers"
+	"github.com/c0ze/runner/drivers/docker"
+	"github.com/c0ze/runner/drivers/mock"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
-	"github.com/iron-io/runner/drivers"
-	driverscommon "github.com/iron-io/runner/drivers"
-	"github.com/iron-io/runner/drivers/docker"
-	"github.com/iron-io/runner/drivers/mock"
+	"github.com/sirupsen/logrus"
 )
 
 type Runner struct {

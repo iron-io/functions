@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
+	"github.com/sirupsen/logrus"
 )
 
 // New will parse the URL and return the correct MQ implementation.
