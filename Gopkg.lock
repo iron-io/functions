@@ -365,6 +365,12 @@
   revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/moby/moby"
+  packages = ["api/types","pkg/jsonmessage"]
+  revision = "9243c28ba541281eaba43e51658f8dd032679ebc"
+
+[[projects]]
   name = "github.com/opencontainers/go-digest"
   packages = ["."]
   revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
@@ -458,19 +464,19 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["bcrypt","blowfish","ssh/terminal"]
-  revision = "e8f229864d71a49e5fdc4a9a134c5f85c4c33d64"
+  revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","idna","proxy","publicsuffix"]
-  revision = "6921abc35dffd00438a0c020584ce560108737ea"
+  revision = "894f8ed5849b15b810ae41e9590a0d05395bba27"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "b76f9891dc1d975623261def70f9b89661f5baab"
+  revision = "1006bb3484c92b19a5b6612452e038b554fadb9c"
 
 [[projects]]
   branch = "master"
@@ -499,6 +505,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ce77853bc0905886496265ce8cc0c071a332c7a8126b55fb98dcbdd36adc9ce6"
+  inputs-digest = "4279576dbd5a064b766af466190fab8277c08269faf2e68ff38629caa594357a"
   solver-name = "gps-cdcl"
   solver-version = 1
