@@ -2,13 +2,13 @@ package common
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
-	"fmt"
 
-	f_common "github.com/iron-io/functions/common"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	f_common "github.com/iron-io/functions/common"
 	fnclient "github.com/iron-io/functions_go/client"
 )
 
