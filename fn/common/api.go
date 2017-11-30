@@ -4,7 +4,9 @@ import (
 	"crypto/tls"
 	"net/http"
 	"os"
+	"fmt"
 
+	f_common "github.com/iron-io/functions/common"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	fnclient "github.com/iron-io/functions_go/client"
@@ -19,6 +21,15 @@ func ApiClient() *fnclient.Functions {
 	transport := httptransport.NewWithClient(HOST, API_VERSION, []string{SCHEME}, cl)
 	if os.Getenv("IRON_TOKEN") != "" {
 		transport.DefaultAuthentication = httptransport.BearerToken(os.Getenv("IRON_TOKEN"))
+	}
+
+	if JWT_AUTH_KEY != "" {
+		jwtToken, err := f_common.GetJwt(JWT_AUTH_KEY, 60*60)
+		if err != nil {
+			fmt.Println(fmt.Errorf("unexpected error: %s", err))
+		} else {
+			transport.DefaultAuthentication = httptransport.BearerToken(jwtToken)
+		}
 	}
 
 	// create the API client, with the transport
