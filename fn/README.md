@@ -239,12 +239,12 @@ Ensure you have Go configured and installed in your environment. Once it is
 done, run:
 
 ```sh
-$ make
+make
 ```
 
 It will build fn compatible with your local environment. You can test this
 CLI, right away with:
 
 ```sh
-$ ./fn
+./fn
 ```

@@ -43,5 +43,4 @@ func (lh *GoLangHelper) PreBuild() error {
 
 func (lh *GoLangHelper) AfterBuild() error {
 	return os.Remove("func")
-
 }

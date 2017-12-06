@@ -17,7 +17,7 @@ fn push
 fn routes create myapp /hello
 ```
 
-Now surf to: http://localhost:8080/r/myapp/hello
+Now surf to: http://localhost:8080/r/myapp/hello 
 
 ## Dependencies
 

@@ -16,11 +16,7 @@ func (lh *RubyLangHelper) Entrypoint() string {
 	return "ruby func.rb"
 }
 
-func (lh *RubyLangHelper) HasPreBuild() bool {
-	return true
-}
-
-func (lh *RubyLangHelper) PreBuild() error {
+func (lh *RubyLangHelper) Deps() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -31,7 +27,7 @@ func (lh *RubyLangHelper) PreBuild() error {
 	}
 
 	pbcmd := fmt.Sprintf("docker run --rm -v %s:/worker -w /worker iron/ruby:dev bundle install --standalone --clean", wd)
-	fmt.Println("Running prebuild command:", pbcmd)
+	fmt.Println("Running Ruby deps command:", pbcmd)
 	parts := strings.Fields(pbcmd)
 	head := parts[0]
 	parts = parts[1:len(parts)]
@@ -39,8 +35,16 @@ func (lh *RubyLangHelper) PreBuild() error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error running docker build: %v", err)
+		return fmt.Errorf("error running bundle install: %v", err)
 	}
+	return nil
+}
+
+func (lh *RubyLangHelper) HasPreBuild() bool {
+	return true
+}
+
+func (lh *RubyLangHelper) PreBuild() error {
 	return nil
 }
 
