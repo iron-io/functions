@@ -19,9 +19,6 @@ func ApiClient() *fnclient.Functions {
 	cl := &http.Client{Transport: tr}
 
 	transport := httptransport.NewWithClient(HOST, API_VERSION, []string{SCHEME}, cl)
-	if os.Getenv("IRON_TOKEN") != "" {
-		transport.DefaultAuthentication = httptransport.BearerToken(os.Getenv("IRON_TOKEN"))
-	}
 
 	if JWT_AUTH_KEY != "" {
 		jwtToken, err := f_common.GetJwt(JWT_AUTH_KEY, 60*60)
