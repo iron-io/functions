@@ -1,4 +1,4 @@
-package middlewares
+package server
 
 import (
 	"encoding/json"
@@ -8,15 +8,14 @@ import (
 	"time"
 
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/functions/api/server"
 	"github.com/iron-io/functions/common"
 	"github.com/spf13/viper"
 )
 
-func SetupJwtAuth(funcServer *server.Server) {
+func SetupJwtAuth(funcServer *Server) {
 	// Add default JWT AUTH if env variable set
 	if jwtAuthKey := viper.GetString("jwt_auth_key"); jwtAuthKey != "" {
-		funcServer.AddMiddlewareFunc(func(ctx server.MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
+		funcServer.AddMiddlewareFunc(func(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
 			start := time.Now()
 			fmt.Println("JwtAuthMiddlewareFunc called at:", start)
 			ctx.Next()
@@ -30,7 +29,7 @@ func SetupJwtAuth(funcServer *server.Server) {
 type JwtAuthMiddleware struct {
 }
 
-func (h *JwtAuthMiddleware) Serve(ctx server.MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
+func (h *JwtAuthMiddleware) Serve(ctx MiddlewareContext, w http.ResponseWriter, r *http.Request, app *models.App) error {
 	fmt.Println("JwtAuthMiddleware called")
 	jwtAuthKey := viper.GetString("jwt_auth_key")
 

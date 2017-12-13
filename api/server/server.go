@@ -97,6 +97,7 @@ func New(ctx context.Context, ds models.Datastore, mq models.MessageQueue, apiUR
 
 	s.Router.Use(prepareMiddleware(ctx))
 	s.bindHandlers(ctx)
+	s.setupMiddlewares()
 
 	for _, opt := range opts {
 		opt(s)
@@ -201,6 +202,10 @@ func (s *Server) Start(ctx context.Context) {
 	ctx = contextWithSignal(ctx, os.Interrupt)
 	s.startGears(ctx)
 	close(s.tasks)
+}
+
+func (s *Server) setupMiddlewares() {
+	SetupJwtAuth(s)
 }
 
 func (s *Server) startGears(ctx context.Context) {

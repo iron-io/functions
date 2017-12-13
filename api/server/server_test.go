@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +19,8 @@ import (
 	"github.com/iron-io/functions/api/runner"
 	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/functions/api/server/internal/routecache"
+	"github.com/iron-io/functions/common"
+	"github.com/spf13/viper"
 )
 
 var tmpBolt = "/tmp/func_test_bolt.db"
@@ -40,11 +43,19 @@ func testServer(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner,
 
 	s.Router.Use(prepareMiddleware(ctx))
 	s.bindHandlers(ctx)
+	s.setupMiddlewares()
+
 	return s
 }
 
 func routerRequest(t *testing.T, router *gin.Engine, method, path string, body io.Reader) (*http.Request, *httptest.ResponseRecorder) {
 	req, err := http.NewRequest(method, "http://127.0.0.1:8080"+path, body)
+	if jwtAuthKey := viper.GetString("jwt_auth_key"); jwtAuthKey != "" {
+		jwtToken, err := common.GetJwt(jwtAuthKey, 60*60)
+		if err == nil {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", jwtToken))
+		}
+	}
 	if err != nil {
 		t.Fatalf("Test: Could not create %s request to %s: %v", method, path, err)
 	}
@@ -57,6 +68,12 @@ func routerRequest(t *testing.T, router *gin.Engine, method, path string, body i
 
 func newRouterRequest(t *testing.T, method, path string, body io.Reader) (*http.Request, *httptest.ResponseRecorder) {
 	req, err := http.NewRequest(method, "http://127.0.0.1:8080"+path, body)
+	if jwtAuthKey := viper.GetString("jwt_auth_key"); jwtAuthKey != "" {
+		jwtToken, err := common.GetJwt(jwtAuthKey, 60*60)
+		if err == nil {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", jwtToken))
+		}
+	}
 	if err != nil {
 		t.Fatalf("Test: Could not create %s request to %s: %v", method, path, err)
 	}
@@ -92,7 +109,16 @@ func prepareBolt(t *testing.T) (models.Datastore, func()) {
 	}
 }
 
-func TestFullStack(t *testing.T) {
+func TestFullStackWithNoAuth(t *testing.T) {
+	testFullStack(t)
+}
+
+func TestFullStackWithAuth(t *testing.T) {
+	viper.Set("jwt_auth_key", "test")
+	testFullStack(t)
+}
+
+func testFullStack(t *testing.T) {
 	buf := setLogBuffer()
 	ds, closeBolt := prepareBolt(t)
 	defer closeBolt()
