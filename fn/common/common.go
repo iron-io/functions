@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/iron-io/functions/fn/langs"
 	functions "github.com/iron-io/functions_go"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,7 +20,7 @@ import (
 
 var API_VERSION = "/v1"
 var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
-var JWT_AUTH_KEY = os.Getenv("JWT_AUTH_KEY")
+var JWT_AUTH_KEY = viper.GetString("jwt_auth_key")
 var API_URL = "http://localhost:8080"
 var SCHEME = "http"
 var INITIAL_VERSION = "0.0.1"
