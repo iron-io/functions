@@ -1,3 +1,5 @@
+// +build full_stack
+
 package server
 
 import (
