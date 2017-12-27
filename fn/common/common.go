@@ -27,6 +27,13 @@ var INITIAL_VERSION = "0.0.1"
 var HOST string
 var BASE_PATH string
 
+func SetEnv() {
+	if os.Getenv("API_URL") != "" {
+		API_URL = os.Getenv("API_URL")
+	}
+	BASE_PATH = GetBasePath(API_VERSION)
+}
+
 func GetBasePath(version string) string {
 	u, err := url.Parse(API_URL)
 	if err != nil {
