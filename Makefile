@@ -8,8 +8,12 @@ build:
 	go build -o functions
 
 test:
-	go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn)
-	cd fn && $(MAKE) test
+	$(ifndef TAG)
+		go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn)
+		cd fn && $(MAKE) test
+	$(else)
+		go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn) -tags=$(TAG)
+	$(endif)
 
 test-datastore:
 	cd api/datastore && go test -v ./...
