@@ -1,15 +1,13 @@
-// +build full_stack
+// +build integration
 
 package server
 
 import (
 	"context"
 	"testing"
-	"os"
-	"os/exec"
-	"path"
-	"fmt"
 	"time"
+
+	"github.com/iron-io/functions/fn/app"
 )
 
 func TestIntegration(t *testing.T) {
@@ -23,13 +21,31 @@ func testIntegration(t *testing.T) {
 	funcServer := NewFromEnv(ctx)
 
 	go funcServer.Start(ctx)
+	time.Sleep(10 * time.Second)
 
-	fnTestBin := path.Join(os.TempDir(), "fn-test")
+	fn := app.NewFn()
+	err := fn.Run([]string{"fn", "apps", "l"})
+	if err != nil {
+		t.Error(err)
+	}
 
-	time.Sleep(5 * time.Second)
-	res, err := exec.Command("go", "run", "../../fn/main.go", "apps", "l").CombinedOutput()
-	t.Error(string(res))
-	fmt.Println(res)
-	fmt.Println(err)
-	os.Remove(fnTestBin)
+	err = fn.Run([]string{"fn", "apps", "delete", "test"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = fn.Run([]string{"fn", "apps", "c", "test"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = fn.Run([]string{"fn", "invalid"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	//	res, err := exec.Command("go", "run", "../../fn/main.go", "apps", "l").CombinedOutput()
+	//	fmt.Println(res)
+	//	fmt.Println(err)
+	//	os.Remove(fnTestBin)
 }
