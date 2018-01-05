@@ -66,6 +66,10 @@ var routeFlags = []cli.Flag{
 		Name:  "timeout",
 		Usage: "route timeout (eg. 30s)",
 	},
+	cli.DurationFlag{
+		Name:  "idle_timeout",
+		Usage: "hot func timeout (eg. 30s)",
+	},
 }
 
 func Routes() cli.Command {
@@ -314,6 +318,11 @@ func routeWithFlags(c *cli.Context, rt *models.Route) {
 		rt.Timeout = &to
 	}
 
+	if t := c.Duration("idle_timeout"); t > 0 {
+		to := int64(t.Seconds())
+		rt.IDLETimeout = &to
+	}
+
 	if j := c.String("jwt-key"); j != "" {
 		rt.JwtKey = j
 	}
@@ -347,6 +356,10 @@ func routeWithFuncFile(c *cli.Context, rt *models.Route) {
 		if ff.Timeout != nil {
 			to := int64(ff.Timeout.Seconds())
 			rt.Timeout = &to
+		}
+		if ff.IDLETimeout != nil {
+			to := int64(ff.IDLETimeout.Seconds())
+			rt.IDLETimeout = &to
 		}
 		if ff.JwtKey != nil && *ff.JwtKey != "" {
 			rt.JwtKey = *ff.JwtKey
@@ -465,6 +478,9 @@ func (a *routesCmd) patchRoute(appName, routePath string, r *fnmodels.Route) err
 		}
 		if r.Timeout != nil {
 			resp.Payload.Route.Timeout = r.Timeout
+		}
+		if r.IDLETimeout != nil {
+			resp.Payload.Route.IDLETimeout = r.IDLETimeout
 		}
 		if r.JwtKey != "" {
 			resp.Payload.Route.JwtKey = r.JwtKey
