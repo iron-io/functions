@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/iron-io/functions/fn/app"
+	"github.com/iron-io/functions/api/models"
 )
 
 func TestIntegration(t *testing.T) {
@@ -34,9 +35,16 @@ func testIntegration(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = fn.Run([]string{"fn", "apps", "c", "test"})
-	if err != nil {
-		t.Error(err)
+	// err = fn.Run([]string{"fn", "apps", "c", "test"})
+	// if err != nil {
+	// 	t.Error(err)
+	// }
+
+	filter := &models.AppFilter{}
+	apps, err := funcServer.Datastore.GetApps(ctx, filter)
+
+	if len(apps) != 1 {
+		t.Error("fn apps create failed.")
 	}
 
 	err = fn.Run([]string{"fn", "invalid"})
