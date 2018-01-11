@@ -29,6 +29,8 @@ test:
   override:
     - make test:
         pwd: $GO_PROJECT
+    - make test-tag TAG=integration:
+        pwd: $GO_PROJECT
     - make test-build-arm:
         pwd: $GO_PROJECT
     - go build:
