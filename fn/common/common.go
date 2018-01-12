@@ -18,16 +18,25 @@ import (
 	"text/template"
 )
 
-var API_VERSION = "/v1"
-var SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
-var JWT_AUTH_KEY = viper.GetString("jwt_auth_key")
-var API_URL = "http://localhost:8080"
-var SCHEME = "http"
-var INITIAL_VERSION = "0.0.1"
-var HOST string
-var BASE_PATH string
+var (
+	API_VERSION string
+	SSL_SKIP_VERIFY bool
+	JWT_AUTH_KEY string
+	API_URL string
+	SCHEME string
+	INITIAL_VERSION string
+	HOST string
+	BASE_PATH string
+)
 
 func SetEnv() {
+	API_VERSION = "/v1"
+	SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
+	JWT_AUTH_KEY = viper.GetString("jwt_auth_key")
+	API_URL = "http://localhost:8080"
+	SCHEME = "http"
+	INITIAL_VERSION = "0.0.1"
+
 	if os.Getenv("API_URL") != "" {
 		API_URL = os.Getenv("API_URL")
 	}
