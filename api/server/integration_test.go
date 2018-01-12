@@ -22,23 +22,23 @@ func testIntegration(t *testing.T) {
 	funcServer := NewFromEnv(ctx)
 
 	go funcServer.Start(ctx)
-	time.Sleep(10 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	fn := app.NewFn()
+
+	// Test list
+
 	err := fn.Run([]string{"fn", "apps", "l"})
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = fn.Run([]string{"fn", "apps", "delete", "test"})
+	// Test create app
+
+	err = fn.Run([]string{"fn", "apps", "c", "test"})
 	if err != nil {
 		t.Error(err)
 	}
-
-	// err = fn.Run([]string{"fn", "apps", "c", "test"})
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 
 	filter := &models.AppFilter{}
 	apps, err := funcServer.Datastore.GetApps(ctx, filter)
@@ -47,13 +47,20 @@ func testIntegration(t *testing.T) {
 		t.Error("fn apps create failed.")
 	}
 
-	err = fn.Run([]string{"fn", "invalid"})
+	if apps[0].Name != "test" {
+		t.Error("fn apps create failed. - name doesnt match")
+	}
+
+	// Test delete app
+
+	err = fn.Run([]string{"fn", "apps", "delete", "test"})
 	if err != nil {
 		t.Error(err)
 	}
 
-	//	res, err := exec.Command("go", "run", "../../fn/main.go", "apps", "l").CombinedOutput()
-	//	fmt.Println(res)
-	//	fmt.Println(err)
-	//	os.Remove(fnTestBin)
+	apps, err = funcServer.Datastore.GetApps(ctx, filter)
+
+	if len(apps) != 0 {
+		t.Error("fn apps delete failed.")
+	}
 }
