@@ -6,12 +6,25 @@ import (
 	"context"
 	"testing"
 	"time"
+	"os"
 
 	"github.com/iron-io/functions/fn/app"
 	"github.com/iron-io/functions/api/models"
+	"github.com/spf13/viper"
 )
 
+var DB_FILE = "bolt:///tmp/bolt.db?bucket=funcs"
+
 func TestIntegration(t *testing.T) {
+	viper.Set(EnvDBURL, DB_FILE)
+	defer os.Remove(DB_FILE)
+	testIntegration(t)
+}
+
+func TestIntegrationWithAuth(t *testing.T) {
+	viper.Set("jwt_auth_key", "test")
+	viper.Set(EnvDBURL, DB_FILE)
+	defer os.Remove(DB_FILE)
 	testIntegration(t)
 }
 
