@@ -4,12 +4,12 @@ package server
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
-	"os"
 
-	"github.com/iron-io/functions/fn/app"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/fn/app"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli"
 )

@@ -19,14 +19,14 @@ import (
 )
 
 var (
-	API_VERSION string
+	API_VERSION     string
 	SSL_SKIP_VERIFY bool
-	JWT_AUTH_KEY string
-	API_URL string
-	SCHEME string
+	JWT_AUTH_KEY    string
+	API_URL         string
+	SCHEME          string
 	INITIAL_VERSION string
-	HOST string
-	BASE_PATH string
+	HOST            string
+	BASE_PATH       string
 )
 
 func SetEnv() {

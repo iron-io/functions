@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"github.com/iron-io/functions/fn/app"
+	"os"
 )
 
 func main() {
