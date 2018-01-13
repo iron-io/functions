@@ -33,13 +33,10 @@ func SetEnv() {
 	API_VERSION = "/v1"
 	SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
 	JWT_AUTH_KEY = viper.GetString("jwt_auth_key")
-	API_URL = "http://localhost:8080"
 	SCHEME = "http"
 	INITIAL_VERSION = "0.0.1"
-
-	if os.Getenv("API_URL") != "" {
-		API_URL = os.Getenv("API_URL")
-	}
+	viper.SetDefault("API_URL", "http://localhost:8080")
+	API_URL = viper.GetString("API_URL")
 	BASE_PATH = GetBasePath(API_VERSION)
 }
 
