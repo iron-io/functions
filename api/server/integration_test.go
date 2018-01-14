@@ -94,6 +94,20 @@ func testIntegration(t *testing.T) {
 		t.Error("fn apps create failed. - name doesnt match")
 	}
 
+	// Test create route
+
+	err = fn.Run([]string{"fn", "routes", "c", "test", "/new-route"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Test delete route
+
+	err = fn.Run([]string{"fn", "routes", "delete", "test", "/new-route"})
+	if err != nil {
+		t.Error(err)
+	}
+
 	// Test delete app
 
 	err = fn.Run([]string{"fn", "apps", "delete", "test"})
