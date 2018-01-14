@@ -31,6 +31,8 @@ test:
         pwd: $GO_PROJECT
     - make test-tag TAG=integration:
         pwd: $GO_PROJECT
+    - make test-tag TAG=server:
+        pwd: $GO_PROJECT
     - make test-build-arm:
         pwd: $GO_PROJECT
     - go build:

@@ -72,9 +72,11 @@ func setBrokenJwtAuth(req *http.Request) {
 func TestFullStackWithAuth(t *testing.T) {
 	viper.Set("jwt_auth_key", "test")
 	testFullStack(t, setJwtAuth, testSuite)
+	teardown()
 }
 
 func TestFullStackWithBrokenAuth(t *testing.T) {
 	viper.Set("jwt_auth_key", "test")
 	testFullStack(t, setBrokenJwtAuth, UnAuthtestSuite)
+	teardown()
 }

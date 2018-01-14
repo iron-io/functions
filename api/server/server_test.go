@@ -113,25 +113,27 @@ func getErrorResponse(t *testing.T, rec *httptest.ResponseRecorder) models.Error
 	return errResp
 }
 
-func prepareBolt(t *testing.T) (models.Datastore, func()) {
+func prepareBolt(t *testing.T) (models.Datastore) {
 	os.Remove(tmpBolt)
 	ds, err := datastore.New("bolt://" + tmpBolt)
 	if err != nil {
 		t.Fatal("Error when creating datastore: %s", err)
 	}
-	return ds, func() {
-		os.Remove(tmpBolt)
-	}
+	return ds
 }
 
 func TestFullStackWithNoAuth(t *testing.T) {
 	testFullStack(t, setJwtAuth, testSuite)
+	teardown()
+}
+
+func teardown() {
+	os.Remove(tmpBolt)
 }
 
 func testFullStack(t *testing.T, authFn func(*http.Request), suite Suite) {
 	buf := setLogBuffer()
-	ds, closeBolt := prepareBolt(t)
-	defer closeBolt()
+	ds := prepareBolt(t)
 
 	tasks := make(chan task.Request)
 	ctx, cancel := context.WithCancel(context.Background())

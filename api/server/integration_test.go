@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	"fmt"
 
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/fn/app"
@@ -24,8 +25,8 @@ var Ctx context.Context
 var fn *cli.App
 
 func setupServer() {
-	viper.Set(EnvDBURL, DB_FILE)
-	viper.Set(EnvMQURL, MQ_FILE)
+	viper.Set(EnvDBURL, fmt.Sprintf("bolt://%s?bucket=funcs", DB_FILE))
+	viper.Set(EnvMQURL, fmt.Sprintf("bolt://%s", MQ_FILE))
 	viper.Set(EnvPort, PORT)
 	Ctx, Cancel = context.WithCancel(context.Background())
 	funcServer = NewFromEnv(Ctx)
@@ -46,8 +47,8 @@ func teardown() {
 }
 
 func TestIntegration(t *testing.T) {
-	DB_FILE = "bolt:///tmp/bolt.db?bucket=funcs"
-	MQ_FILE = "bolt:///tmp/bolt_mq.db"
+	DB_FILE = "/tmp/bolt.db"
+	MQ_FILE = "/tmp/bolt_mq.db"
 	PORT = 8080
 	API_URL = "http://localhost:8080"
 	setupServer()
@@ -58,8 +59,8 @@ func TestIntegration(t *testing.T) {
 
 func TestIntegrationWithAuth(t *testing.T) {
 	viper.Set("jwt_auth_key", "test")
-	DB_FILE = "bolt:///tmp/bolt_auth.db?bucket=funcs"
-	MQ_FILE = "bolt:///tmp/bolt_auth_mq.db"
+	DB_FILE = "/tmp/bolt_auth.db"
+	MQ_FILE = "/tmp/bolt_auth_mq.db"
 	PORT = 8081
 	API_URL = "http://localhost:8081"
 	setupServer()
