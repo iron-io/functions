@@ -1,4 +1,3 @@
-// +build full_stack
 // +build server
 
 package server
