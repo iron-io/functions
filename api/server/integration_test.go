@@ -96,7 +96,14 @@ func testIntegration(t *testing.T) {
 
 	// Test create route
 
-	err = fn.Run([]string{"fn", "routes", "c", "test", "/new-route"})
+	err = fn.Run([]string{"fn", "routes", "c", "test", "/new-route", "--jwt-key", "route_key"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Test call route
+
+	err = fn.Run([]string{"fn", "routes", "call", "test", "/new-route"})
 	if err != nil {
 		t.Error(err)
 	}
