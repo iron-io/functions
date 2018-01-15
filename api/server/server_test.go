@@ -1,3 +1,5 @@
+// +build server
+
 package server
 
 import (
@@ -22,6 +24,34 @@ import (
 
 var tmpBolt = "/tmp/func_test_bolt.db"
 
+type Suite []struct {
+	name              string
+	method            string
+	path              string
+	body              string
+	expectedCode      int
+	expectedCacheSize int
+}
+
+var testSuite = Suite{
+	{"create my app", "POST", "/v1/apps", `{ "app": { "name": "myapp" } }`, http.StatusOK, 0},
+	{"list apps", "GET", "/v1/apps", ``, http.StatusOK, 0},
+	{"get app", "GET", "/v1/apps/myapp", ``, http.StatusOK, 0},
+	{"add myroute", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute", "path": "/myroute", "image": "iron/hello" } }`, http.StatusOK, 1},
+	{"add myroute2", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute2", "path": "/myroute2", "image": "iron/error" } }`, http.StatusOK, 2},
+	{"get myroute", "GET", "/v1/apps/myapp/routes/myroute", ``, http.StatusOK, 2},
+	{"get myroute2", "GET", "/v1/apps/myapp/routes/myroute2", ``, http.StatusOK, 2},
+	{"get all routes", "GET", "/v1/apps/myapp/routes", ``, http.StatusOK, 2},
+	{"execute myroute", "POST", "/r/myapp/myroute", `{ "name": "Teste" }`, http.StatusOK, 2},
+	{"execute myroute2", "POST", "/r/myapp/myroute2", `{ "name": "Teste" }`, http.StatusInternalServerError, 2},
+	{"delete myroute", "DELETE", "/v1/apps/myapp/routes/myroute", ``, http.StatusOK, 1},
+	{"delete app (fail)", "DELETE", "/v1/apps/myapp", ``, http.StatusBadRequest, 1},
+	{"delete myroute2", "DELETE", "/v1/apps/myapp/routes/myroute2", ``, http.StatusOK, 0},
+	{"delete app (success)", "DELETE", "/v1/apps/myapp", ``, http.StatusOK, 0},
+	{"get deleted app", "GET", "/v1/apps/myapp", ``, http.StatusNotFound, 0},
+	{"get deleteds route on deleted app", "GET", "/v1/apps/myapp/routes/myroute", ``, http.StatusNotFound, 0},
+}
+
 func testServer(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner, tasks chan task.Request) *Server {
 	ctx := context.Background()
 
@@ -40,6 +70,8 @@ func testServer(ds models.Datastore, mq models.MessageQueue, rnr *runner.Runner,
 
 	s.Router.Use(prepareMiddleware(ctx))
 	s.bindHandlers(ctx)
+	s.setupMiddlewares()
+
 	return s
 }
 
@@ -81,21 +113,26 @@ func getErrorResponse(t *testing.T, rec *httptest.ResponseRecorder) models.Error
 	return errResp
 }
 
-func prepareBolt(t *testing.T) (models.Datastore, func()) {
-	os.Remove(tmpBolt)
+func prepareBolt(t *testing.T) models.Datastore {
 	ds, err := datastore.New("bolt://" + tmpBolt)
 	if err != nil {
 		t.Fatal("Error when creating datastore: %s", err)
 	}
-	return ds, func() {
-		os.Remove(tmpBolt)
-	}
+	return ds
 }
 
-func TestFullStack(t *testing.T) {
+func TestFullStackWithNoAuth(t *testing.T) {
+	testFullStack(t, setJwtAuth, testSuite)
+	teardown()
+}
+
+func teardown() {
+	os.Remove(tmpBolt)
+}
+
+func testFullStack(t *testing.T, authFn func(*http.Request), suite Suite) {
 	buf := setLogBuffer()
-	ds, closeBolt := prepareBolt(t)
-	defer closeBolt()
+	ds := prepareBolt(t)
 
 	tasks := make(chan task.Request)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -109,32 +146,8 @@ func TestFullStack(t *testing.T) {
 	srv := testServer(ds, &mqs.Mock{}, rnr, tasks)
 	srv.hotroutes = routecache.New(2)
 
-	for _, test := range []struct {
-		name              string
-		method            string
-		path              string
-		body              string
-		expectedCode      int
-		expectedCacheSize int
-	}{
-		{"create my app", "POST", "/v1/apps", `{ "app": { "name": "myapp" } }`, http.StatusOK, 0},
-		{"list apps", "GET", "/v1/apps", ``, http.StatusOK, 0},
-		{"get app", "GET", "/v1/apps/myapp", ``, http.StatusOK, 0},
-		{"add myroute", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute", "path": "/myroute", "image": "iron/hello" } }`, http.StatusOK, 1},
-		{"add myroute2", "POST", "/v1/apps/myapp/routes", `{ "route": { "name": "myroute2", "path": "/myroute2", "image": "iron/error" } }`, http.StatusOK, 2},
-		{"get myroute", "GET", "/v1/apps/myapp/routes/myroute", ``, http.StatusOK, 2},
-		{"get myroute2", "GET", "/v1/apps/myapp/routes/myroute2", ``, http.StatusOK, 2},
-		{"get all routes", "GET", "/v1/apps/myapp/routes", ``, http.StatusOK, 2},
-		{"execute myroute", "POST", "/r/myapp/myroute", `{ "name": "Teste" }`, http.StatusOK, 2},
-		{"execute myroute2", "POST", "/r/myapp/myroute2", `{ "name": "Teste" }`, http.StatusInternalServerError, 2},
-		{"delete myroute", "DELETE", "/v1/apps/myapp/routes/myroute", ``, http.StatusOK, 1},
-		{"delete app (fail)", "DELETE", "/v1/apps/myapp", ``, http.StatusBadRequest, 1},
-		{"delete myroute2", "DELETE", "/v1/apps/myapp/routes/myroute2", ``, http.StatusOK, 0},
-		{"delete app (success)", "DELETE", "/v1/apps/myapp", ``, http.StatusOK, 0},
-		{"get deleted app", "GET", "/v1/apps/myapp", ``, http.StatusNotFound, 0},
-		{"get deleteds route on deleted app", "GET", "/v1/apps/myapp/routes/myroute", ``, http.StatusNotFound, 0},
-	} {
-		_, rec := routerRequest(t, srv.Router, test.method, test.path, bytes.NewBuffer([]byte(test.body)))
+	for _, test := range suite {
+		_, rec := routerRequestWithAuth(t, srv.Router, test.method, test.path, bytes.NewBuffer([]byte(test.body)), authFn)
 
 		if rec.Code != test.expectedCode {
 			t.Log(buf.String())

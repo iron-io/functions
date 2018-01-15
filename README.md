@@ -213,9 +213,15 @@ curl -H "Content-Type: application/json" -X POST -d '{
 }' http://localhost:8080/v1/apps/myapp/routes
 ```
 
-You can use JWT for [authentication](examples/jwt).
+[More on routes](docs/operating/routes.md).
 
-[More on routes](docs/routes.md).
+### Authentication
+
+Iron Functions API supports two levels of Authentication in two seperate scopes, service level authentication,
+(Which authenticates all requests made to the server from any client) and route level authentication.
+Route level authentication is applied whenever a function call made to a specific route.
+
+Please check [Authentication](docs/authentication.md) documentation for more information.
 
 ### Calling your Function
 
