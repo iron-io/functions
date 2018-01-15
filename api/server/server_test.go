@@ -114,7 +114,6 @@ func getErrorResponse(t *testing.T, rec *httptest.ResponseRecorder) models.Error
 }
 
 func prepareBolt(t *testing.T) models.Datastore {
-	os.Remove(tmpBolt)
 	ds, err := datastore.New("bolt://" + tmpBolt)
 	if err != nil {
 		t.Fatal("Error when creating datastore: %s", err)
