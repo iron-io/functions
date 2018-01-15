@@ -11,5 +11,6 @@ func main() {
 
 	funcServer := server.NewFromEnv(ctx)
 	// Setup your custom extensions, listeners, etc here
+
 	funcServer.Start(ctx)
 }
