@@ -113,7 +113,7 @@ func getErrorResponse(t *testing.T, rec *httptest.ResponseRecorder) models.Error
 	return errResp
 }
 
-func prepareBolt(t *testing.T) (models.Datastore) {
+func prepareBolt(t *testing.T) models.Datastore {
 	os.Remove(tmpBolt)
 	ds, err := datastore.New("bolt://" + tmpBolt)
 	if err != nil {

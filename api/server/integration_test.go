@@ -4,10 +4,10 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/fn/app"
