@@ -102,6 +102,17 @@ func testIntegration(t *testing.T) {
 		t.Error(err)
 	}
 
+	routeFilter := &models.RouteFilter{}
+	routes, err := funcServer.Datastore.GetRoutes(Ctx, routeFilter)
+
+	if len(routes) != 1 {
+		t.Error("fn routes create failed.")
+	}
+
+	if routes[0].Path != "/new-route" {
+		t.Error("fn routes create failed. - path doesnt match")
+	}
+
 	// Test call route
 
 	err = fn.Run([]string{"fn", "routes", "call", "test", "/new-route"})
@@ -114,6 +125,12 @@ func testIntegration(t *testing.T) {
 	err = fn.Run([]string{"fn", "routes", "delete", "test", "/new-route"})
 	if err != nil {
 		t.Error(err)
+	}
+
+	routes, err = funcServer.Datastore.GetRoutes(Ctx, routeFilter)
+
+	if len(routes) != 0 {
+		t.Error("fn routes delete failed.")
 	}
 
 	// Test delete app
