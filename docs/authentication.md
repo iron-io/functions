@@ -1,4 +1,4 @@
-# Authenticaion
+# Authentication
 
 Iron Functions API supports two levels of Authentication in two seperate scopes,
 using [JWT](https://jwt.io/) tokens for authentication.
@@ -16,4 +16,4 @@ within the server context, the server will look for a valid JWT token in every r
 ## Route level authentication
 
 Route level authentication is applied whenever a function call made to a specific route. You can check
-[Quick Example for JWT Authentication](examples/jwt/README.md) for an example.
+[Quick Example for JWT Authentication](../examples/jwt/README.md) for an example.
