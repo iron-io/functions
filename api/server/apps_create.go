@@ -9,7 +9,7 @@ import (
 	"github.com/iron-io/runner/common"
 )
 
-func handleAppCreate(c *gin.Context) {
+func (s *Server) handleAppCreate(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
@@ -34,26 +34,25 @@ func handleAppCreate(c *gin.Context) {
 		return
 	}
 
-	err = Api.FireBeforeAppUpdate(ctx, wapp.App)
+	err = s.FireBeforeAppCreate(ctx, wapp.App)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsCreate)
+		log.WithError(err).Error(models.ErrAppsCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(err))
 		return
 	}
 
-	_, err = Api.Datastore.StoreApp(wapp.App)
+	app, err := s.Datastore.InsertApp(ctx, wapp.App)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsCreate)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
+		handleErrorResponse(c, err)
 		return
 	}
 
-	err = Api.FireAfterAppUpdate(ctx, wapp.App)
+	err = s.FireAfterAppCreate(ctx, wapp.App)
 	if err != nil {
-		log.WithError(err).Errorln(models.ErrAppsCreate)
+		log.WithError(err).Error(models.ErrAppsCreate)
 		c.JSON(http.StatusInternalServerError, simpleError(err))
 		return
 	}
 
-	c.JSON(http.StatusCreated, appResponse{"App successfully created", wapp.App})
+	c.JSON(http.StatusOK, appResponse{"App successfully created", app})
 }

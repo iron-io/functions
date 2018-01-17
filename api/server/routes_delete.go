@@ -3,25 +3,23 @@ package server
 import (
 	"context"
 	"net/http"
+	"path"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/iron-io/functions/api"
 )
 
-func handleRouteDelete(c *gin.Context) {
+func (s *Server) handleRouteDelete(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
 
-	appName := c.Param("app")
-	routePath := c.Param("route")
-	err := Api.Datastore.RemoveRoute(appName, routePath)
+	appName := c.MustGet(api.AppName).(string)
+	routePath := path.Clean(c.MustGet(api.Path).(string))
 
-	if err != nil {
-		log.WithError(err).Debug(models.ErrRoutesRemoving)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesRemoving))
+	if err := s.Datastore.RemoveRoute(ctx, appName, routePath); err != nil {
+		handleErrorResponse(c, err)
 		return
 	}
 
+	s.cachedelete(appName, routePath)
 	c.JSON(http.StatusOK, gin.H{"message": "Route deleted"})
 }

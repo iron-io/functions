@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,7 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
-	"github.com/iron-io/runner/drivers"
+	"github.com/iron-io/functions/api/runner/task"
 )
 
 func setLogBuffer() *bytes.Buffer {
@@ -90,22 +89,6 @@ func getTestServer(mockTasks []*models.Task) *httptest.Server {
 	r.GET("/tasks", getHandler)
 	r.DELETE("/tasks", delHandler)
 	return httptest.NewServer(r)
-}
-
-var helloImage = "iron/hello"
-
-func TestRunTask(t *testing.T) {
-	mockTask := getMockTask()
-	mockTask.Image = &helloImage
-
-	result, err := runTask(context.Background(), &mockTask)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if result.Status() != "success" {
-		t.Errorf("TestRunTask failed to execute runTask")
-	}
 }
 
 func TestGetTask(t *testing.T) {
@@ -200,10 +183,19 @@ func TestTasksrvURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got, _ := tasksrvURL(tt.in); got != tt.out {
+		if got := tasksrvURL(tt.in); got != tt.out {
 			t.Errorf("tasksrv: %s\texpected: %s\tgot: %s\t", tt.in, tt.out, got)
 		}
 	}
+}
+
+func testRunner(t *testing.T) (*Runner, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	r, err := New(ctx, NewFuncLogger(), NewMetricLogger())
+	if err != nil {
+		t.Fatal("Test: failed to create new runner")
+	}
+	return r, cancel
 }
 
 func TestAsyncRunnersGracefulShutdown(t *testing.T) {
@@ -212,13 +204,23 @@ func TestAsyncRunnersGracefulShutdown(t *testing.T) {
 	ts := getTestServer([]*models.Task{&mockTask})
 	defer ts.Close()
 
-	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go startAsyncRunners(ctx, &wg, 0, ts.URL+"/tasks", func(ctx context.Context, task *models.Task) (drivers.RunResult, error) {
-		return nil, nil
-	})
-	wg.Wait()
+	tasks := make(chan task.Request)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	defer close(tasks)
+	go func() {
+		for t := range tasks {
+			t.Response <- task.Response{
+				Result: nil,
+				Err:    nil,
+			}
+
+		}
+	}()
+
+	rnr, cancel := testRunner(t)
+	defer cancel()
+	startAsyncRunners(ctx, ts.URL+"/tasks", tasks, rnr)
 
 	if err := ctx.Err(); err != context.DeadlineExceeded {
 		t.Log(buf.String())

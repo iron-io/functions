@@ -9,13 +9,14 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
-	"github.com/iron-io/runner/drivers"
 )
 
 func getTask(ctx context.Context, url string) (*models.Task, error) {
@@ -41,21 +42,23 @@ func getTask(ctx context.Context, url string) (*models.Task, error) {
 	return &task, nil
 }
 
-func getCfg(task *models.Task) *Config {
-	// TODO: should limit the size of this, error if gets too big. akin to: https://golang.org/pkg/io/#LimitReader
-	stderr := NewFuncLogger(task.AppName, task.Path, *task.Image, task.ID) // TODO: missing path here, how do i get that?
-	if task.Timeout == nil {
-		timeout := int32(30)
-		task.Timeout = &timeout
+func getCfg(t *models.Task) *task.Config {
+	timeout := int32(30)
+	if t.Timeout == nil {
+		t.Timeout = &timeout
 	}
-	cfg := &Config{
-		Image:   *task.Image,
-		Timeout: time.Duration(*task.Timeout) * time.Second,
-		ID:      task.ID,
-		AppName: task.AppName,
-		Stdout:  stderr,
-		Stderr:  stderr,
-		Env:     task.EnvVars,
+	if t.IdleTimeout == nil {
+		t.IdleTimeout = &timeout
+	}
+
+	cfg := &task.Config{
+		Image:       *t.Image,
+		Timeout:     time.Duration(*t.Timeout) * time.Second,
+		IdleTimeout: time.Duration(*t.IdleTimeout) * time.Second,
+		ID:          t.ID,
+		AppName:     t.AppName,
+		Stdin:       strings.NewReader(t.Payload),
+		Env:         t.EnvVars,
 	}
 	return cfg
 }
@@ -85,52 +88,29 @@ func deleteTask(url string, task *models.Task) error {
 	return nil
 }
 
-func runTask(ctx context.Context, task *models.Task) (drivers.RunResult, error) {
-	// Set up runner and process task
-	cfg := getCfg(task)
-	rnr, err := New(NewMetricLogger())
-	if err != nil {
-		return nil, err
-	}
-	return rnr.Run(ctx, cfg)
-}
-
 // RunAsyncRunner pulls tasks off a queue and processes them
-func RunAsyncRunner(ctx context.Context, tasksrv string, n int) {
-	u, h := tasksrvURL(tasksrv)
-	if isHostOpen(h) {
-		return
-	}
+func RunAsyncRunner(ctx context.Context, tasksrv string, tasks chan task.Request, rnr *Runner) {
+	u := tasksrvURL(tasksrv)
 
-	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go startAsyncRunners(ctx, &wg, i, u, runTask)
-	}
-
-	wg.Wait()
+	startAsyncRunners(ctx, u, tasks, rnr)
 	<-ctx.Done()
 }
 
-func isHostOpen(host string) bool {
-	conn, err := net.Dial("tcp", host)
-	available := err == nil
-	if available {
-		conn.Close()
-	}
-	return available
-}
-
-// todo: not a big fan of this anonymous function for testing, should use an interface and make a Mock object for testing - TR
-func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url string, runTask func(ctx context.Context, task *models.Task) (drivers.RunResult, error)) {
-	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"async_runner": i})
-	defer wg.Done()
+func startAsyncRunners(ctx context.Context, url string, tasks chan task.Request, rnr *Runner) {
+	var wg sync.WaitGroup
+	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"runner": "async"})
 	for {
 		select {
 		case <-ctx.Done():
+			wg.Wait()
 			return
 
 		default:
+			if !rnr.hasAsyncAvailableMemory() {
+				log.Debug("memory full")
+				time.Sleep(1 * time.Second)
+				continue
+			}
 			task, err := getTask(ctx, url)
 			if err != nil {
 				if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -148,11 +128,16 @@ func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url strin
 
 			ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
 			log.Debug("Running task:", task.ID)
-			// Process Task
-			if _, err := runTask(ctx, task); err != nil {
-				log.WithError(err).Error("Cannot run task")
-				continue
-			}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				// Process Task
+				if _, err := RunTask(tasks, ctx, getCfg(task)); err != nil {
+					log.WithError(err).Error("Cannot run task")
+				}
+			}()
+
 			log.Debug("Processed task")
 
 			// Delete task from queue
@@ -160,21 +145,17 @@ func startAsyncRunners(ctx context.Context, wg *sync.WaitGroup, i int, url strin
 				log.WithError(err).Error("Cannot delete task")
 				continue
 			}
-
 			log.Info("Task complete")
+
 		}
 	}
 }
 
-func tasksrvURL(tasksrv string) (parsedURL, host string) {
+func tasksrvURL(tasksrv string) string {
 	parsed, err := url.Parse(tasksrv)
 	if err != nil {
-		logrus.WithError(err).Fatalln("cannot parse TASKSRV endpoint")
+		logrus.WithError(err).Fatalln("cannot parse API_URL endpoint")
 	}
-	// host, port, err := net.SplitHostPort(parsed.Host)
-	// if err != nil {
-	// 	log.WithError(err).Fatalln("net.SplitHostPort")
-	// }
 
 	if parsed.Scheme == "" {
 		parsed.Scheme = "http"
@@ -184,9 +165,5 @@ func tasksrvURL(tasksrv string) (parsedURL, host string) {
 		parsed.Path = "/tasks"
 	}
 
-	// if _, _, err := net.SplitHostPort(parsed.Host); err != nil {
-	// 	parsed.Host = net.JoinHostPort(parsed.Host, parsed)
-	// }
-
-	return parsed.String(), parsed.Host
+	return parsed.String()
 }

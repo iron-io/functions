@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 )
 
-func handleAppUpdate(c *gin.Context) {
+func (s *Server) handleAppUpdate(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
@@ -28,15 +29,33 @@ func handleAppUpdate(c *gin.Context) {
 		return
 	}
 
-	app, err := Api.Datastore.StoreApp(wapp.App)
-	if err != nil {
-		log.WithError(err).Debug(models.ErrAppsCreate)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
+	if wapp.App.Name != "" {
+		log.Debug(models.ErrAppsNameImmutable)
+		c.JSON(http.StatusBadRequest, simpleError(models.ErrAppsNameImmutable))
 		return
 	}
 
-	wapp.App = app
+	wapp.App.Name = c.MustGet(api.AppName).(string)
 
-	// Nothing to update right now in apps
-	c.JSON(http.StatusOK, appResponse{"App successfully updated", wapp.App})
+	err = s.FireAfterAppUpdate(ctx, wapp.App)
+	if err != nil {
+		log.WithError(err).Error(models.ErrAppsUpdate)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
+		return
+	}
+
+	app, err := s.Datastore.UpdateApp(ctx, wapp.App)
+	if err != nil {
+		handleErrorResponse(c, err)
+		return
+	}
+
+	err = s.FireAfterAppUpdate(ctx, wapp.App)
+	if err != nil {
+		log.WithError(err).Error(models.ErrAppsUpdate)
+		c.JSON(http.StatusInternalServerError, simpleError(ErrInternalServerError))
+		return
+	}
+
+	c.JSON(http.StatusOK, appResponse{"App successfully updated", app})
 }

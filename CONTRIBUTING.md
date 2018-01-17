@@ -1,36 +1,72 @@
-## Contributing
+# Contributing to IronFunctions
+
+We welcome all contributions!
+
+## How to contribute
+
+* Fork the repo
+* Fix an issue or create an issue and fix it
+* Create a Pull Request that fixes the issue
+* Sign the CLA
+* Good Job! Thanks for being awesome!
+
+## Documentation
+
+When creating a Pull Request, make sure that you also update the documentation
+accordingly.
+
+Most of the times, when making some behavior more explicit or adding a feature,
+a documentation update is necessary.
+
+You will either update a file inside docs/ or create one. Prefer the former over
+the latter. If you are unsure, do not hesitate in open the PR with a comment
+asking for suggestions on how to address the documentation part.
+
+## How to build and get up and running
 
 ### Build
 
-```
-make all
-```
+The first time after you fork or after dependencies get updated, run:
 
-### Run Functions service
-
-First let's start our IronFunctions API
-
-##### Run in Docker
-
-```
-make run-docker
+```sh
+make dep
 ```
 
-will start Functions using an embedded `Bolt` database running on `:8080`. 
+Then after every change, run:
 
-##### Running on Metal (recommended only on Linux)
-
+```sh
+make build
 ```
+
+to build the `functions` binary.
+
+### Run
+
+```sh
 ./functions
 ```
 
-will start Functions with a default of 1 async runner
+will start IronFunctions using an embedded `Bolt` database running on port `8080`.
 
-### Contributing
+### Test
 
-##### Code
-* Fork the repo
-* Fix an issue
-* Create a Pull Request
-* Sign the CLA
-* Good Job! Thanks for being awesome!
+```sh
+make test
+```
+
+#### Run in Docker
+
+```sh
+make docker-run
+```
+
+will start IronFunctions inside a Docker container.
+
+## Tests in Docker
+
+```sh
+make docker-test
+
+```
+
+will test IronFunctions inside a Docker container.

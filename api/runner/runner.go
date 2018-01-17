@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/iron-io/functions/api/runner/task"
 	"github.com/iron-io/runner/common"
 	"github.com/iron-io/runner/drivers"
 	driverscommon "github.com/iron-io/runner/drivers"
@@ -22,25 +22,16 @@ import (
 	"github.com/iron-io/runner/drivers/mock"
 )
 
-type Config struct {
-	ID      string
-	Image   string
-	Timeout time.Duration
-	AppName string
-	Memory  uint64
-	Env     map[string]string
-	Stdin   io.Reader
-	Stdout  io.Writer
-	Stderr  io.Writer
-}
-
 type Runner struct {
 	driver       drivers.Driver
 	taskQueue    chan *containerTask
-	ml           Logger
+	mlog         MetricLogger
+	flog         FuncLogger
 	availableMem int64
 	usedMem      int64
 	usedMemMutex sync.RWMutex
+
+	stats
 }
 
 var (
@@ -50,9 +41,8 @@ var (
 	WaitMemoryTimeout = 10 * time.Second
 )
 
-func New(metricLogger Logger) (*Runner, error) {
-	// TODO: Is this really required for Titan's driver?
-	// Can we remove it?
+func New(ctx context.Context, flog FuncLogger, mlog MetricLogger) (*Runner, error) {
+	// TODO: Is this really required for the container drivers? Can we remove it?
 	env := common.NewEnvironment(func(e *common.Environment) {})
 
 	// TODO: Create a drivers.New(runnerConfig) in Titan
@@ -64,12 +54,13 @@ func New(metricLogger Logger) (*Runner, error) {
 	r := &Runner{
 		driver:       driver,
 		taskQueue:    make(chan *containerTask, 100),
-		ml:           metricLogger,
+		flog:         flog,
+		mlog:         mlog,
 		availableMem: getAvailableMemory(),
 		usedMem:      0,
 	}
 
-	go r.queueHandler()
+	go r.queueHandler(ctx)
 
 	return r, nil
 }
@@ -78,49 +69,65 @@ func New(metricLogger Logger) (*Runner, error) {
 // If there's memory then send signal to the task to proceed.
 // If there's not available memory to run the task it waits
 // If the task waits for more than X seconds it timeouts
-func (r *Runner) queueHandler() {
-	var task *containerTask
-	var waitStart time.Time
-	var waitTime time.Duration
-	var timedOut bool
+func (r *Runner) queueHandler(ctx context.Context) {
+consumeQueue:
 	for {
 		select {
-		case task = <-r.taskQueue:
-			waitStart = time.Now()
-			timedOut = false
+		case task := <-r.taskQueue:
+			r.handleTask(task)
+		case <-ctx.Done():
+			break consumeQueue
 		}
-
-		// Loop waiting for available memory
-		canRun := r.checkRequiredMem(task.cfg.Memory)
-		for ; !canRun; canRun = r.checkRequiredMem(task.cfg.Memory) {
-			waitTime = time.Since(waitStart)
-			if waitTime > WaitMemoryTimeout {
-				timedOut = true
-				break
-			}
-			time.Sleep(time.Microsecond)
-		}
-
-		metricBaseName := fmt.Sprintf("run.%s.", task.cfg.AppName)
-		r.ml.LogTime(task.ctx, metricBaseName+"wait_time", waitTime)
-		r.ml.LogTime(task.ctx, "run.wait_time", waitTime)
-
-		if timedOut {
-			// Send to a signal to this task saying it cannot run
-			r.ml.LogCount(task.ctx, metricBaseName+"timeout", 1)
-			task.canRun <- false
-			continue
-		}
-
-		// Send a signal to this task saying it can run
-		task.canRun <- true
 	}
+
+	// consume remainders
+	for len(r.taskQueue) > 0 {
+		r.handleTask(<-r.taskQueue)
+	}
+}
+
+func (r *Runner) handleTask(task *containerTask) {
+	waitStart := time.Now()
+
+	var waitTime time.Duration
+	var timedOut bool
+
+	// Loop waiting for available memory
+	for !r.checkRequiredMem(task.cfg.Memory) {
+		waitTime = time.Since(waitStart)
+		if waitTime > WaitMemoryTimeout {
+			timedOut = true
+			break
+		}
+		time.Sleep(time.Microsecond)
+	}
+
+	metricBaseName := fmt.Sprintf("run.%s.", task.cfg.AppName)
+	r.mlog.LogTime(task.ctx, metricBaseName+"wait_time", waitTime)
+	r.mlog.LogTime(task.ctx, "run.wait_time", waitTime)
+
+	if timedOut {
+		// Send to a signal to this task saying it cannot run
+		r.mlog.LogCount(task.ctx, metricBaseName+"timeout", 1)
+		task.canRun <- false
+		return
+	}
+
+	// Send a signal to this task saying it can run
+	task.canRun <- true
+}
+
+func (r *Runner) hasAsyncAvailableMemory() bool {
+	r.usedMemMutex.RLock()
+	defer r.usedMemMutex.RUnlock()
+	// reserve at least half of the memory for sync
+	return (r.availableMem/2)-r.usedMem > 0
 }
 
 func (r *Runner) checkRequiredMem(req uint64) bool {
 	r.usedMemMutex.RLock()
 	defer r.usedMemMutex.RUnlock()
-	return r.availableMem-r.usedMem/int64(req)*1024*1024 > 0
+	return (r.availableMem-r.usedMem)/int64(req)*1024*1024 > 0
 }
 
 func (r *Runner) addUsedMem(used int64) {
@@ -138,7 +145,7 @@ func (r *Runner) checkMemAndUse(req uint64) bool {
 
 	used := int64(req) * 1024 * 1024
 
-	if r.availableMem-r.usedMem/used < 0 {
+	if (r.availableMem-r.usedMem)/used < 0 {
 		return false
 	}
 
@@ -147,11 +154,16 @@ func (r *Runner) checkMemAndUse(req uint64) bool {
 	return true
 }
 
-func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error) {
+func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, error) {
 	var err error
 
 	if cfg.Memory == 0 {
 		cfg.Memory = 128
+	}
+
+	cfg.Stderr = r.flog.Writer(ctx, cfg.AppName, cfg.Path, cfg.Image, cfg.ID)
+	if cfg.Stdout == nil {
+		cfg.Stdout = cfg.Stderr
 	}
 
 	ctask := &containerTask{
@@ -161,7 +173,7 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 	}
 
 	metricBaseName := fmt.Sprintf("run.%s.", cfg.AppName)
-	r.ml.LogCount(ctx, metricBaseName+"requests", 1)
+	r.mlog.LogCount(ctx, metricBaseName+"requests", 1)
 
 	// Check if has enough available memory
 	// If available, use it
@@ -171,7 +183,7 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 		case r.taskQueue <- ctask:
 		default:
 			// If queue is full, return error
-			r.ml.LogCount(ctx, "queue.full", 1)
+			r.mlog.LogCount(ctx, "queue.full", 1)
 			return nil, ErrFullQueue
 		}
 
@@ -181,43 +193,47 @@ func (r *Runner) Run(ctx context.Context, cfg *Config) (drivers.RunResult, error
 			return nil, ErrTimeOutNoMemory
 		}
 	} else {
-		r.ml.LogTime(ctx, metricBaseName+"waittime", 0)
+		r.mlog.LogTime(ctx, metricBaseName+"waittime", 0)
 	}
+	defer r.addUsedMem(-1 * int64(cfg.Memory))
 
-	closer, err := r.driver.Prepare(ctx, ctask)
+	cookie, err := r.driver.Prepare(ctx, ctask)
 	if err != nil {
 		return nil, err
 	}
-	defer closer.Close()
+	defer cookie.Close()
 
 	metricStart := time.Now()
 
-	result, err := r.driver.Run(ctx, ctask)
+	result, err := cookie.Run(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	r.addUsedMem(-1 * int64(cfg.Memory))
-
 	if result.Status() == "success" {
-		r.ml.LogCount(ctx, metricBaseName+"succeeded", 1)
+		r.mlog.LogCount(ctx, metricBaseName+"succeeded", 1)
 	} else {
-		r.ml.LogCount(ctx, metricBaseName+"error", 1)
+		r.mlog.LogCount(ctx, metricBaseName+"error", 1)
 	}
 
 	metricElapsed := time.Since(metricStart)
-	r.ml.LogTime(ctx, metricBaseName+"time", metricElapsed)
-	r.ml.LogTime(ctx, "run.exec_time", metricElapsed)
+	r.mlog.LogTime(ctx, metricBaseName+"time", metricElapsed)
+	r.mlog.LogTime(ctx, "run.exec_time", metricElapsed)
 
 	return result, nil
 }
 
-func (r Runner) EnsureImageExists(ctx context.Context, cfg *Config) error {
+func (r Runner) EnsureImageExists(ctx context.Context, cfg *task.Config) error {
 	ctask := &containerTask{
 		cfg: cfg,
 	}
 
-	_, err := docker.CheckRegistry(ctask.Image(), ctask.DockerAuth())
+	auth, err := ctask.DockerAuth()
+	if err != nil {
+		return err
+	}
+
+	_, err = docker.CheckRegistry(ctask.Image(), auth)
 	return err
 }
 
@@ -249,6 +265,9 @@ func getAvailableMemory() int64 {
 				logrus.WithError(err).Fatal("Cannot get the proper information to. You must specify the maximum available memory by passing the -m command with docker run when starting the runner via docker, eg:  `docker run -m 2G ...`")
 			}
 		}
+	} else {
+		// This still lets 10-20 functions execute concurrently assuming a 2GB machine.
+		availableMemory = 2 * 1024 * 1024 * 1024
 	}
 
 	return int64(availableMemory)
