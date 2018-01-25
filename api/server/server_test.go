@@ -22,7 +22,7 @@ import (
 	"github.com/iron-io/functions/api/server/internal/routecache"
 )
 
-var tmpBolt = "/tmp/func_test_bolt.db"
+var tmpBolt = "/tmp/bolt_fn_server.db"
 
 type Suite []struct {
 	name              string

@@ -47,8 +47,8 @@ func teardown() {
 }
 
 func TestIntegration(t *testing.T) {
-	DB_FILE = "/tmp/bolt.db"
-	MQ_FILE = "/tmp/bolt_mq.db"
+	DB_FILE = "/tmp/bolt_fn_db.db"
+	MQ_FILE = "/tmp/bolt_fn_mq.db"
 	PORT = 8080
 	API_URL = "http://localhost:8080"
 	setupServer()
@@ -59,8 +59,8 @@ func TestIntegration(t *testing.T) {
 
 func TestIntegrationWithAuth(t *testing.T) {
 	viper.Set("jwt_auth_key", "test")
-	DB_FILE = "/tmp/bolt_auth.db"
-	MQ_FILE = "/tmp/bolt_auth_mq.db"
+	DB_FILE = "/tmp/bolt_fn_auth_db.db"
+	MQ_FILE = "/tmp/bolt_fn_auth_mq.db"
 	PORT = 8081
 	API_URL = "http://localhost:8081"
 	setupServer()
