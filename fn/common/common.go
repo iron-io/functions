@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/iron-io/functions/fn/langs"
-	functions "github.com/iron-io/functions_go"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,6 +13,10 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/iron-io/functions/fn/langs"
+	functions "github.com/iron-io/functions_go"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -30,6 +31,7 @@ var (
 )
 
 func SetEnv() {
+	viper.AutomaticEnv()
 	API_VERSION = "/v1"
 	SSL_SKIP_VERIFY = (os.Getenv("SSL_SKIP_VERIFY") == "true")
 	JWT_AUTH_KEY = viper.GetString("jwt_auth_key")
