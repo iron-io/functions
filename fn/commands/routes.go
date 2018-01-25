@@ -67,7 +67,7 @@ var routeFlags = []cli.Flag{
 		Usage: "route timeout (eg. 30s)",
 	},
 	cli.DurationFlag{
-		Name:  "idle_timeout",
+		Name:  "idle-timeout",
 		Usage: "hot func timeout (eg. 30s)",
 	},
 }
@@ -318,7 +318,7 @@ func routeWithFlags(c *cli.Context, rt *models.Route) {
 		rt.Timeout = &to
 	}
 
-	if t := c.Duration("idle_timeout"); t > 0 {
+	if t := c.Duration("idle-timeout"); t > 0 {
 		to := int64(t.Seconds())
 		rt.IDLETimeout = &to
 	}
