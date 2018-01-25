@@ -6,9 +6,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
-	"strconv"
 
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/fn/app"
@@ -97,15 +97,15 @@ func testIntegration(t *testing.T) {
 	}
 
 	routeConfig := models.Route{
-		Path: "/new-route",
-		JwtKey: "route_key",
-		Image: "iron/hello",
-		Memory: 72,
-		Type: "sync",
-		Format: "http",
+		Path:           "/new-route",
+		JwtKey:         "route_key",
+		Image:          "iron/hello",
+		Memory:         72,
+		Type:           "sync",
+		Format:         "http",
 		MaxConcurrency: 15,
-		Timeout: 65,
-		IdleTimeout: 55}
+		Timeout:        65,
+		IdleTimeout:    55}
 
 	// Test create route
 
