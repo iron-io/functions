@@ -7,11 +7,14 @@ dep:
 build:
 	go build -o functions
 
-test:
+clean-db:
+	rm -f /tmp/bolt_fn_*.db
+
+test: clean-db
 	go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn)
 	cd fn && $(MAKE) test
 
-test-tag:
+test-tag: clean-db
 	go test -v $(shell go list ./... | grep -v vendor | grep -v examples | grep -v tool | grep -v fn) -tags=$(TAG)
 
 test-datastore:

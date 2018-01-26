@@ -43,6 +43,7 @@ type Funcfile struct {
 	Memory         *int64            `yaml:"memory,omitempty" json:"memory,omitempty"`
 	Format         *string           `yaml:"format,omitempty" json:"format,omitempty"`
 	Timeout        *time.Duration    `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	IDLETimeout    *time.Duration    `yaml:"idle_timeout,omitempty" json:"idle_timeout,omitempty"`
 	Headers        map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
 	Config         map[string]string `yaml:"config,omitempty" json:"config,omitempty"`
 	Build          []string          `yaml:"build,omitempty" json:"build,omitempty"`

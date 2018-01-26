@@ -8,7 +8,7 @@ import (
 	"github.com/iron-io/functions/api/datastore/internal/datastoretest"
 )
 
-const tmpBolt = "/tmp/func_test_bolt.db"
+const tmpBolt = "/tmp/bolt_fn_test.db"
 
 func TestDatastore(t *testing.T) {
 	u, err := url.Parse("bolt://" + tmpBolt)
