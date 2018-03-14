@@ -11,7 +11,7 @@
 
 1. Start IronFunction in the Kubernetes cluster:
 ```ShellSession
-$ cd docs/operating
+$ cd docs/operating/kubernetes
 $ kubectl create -f kubernetes-quick
 ```
 
