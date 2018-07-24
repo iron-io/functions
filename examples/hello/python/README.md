@@ -1,6 +1,6 @@
 ## Quick Example for a Python Function (4 minutes)
 
-This example will show you how to test and deploy Go (Golang) code to IronFunctions.
+This example will show you how to test and deploy Python code to IronFunctions.
 
 ### 1. Prepare the `func.yaml` file:
 
