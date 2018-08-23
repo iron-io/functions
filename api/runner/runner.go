@@ -13,13 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/c0ze/runner/common"
+	"github.com/c0ze/runner/drivers"
+	"github.com/c0ze/runner/drivers/docker"
+	"github.com/c0ze/runner/drivers/mock"
 	"github.com/iron-io/functions/api/runner/task"
-	"github.com/iron-io/runner/common"
-	"github.com/iron-io/runner/drivers"
-	driverscommon "github.com/iron-io/runner/drivers"
-	"github.com/iron-io/runner/drivers/docker"
-	"github.com/iron-io/runner/drivers/mock"
+	"github.com/sirupsen/logrus"
 )
 
 type Runner struct {
@@ -46,7 +45,7 @@ func New(ctx context.Context, flog FuncLogger, mlog MetricLogger) (*Runner, erro
 	env := common.NewEnvironment(func(e *common.Environment) {})
 
 	// TODO: Create a drivers.New(runnerConfig) in Titan
-	driver, err := selectDriver("docker", env, &driverscommon.Config{})
+	driver, err := selectDriver("docker", env, &drivers.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -224,24 +223,14 @@ func (r *Runner) Run(ctx context.Context, cfg *task.Config) (drivers.RunResult, 
 }
 
 func (r Runner) EnsureImageExists(ctx context.Context, cfg *task.Config) error {
-	ctask := &containerTask{
-		cfg: cfg,
-	}
-
-	auth, err := ctask.DockerAuth()
-	if err != nil {
-		return err
-	}
-
-	_, err = docker.CheckRegistry(ctask.Image(), auth)
-	return err
+	return nil
 }
 
-func selectDriver(driver string, env *common.Environment, conf *driverscommon.Config) (drivers.Driver, error) {
+func selectDriver(driver string, env *common.Environment, conf *drivers.Config) (drivers.Driver, error) {
 	switch driver {
 	case "docker":
-		docker := docker.NewDocker(env, *conf)
-		return docker, nil
+		drvr := docker.NewDocker(env, *conf)
+		return drvr, nil
 	case "mock":
 		return mock.New(), nil
 	}

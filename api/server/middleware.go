@@ -5,9 +5,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/iron-io/functions/api/models"
+	"github.com/sirupsen/logrus"
 )
 
 // Middleware is the interface required for implementing functions middlewar

@@ -13,8 +13,8 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func setLogBuffer() *bytes.Buffer {

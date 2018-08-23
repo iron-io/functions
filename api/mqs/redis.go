@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/c0ze/runner/common"
 	"github.com/garyburd/redigo/redis"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/sirupsen/logrus"
 )
 
 type RedisMQ struct {

@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/c0ze/runner/common"
 	"github.com/google/btree"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/sirupsen/logrus"
 )
 
 type MemoryMQ struct {

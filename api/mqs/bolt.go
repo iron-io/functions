@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
+	"github.com/c0ze/runner/common"
 	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/sirupsen/logrus"
 )
 
 type BoltDbMQ struct {

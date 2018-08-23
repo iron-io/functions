@@ -12,10 +12,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
 	"github.com/iron-io/functions/api/datastore/internal/datastoreutil"
 	"github.com/iron-io/functions/api/models"
+	"github.com/sirupsen/logrus"
 )
 
 type BoltDatastore struct {
