@@ -1,0 +1,10 @@
+{"route":{
+    "app_name": "myapp",
+    "path": "/hothello",
+    "image": "USERNAME/hchttp",
+    "memory": 64,
+    "type": "sync",
+    "config": null,
+    "format": "http"
+  }}
+  
