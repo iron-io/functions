@@ -13,8 +13,10 @@ vendor/
 /gateway
 /functions
 /functions-alpine
+/functions.exe
 bolt.db
 .glide/
+/fnctl
 
 private.sh
 .env

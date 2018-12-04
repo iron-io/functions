@@ -3,13 +3,15 @@ package server
 import (
 	"context"
 	"net/http"
+	"path"
 
 	"github.com/gin-gonic/gin"
+	"github.com/iron-io/functions/api"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/runner/common"
 )
 
-func handleRouteUpdate(c *gin.Context) {
+func (s *Server) handleRouteUpdate(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
 	log := common.Logger(ctx)
 
@@ -23,26 +25,44 @@ func handleRouteUpdate(c *gin.Context) {
 	}
 
 	if wroute.Route == nil {
-		log.WithError(err).Error(models.ErrInvalidJSON)
+		log.Debug(models.ErrRoutesMissingNew)
 		c.JSON(http.StatusBadRequest, simpleError(models.ErrRoutesMissingNew))
 		return
 	}
 
-	wroute.Route.AppName = c.Param("app")
-	wroute.Route.Path = c.Param("route")
-
-	if err := wroute.Validate(); err != nil {
-		log.Error(err)
-		c.JSON(http.StatusInternalServerError, simpleError(err))
+	if wroute.Route.Path != "" {
+		log.Debug(models.ErrRoutesPathImmutable)
+		c.JSON(http.StatusBadRequest, simpleError(models.ErrRoutesPathImmutable))
 		return
 	}
 
-	_, err = Api.Datastore.StoreRoute(wroute.Route)
+	wroute.Route.AppName = c.MustGet(api.AppName).(string)
+	wroute.Route.Path = path.Clean(c.MustGet(api.Path).(string))
+
+	if err := wroute.Validate(true); err != nil {
+		log.WithError(err).Debug(models.ErrRoutesUpdate)
+		c.JSON(http.StatusBadRequest, simpleError(err))
+		return
+	}
+
+	if wroute.Route.Image != "" {
+		// err = s.Runner.EnsureImageExists(ctx, &task.Config{
+		// 	Image: wroute.Route.Image,
+		// })
+		// if err != nil {
+		// 	log.WithError(err).Debug(models.ErrRoutesUpdate)
+		// 	c.JSON(http.StatusBadRequest, simpleError(models.ErrUsableImage))
+		// 	return
+		// }
+	}
+
+	route, err := s.Datastore.UpdateRoute(ctx, wroute.Route)
 	if err != nil {
-		log.WithError(err).Debug(models.ErrAppsCreate)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrAppsCreate))
+		handleErrorResponse(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, routeResponse{"Route successfully updated", wroute.Route})
+	s.cacherefresh(route)
+
+	c.JSON(http.StatusOK, routeResponse{"Route successfully updated", route})
 }

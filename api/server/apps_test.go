@@ -12,6 +12,7 @@ import (
 	"github.com/iron-io/functions/api/datastore"
 	"github.com/iron-io/functions/api/models"
 	"github.com/iron-io/functions/api/mqs"
+	"github.com/iron-io/functions/api/runner/task"
 )
 
 func setLogBuffer() *bytes.Buffer {
@@ -24,30 +25,42 @@ func setLogBuffer() *bytes.Buffer {
 	return &buf
 }
 
+func mockTasksConduit() chan task.Request {
+	tasks := make(chan task.Request)
+	go func() {
+		for range tasks {
+		}
+	}()
+	return tasks
+}
+
 func TestAppCreate(t *testing.T) {
 	buf := setLogBuffer()
-	New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	router := testRouter(s)
-
+	tasks := mockTasksConduit()
+	defer close(tasks)
 	for i, test := range []struct {
+		mock          models.Datastore
 		path          string
 		body          string
 		expectedCode  int
 		expectedError error
 	}{
 		// errors
-		{"/v1/apps", ``, http.StatusBadRequest, models.ErrInvalidJSON},
-		{"/v1/apps", `{}`, http.StatusBadRequest, models.ErrAppsMissingNew},
-		{"/v1/apps", `{ "name": "Test" }`, http.StatusBadRequest, models.ErrAppsMissingNew},
-		{"/v1/apps", `{ "app": { "name": "" } }`, http.StatusInternalServerError, models.ErrAppsValidationMissingName},
-		{"/v1/apps", `{ "app": { "name": "1234567890123456789012345678901" } }`, http.StatusInternalServerError, models.ErrAppsValidationTooLongName},
-		{"/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
-		{"/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
+		{datastore.NewMock(), "/v1/apps", ``, http.StatusBadRequest, models.ErrInvalidJSON},
+		{datastore.NewMock(), "/v1/apps", `{}`, http.StatusBadRequest, models.ErrAppsMissingNew},
+		{datastore.NewMock(), "/v1/apps", `{ "name": "Test" }`, http.StatusBadRequest, models.ErrAppsMissingNew},
+		{datastore.NewMock(), "/v1/apps", `{ "app": { "name": "" } }`, http.StatusInternalServerError, models.ErrAppsValidationMissingName},
+		{datastore.NewMock(), "/v1/apps", `{ "app": { "name": "1234567890123456789012345678901" } }`, http.StatusInternalServerError, models.ErrAppsValidationTooLongName},
+		{datastore.NewMock(), "/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
+		{datastore.NewMock(), "/v1/apps", `{ "app": { "name": "&&%@!#$#@$" } }`, http.StatusInternalServerError, models.ErrAppsValidationInvalidName},
 
 		// success
-		{"/v1/apps", `{ "app": { "name": "teste" } }`, http.StatusCreated, nil},
+		{datastore.NewMock(), "/v1/apps", `{ "app": { "name": "teste" } }`, http.StatusOK, nil},
 	} {
+		rnr, cancel := testRunner(t)
+		srv := testServer(test.mock, &mqs.Mock{}, rnr, tasks)
+		router := srv.Router
+
 		body := bytes.NewBuffer([]byte(test.body))
 		_, rec := routerRequest(t, router, "POST", test.path, body)
 
@@ -66,24 +79,33 @@ func TestAppCreate(t *testing.T) {
 					i, test.expectedError.Error())
 			}
 		}
+		cancel()
 	}
 }
 
 func TestAppDelete(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	router := testRouter(s)
+	tasks := mockTasksConduit()
+	defer close(tasks)
 
 	for i, test := range []struct {
+		ds            models.Datastore
 		path          string
 		body          string
 		expectedCode  int
 		expectedError error
 	}{
-		{"/v1/apps", "", http.StatusNotFound, nil},
-		{"/v1/apps/myapp", "", http.StatusOK, nil},
+		{datastore.NewMock(), "/v1/apps/myapp", "", http.StatusNotFound, nil},
+		{datastore.NewMockInit(
+			[]*models.App{{
+				Name: "myapp",
+			}},nil,
+		), "/v1/apps/myapp", "", http.StatusOK, nil},
 	} {
-		_, rec := routerRequest(t, router, "DELETE", test.path, nil)
+		rnr, cancel := testRunner(t)
+		srv := testServer(test.ds, &mqs.Mock{}, rnr, tasks)
+
+		_, rec := routerRequest(t, srv.Router, "DELETE", test.path, nil)
 
 		if rec.Code != test.expectedCode {
 			t.Log(buf.String())
@@ -100,13 +122,18 @@ func TestAppDelete(t *testing.T) {
 					i, test.expectedError.Error())
 			}
 		}
+		cancel()
 	}
 }
 
 func TestAppList(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	router := testRouter(s)
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
+	rnr, cancel := testRunner(t)
+	defer cancel()
+	srv := testServer(datastore.NewMock(), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -116,7 +143,7 @@ func TestAppList(t *testing.T) {
 	}{
 		{"/v1/apps", "", http.StatusOK, nil},
 	} {
-		_, rec := routerRequest(t, router, "GET", test.path, nil)
+		_, rec := routerRequest(t, srv.Router, "GET", test.path, nil)
 
 		if rec.Code != test.expectedCode {
 			t.Log(buf.String())
@@ -138,8 +165,12 @@ func TestAppList(t *testing.T) {
 
 func TestAppGet(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	router := testRouter(s)
+	tasks := mockTasksConduit()
+	defer close(tasks)
+
+	rnr, cancel := testRunner(t)
+	defer cancel()
+	srv := testServer(datastore.NewMock(), &mqs.Mock{}, rnr, tasks)
 
 	for i, test := range []struct {
 		path          string
@@ -149,7 +180,7 @@ func TestAppGet(t *testing.T) {
 	}{
 		{"/v1/apps/myapp", "", http.StatusNotFound, nil},
 	} {
-		_, rec := routerRequest(t, router, "GET", test.path, nil)
+		_, rec := routerRequest(t, srv.Router, "GET", test.path, nil)
 
 		if rec.Code != test.expectedCode {
 			t.Log(buf.String())
@@ -171,23 +202,38 @@ func TestAppGet(t *testing.T) {
 
 func TestAppUpdate(t *testing.T) {
 	buf := setLogBuffer()
-	s := New(&datastore.Mock{}, &mqs.Mock{}, testRunner(t))
-	router := testRouter(s)
+	tasks := mockTasksConduit()
+	defer close(tasks)
 
 	for i, test := range []struct {
+		mock          models.Datastore
 		path          string
 		body          string
 		expectedCode  int
 		expectedError error
 	}{
 		// errors
-		{"/v1/apps/myapp", ``, http.StatusBadRequest, models.ErrInvalidJSON},
+		{datastore.NewMock(), "/v1/apps/myapp", ``, http.StatusBadRequest, models.ErrInvalidJSON},
 
 		// success
-		{"/v1/apps/myapp", `{ "app": { "config": { "test": "1" } } }`, http.StatusOK, nil},
+		{datastore.NewMockInit(
+			[]*models.App{{
+				Name: "myapp",
+			}}, nil,
+		), "/v1/apps/myapp", `{ "app": { "config": { "test": "1" } } }`, http.StatusOK, nil},
+
+		// Addresses #380
+		{datastore.NewMockInit(
+			[]*models.App{{
+				Name: "myapp",
+			}}, nil,
+		), "/v1/apps/myapp", `{ "app": { "name": "othername" } }`, http.StatusBadRequest, nil},
 	} {
+		rnr, cancel := testRunner(t)
+		srv := testServer(test.mock, &mqs.Mock{}, rnr, tasks)
+
 		body := bytes.NewBuffer([]byte(test.body))
-		_, rec := routerRequest(t, router, "PUT", test.path, body)
+		_, rec := routerRequest(t, srv.Router, "PATCH", test.path, body)
 
 		if rec.Code != test.expectedCode {
 			t.Log(buf.String())
@@ -204,5 +250,7 @@ func TestAppUpdate(t *testing.T) {
 					i, test.expectedError.Error())
 			}
 		}
+
+		cancel()
 	}
 }

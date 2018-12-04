@@ -4,25 +4,16 @@ require 'http'
 require 'fileutils'
 require 'openssl'
 
-require_relative '../test/utils.rb'
+require_relative 'utils.rb'
 
-gist_id = ENV['GIST_ID']
-gist_url = "https://api.github.com/gists/#{gist_id}"
-puts gist_url
-HTTP.auth("Token #{ENV['GITHUB_TOKEN']}")
-    .patch(gist_url, :json => {
-        "files"=> {
-            "swagger.yml" => {
-                "content" => File.read('../docs/swagger.yml')
-            }
-        }
-    })
-
-swaggerUrl = "https://gist.githubusercontent.com/#{ENV['GITHUB_USERNAME']}/#{gist_id}/raw/"
-# swaggerRaw = open(swaggerUrl){|f| f.read}
+swaggerUrl = "https://raw.githubusercontent.com/iron-io/functions/master/docs/swagger.yml"
 spec = YAML.load(open(swaggerUrl))
 version = spec['info']['version']
 puts "VERSION: #{version}"
+
+# Can pass in a particular language to only do that one
+only = ARGV[0]
+puts "only building: #{only}" if only
 
 # Keep getting cert errors??  Had to do this to work around it:
 ctx = OpenSSL::SSL::SSLContext.new
@@ -31,7 +22,7 @@ ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
 def clone(lang)
   Dir.chdir 'tmp'
   ldir = "functions_#{lang}"
-  if !Dir.exists? ldir
+  if !Dir.exist? ldir
     cmd = "git clone https://github.com/iron-io/#{ldir}"
     stream_exec(cmd)
   else
@@ -44,7 +35,12 @@ def clone(lang)
 end
 
 FileUtils.mkdir_p 'tmp'
-languages = JSON.parse(HTTP.get("https://generator.swagger.io/api/gen/clients", ssl_context: ctx).body)
+languages = nil
+if only
+  languages = [only]
+else 
+  languages = JSON.parse(HTTP.get("https://generator.swagger.io/api/gen/clients", ssl_context: ctx).body)
+end
 languages.each do |l|
   puts l
   lshort = l
@@ -58,7 +54,7 @@ languages.each do |l|
   deploy = []
   case l
   when 'go'
-    clone(lshort) 
+    clone(lshort)
     glob_pattern = ['functions', "**", "*.go"]
     copy_dir = "."
     options['packageName'] = 'functions'
@@ -82,24 +78,31 @@ languages.each do |l|
     # copy_dir = "javascript-client/."
     clone(lshort)
     options['projectName'] = "iron_functions"
-    deploy << "npm publish"    
+    deploy << "npm publish"
    else
     puts "Skipping #{l}"
     next
   end
   p options
-  gen = JSON.parse(HTTP.post("https://generator.swagger.io/api/gen/clients/#{l}",
-  json: {
-    swaggerUrl: swaggerUrl,
-    options: options,
-  },
-  ssl_context: ctx).body)
-  p gen
+  if l == 'go'
+    puts "SKIPPING GO, it's manual for now."
+    # This is using https://goswagger.io/ instead
+    # TODO: run this build command instead: this works if run manually
+    # dep ensure --update && docker run --rm -it  -v $HOME/dev/go:/go -w /go/src/github.com/iron-io/functions_go quay.io/goswagger/swagger generate client -f https://raw.githubusercontent.com/iron-io/functions/master/docs/swagger.yml -A functions
+  else
+    gen = JSON.parse(HTTP.post("https://generator.swagger.io/api/gen/clients/#{l}",
+    json: {
+      swaggerUrl: swaggerUrl,
+      options: options,
+    },
+    ssl_context: ctx).body)
+    p gen
 
-  lv = "#{lshort}-#{version}"
-  zipfile = "tmp/#{lv}.zip"
-  stream_exec "curl -o #{zipfile} #{gen['link']} -k"
-  stream_exec "unzip -o #{zipfile} -d tmp/#{lv}"
+    lv = "#{lshort}-#{version}"
+    zipfile = "tmp/#{lv}.zip"
+    stream_exec "curl -o #{zipfile} #{gen['link']} -k"
+    stream_exec "unzip -o #{zipfile} -d tmp/#{lv}"
+  end
 
   # delete the skip_files
   skip_files.each do |sf|
@@ -117,7 +120,7 @@ languages.each do |l|
   destdir = "tmp/functions_#{lshort}"
   puts "Trying cp", "tmp/#{lv}/#{l}-client/#{copy_dir}", destdir
   FileUtils.cp_r("tmp/#{lv}/#{l}-client/#{copy_dir}", destdir)
-  # Write a version file, this ensures there's always a change. 
+  # Write a version file, this ensures there's always a change.
   File.open("#{destdir}/VERSION", 'w') { |file| file.write(version) }
 
   # Commit and push
@@ -125,7 +128,11 @@ languages.each do |l|
     Dir.chdir("tmp/functions_#{lshort}")
     stream_exec "git add ."
     stream_exec "git commit -am \"Updated to api version #{version}\""
-    stream_exec "git tag -a #{version} -m \"Version #{version}\""
+    begin
+      stream_exec "git tag -a #{version} -m \"Version #{version}\""
+    rescue => ex 
+      puts "WARNING: Tag #{version} already exists."
+    end
     stream_exec "git push --follow-tags"
     deploy.each do |d|
       stream_exec d
@@ -135,7 +142,7 @@ languages.each do |l|
     if ex.last_line.include?("nothing to commit") || ex.last_line.include?("already exists") || ex.last_line.include?("no changes added to commit")
        # ignore this
        puts "Ignoring error"
-    else 
+    else
        raise ex
     end
   end
@@ -146,5 +153,5 @@ end
 # Uncomment the following lines if we start using the Go lib
 # Dir.chdir("../")
 # stream_exec "glide up"
-Dir.chdir("../test/")
+Dir.chdir("../tests/")
 stream_exec "bundle update"

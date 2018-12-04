@@ -3,34 +3,23 @@ package server
 import (
 	"context"
 	"net/http"
+	"path"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"github.com/iron-io/functions/api/models"
-	"github.com/iron-io/runner/common"
+	"github.com/iron-io/functions/api"
 )
 
-func handleRouteGet(c *gin.Context) {
+func (s *Server) handleRouteGet(c *gin.Context) {
 	ctx := c.MustGet("ctx").(context.Context)
-	log := common.Logger(ctx)
 
-	appName := c.Param("app")
-	routePath := c.Param("route")
+	appName := c.MustGet(api.AppName).(string)
+	routePath := path.Clean(c.MustGet(api.Path).(string))
 
-	route, err := Api.Datastore.GetRoute(appName, routePath)
+	route, err := s.Datastore.GetRoute(ctx, appName, routePath)
 	if err != nil {
-		log.WithError(err).Error(models.ErrRoutesGet)
-		c.JSON(http.StatusInternalServerError, simpleError(models.ErrRoutesGet))
+		handleErrorResponse(c, err)
 		return
 	}
-
-	if route == nil {
-		log.Error(models.ErrRoutesNotFound)
-		c.JSON(http.StatusNotFound, simpleError(models.ErrRoutesNotFound))
-		return
-	}
-
-	log.WithFields(logrus.Fields{"route": route}).Debug("Got route")
 
 	c.JSON(http.StatusOK, routeResponse{"Successfully loaded route", route})
 }

@@ -9,16 +9,18 @@ import (
 	"time"
 
 	"github.com/iron-io/functions/api/models"
+	"github.com/iron-io/functions/api/runner/task"
 )
 
 func TestRunnerHello(t *testing.T) {
 	buf := setLogBuffer()
-	runner, err := New(NewMetricLogger())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	runner, err := New(ctx, NewFuncLogger(), NewMetricLogger())
 	if err != nil {
 		t.Fatalf("Test error during New() - %s", err)
 	}
-
-	ctx := context.Background()
 
 	for i, test := range []struct {
 		route          *models.Route
@@ -31,10 +33,10 @@ func TestRunnerHello(t *testing.T) {
 		{&models.Route{Image: "iron/hello"}, `{"name": "test"}`, "success", "Hello test!", ""},
 	} {
 		var stdout, stderr bytes.Buffer
-		cfg := &Config{
+		cfg := &task.Config{
 			ID:      fmt.Sprintf("hello-%d-%d", i, time.Now().Unix()),
 			Image:   test.route.Image,
-			Timeout: 5 * time.Second,
+			Timeout: 10 * time.Second,
 			Stdin:   strings.NewReader(test.payload),
 			Stdout:  &stdout,
 			Stderr:  &stderr,
@@ -64,14 +66,14 @@ func TestRunnerHello(t *testing.T) {
 }
 
 func TestRunnerError(t *testing.T) {
-	t.Skip()
 	buf := setLogBuffer()
-	runner, err := New(NewMetricLogger())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	runner, err := New(ctx, NewFuncLogger(), NewMetricLogger())
 	if err != nil {
 		t.Fatalf("Test error during New() - %s", err)
 	}
-
-	ctx := context.Background()
 
 	for i, test := range []struct {
 		route          *models.Route
@@ -80,14 +82,14 @@ func TestRunnerError(t *testing.T) {
 		expectedOut    string
 		expectedErr    string
 	}{
-		{&models.Route{Image: "iron/error"}, ``, "error", "", "RuntimeError"},
-		{&models.Route{Image: "iron/error"}, `{"name": "test"}`, "error", "", "RuntimeError"},
+		{&models.Route{Image: "iron/error"}, ``, "error", "", ""},
+		{&models.Route{Image: "iron/error"}, `{"name": "test"}`, "error", "", ""},
 	} {
 		var stdout, stderr bytes.Buffer
-		cfg := &Config{
+		cfg := &task.Config{
 			ID:      fmt.Sprintf("err-%d-%d", i, time.Now().Unix()),
 			Image:   test.route.Image,
-			Timeout: 5 * time.Second,
+			Timeout: 10 * time.Second,
 			Stdin:   strings.NewReader(test.payload),
 			Stdout:  &stdout,
 			Stderr:  &stderr,

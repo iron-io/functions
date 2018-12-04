@@ -21,6 +21,13 @@ const (
 	TypeAsync = "async"
 )
 
+const (
+	// FormatDefault ...
+	FormatDefault = "default"
+	// FormatHTTP ...
+	FormatHTTP = "http"
+)
+
 /*Task task
 
 swagger:model Task
