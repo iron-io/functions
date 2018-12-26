@@ -126,7 +126,7 @@ func prepareMiddleware(ctx context.Context) gin.HandlerFunc {
 }
 
 func DefaultEnqueue(ctx context.Context, mq models.MessageQueue, task *models.Task) (*models.Task, error) {
-	ctx, _ = common.LoggerWithFields(ctx, logrus.Fields{"call_id": task.ID})
+	ctx, _ = common.LoggerWithFields(ctx, logrus.Fields{"task_id": task.ID})
 	return mq.Push(ctx, task)
 }
 
