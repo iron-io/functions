@@ -34,7 +34,6 @@ swagger:model Task
 */
 type Task struct {
 	NewTask
-
 	IDStatus
 
 	/* Time when task completed, whether it was successul or failed. Always in UTC.

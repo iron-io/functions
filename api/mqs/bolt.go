@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -20,6 +19,7 @@ import (
 type BoltDbMQ struct {
 	db     *bolt.DB
 	ticker *time.Ticker
+	reserveTimeout time.Duration
 }
 
 type BoltDbConfig struct {
@@ -52,7 +52,7 @@ func timeoutName(i int) []byte {
 	return []byte(fmt.Sprintf("functions_%d_timeout", i))
 }
 
-func NewBoltMQ(url *url.URL) (*BoltDbMQ, error) {
+func NewBoltMQ(url *url.URL, reserveTimeout time.Duration) (models.MessageQueue, error) {
 	dir := filepath.Dir(url.Path)
 	log := logrus.WithFields(logrus.Fields{"mq": url.Scheme, "dir": dir})
 	err := os.MkdirAll(dir, 0755)
@@ -95,6 +95,7 @@ func NewBoltMQ(url *url.URL) (*BoltDbMQ, error) {
 	mq := &BoltDbMQ{
 		ticker: ticker,
 		db:     db,
+		reserveTimeout: reserveTimeout,
 	}
 	mq.Start()
 	log.WithFields(logrus.Fields{"file": url.Path}).Debug("BoltDb initialized")
@@ -177,6 +178,10 @@ func (mq *BoltDbMQ) Start() {
 	}()
 }
 
+func (mq *BoltDbMQ) Close() {
+	mq.ticker.Stop()
+}
+
 // We insert a "reservation" at readyAt, and store the json blob at the msg
 // key. The timer loop plucks this out and puts it in the jobs bucket when the
 // time elapses. The value stored at the reservation key is the priority.
@@ -205,6 +210,9 @@ func (mq *BoltDbMQ) delayTask(job *models.Task) (*models.Task, error) {
 }
 
 func (mq *BoltDbMQ) Push(ctx context.Context, job *models.Task) (*models.Task, error) {
+	if err := validate(job); err != nil {
+		return nil, err
+	}
 	ctx, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	log.Println("Pushed to MQ")
 
@@ -290,7 +298,7 @@ func (mq *BoltDbMQ) Reserve(ctx context.Context) (*models.Task, error) {
 			return nil, err
 		}
 
-		reservationKey := resKey(key, time.Now().Add(time.Minute))
+		reservationKey := resKey(key, time.Now().Add(mq.reserveTimeout))
 		b = tx.Bucket(timeoutName(i))
 		// Reserve introduces 3 keys in timeout bucket:
 		// Save reservationKey -> Task to allow release
@@ -325,6 +333,9 @@ func (mq *BoltDbMQ) Reserve(ctx context.Context) (*models.Task, error) {
 }
 
 func (mq *BoltDbMQ) Delete(ctx context.Context, job *models.Task) error {
+	if err := validate(job); err != nil {
+		return err
+	}
 	_, log := common.LoggerWithFields(ctx, logrus.Fields{"call_id": job.ID})
 	defer log.Println("Deleted")
 
@@ -334,16 +345,17 @@ func (mq *BoltDbMQ) Delete(ctx context.Context, job *models.Task) error {
 
 		reservationKey := b.Get(k)
 		if reservationKey == nil {
-			return errors.New("Not found")
+			return models.ErrMQTaskNotReserved
 		}
-
-		for _, k := range [][]byte{k, timeoutToIDKey(reservationKey), reservationKey} {
-			err := b.Delete(k)
-			if err != nil {
-				return err
-			}
+		if err := b.Delete(k); err != nil {
+			return err
 		}
-
-		return nil
+		if b.Get(reservationKey) == nil {
+			return models.ErrMQTaskNotReserved
+		}
+		if err := b.Delete(reservationKey); err != nil {
+			return err
+		}
+		return b.Delete(timeoutToIDKey(reservationKey))
 	})
 }
