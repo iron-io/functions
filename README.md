@@ -305,8 +305,10 @@ Read more on [logging](docs/logging.md).
 
 ## Functions UI
 
+NOTE: latest version is broken, please use 0.0.2
+
 ```sh
-docker run --rm -it --link functions:api -p 4000:4000 -e "API_URL=http://api:8080" iron/functions-ui
+docker run --rm -it --link functions:api -p 4000:4000 -e "API_URL=http://api:8080" iron/functions-ui:0.0.2
 ```
 
 For more information, see: https://github.com/iron-io/functions-ui
