@@ -31,5 +31,5 @@ func (s *Server) handleRouteList(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, routesResponse{"Sucessfully listed routes", routes})
+	c.JSON(http.StatusOK, routesResponse{"Successfully listed routes", routes})
 }
